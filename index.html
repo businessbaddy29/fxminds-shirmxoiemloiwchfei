@@ -1,331 +1,480 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Slip</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Secure Slip — Advanced</title>
+
+<!-- External libs (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="" crossorigin="anonymous"></script>
+
 <style>
-    /* page base */
-    html,body { height: 100%; }
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        padding: 20px;
-        margin: 0;
-        min-height: 100vh;
-        color: #1b2b34;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        position: relative;
-        overflow-x: hidden;
-        background: transparent; /* actual image handled by pseudo-element */
-    }
+/* ===== Background & base styling (uses truck.avif from same folder) ===== */
+html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+body {
+  position: relative; min-height:100vh; padding:22px;
+  background: transparent;
+  color:#0d2433;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position: fixed; inset:0; z-index:-3;
+  background-image: url("truck.avif");
+  background-size: cover; background-position: center; transform: scale(1.03);
+  filter: blur(6px) brightness(.95);
+  animation: bgFade 900ms ease both;
+}
+body::after{
+  content:""; position: fixed; inset:0; z-index:-2;
+  background: linear-gradient(rgba(255,255,255,0.62), rgba(255,255,255,0.62));
+  animation: overlayFade 800ms ease both;
+}
 
-    /* --- background layer (uses your uploaded truck.avif) ---
-       placed with ::before so we can apply blur + fade independently */
-    body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -3;
-        background-image: url("truck.avif");
-        background-size: cover;
-        background-position: center;
-        transform: scale(1.03);
-        filter: blur(6px) brightness(0.95);
-        will-change: transform, filter, opacity;
-        animation: bgFadeIn 1000ms cubic-bezier(.2,.9,.3,1) both;
-    }
+/* Layout */
+.container { max-width:1100px; margin:0 auto; display:grid; grid-template-columns: 360px 1fr; gap:20px; align-items:start; }
+.card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); }
 
-    /* light overlay so cards/readables remain crisp */
-    body::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -2;
-        background: linear-gradient(rgba(255,255,255,0.62), rgba(255,255,255,0.62));
-        animation: overlayFadeIn 900ms ease both;
-    }
+/* Left panel (login / form) */
+.left { position:sticky; top:22px; height:fit-content; }
+.loginBox { margin-bottom:12px; }
+.loginBox h2 { margin:0 0 12px 0; color:#0b2330; font-size:20px; }
+.loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New", monospace; }
+.loginBox button { width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
 
-    /* Central slip display (kept monospace for alignment) */
-    .slip {
-        width: 80ch;
-        margin: 0 auto;
-        padding: 18px;
-        border-radius: 8px;
-        border: 1px solid rgba(30,40,50,0.08);
-        white-space: pre;
-        background: #ffffff;
-        color: #0b0b0b;
-        box-shadow: 0 8px 24px rgba(30,45,60,0.12);
-        font-family: "Courier New", Courier, monospace;
-        z-index: 2;
-        position: relative;
-        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) both;
-    }
+/* Form area */
+form label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
+form input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
+.form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
 
-    input {
-        width: 25ch;
-        font-family: "Courier New", Courier, monospace;
-        margin: 6px 0;
-        padding: 8px 10px;
-        border-radius: 6px;
-        border: 1px solid rgba(27,43,52,0.12);
-        background: rgba(255,255,255,0.9);
-        color: #102028;
-        outline: none;
-        transition: box-shadow .12s ease, border-color .12s ease;
-        z-index: 2;
-        position: relative;
-    }
-    input:focus {
-        box-shadow: 0 0 0 6px rgba(40,120,255,0.08);
-        border-color: rgba(40,120,255,0.9);
-        background: #fff;
-    }
+/* Right side: dashboard */
+.header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.h-title { font-size:20px; color:#072033; font-weight:700; }
+.controls { display:flex; gap:8px; align-items:center; }
 
-    label {
-        display: block;
-        color: #0f2330;
-        font-size: 14px;
-        z-index: 2;
-        position: relative;
-    }
+/* Date filter */
+.filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.filter input[type="date"] { padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,0.06); }
 
-    /* Form area styling: light translucent card so background visible but content crisp */
-    form {
-        padding: 20px;
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.92));
-        color: #0b2130;
-        box-shadow: 0 6px 18px rgba(20,30,40,0.06);
-        border: 1px solid rgba(10,18,26,0.04);
-        z-index: 2;
-        position: relative;
-        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) 120ms both;
-    }
+/* Stats */
+.stats { display:flex; gap:12px; margin:8px 0 12px 0; flex-wrap:wrap; }
+.stat { background: linear-gradient(180deg,#fff,#f7fbff); padding:10px 14px; border-radius:10px; border:1px solid rgba(10,18,30,0.03); font-weight:700; }
 
-    button {
-        margin-top: 10px;
-        padding: 8px 18px;
-        font-size: 16px;
-        font-weight: 700;
-        color: #ffffff;
-        background: linear-gradient(180deg, #1976d2, #0b63b3);
-        border: 1px solid rgba(6,30,80,0.12);
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0 6px 12px rgba(16,40,80,0.12);
-        z-index: 2;
-        position: relative;
-    }
-    button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 18px rgba(16,40,80,0.14);
-    }
+/* Records table */
+.table { width:100%; border-collapse:collapse; margin-top:8px; }
+.table th, .table td { padding:10px 8px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:14px; }
+.table th { color:#07304b; font-weight:700; }
 
-    .loginBox {
-        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,249,0.95));
-        padding: 30px;
-        border-radius: 12px;
-        width: 360px;
-        margin: 80px auto;
-        text-align: center;
-        border: 1px solid rgba(12,20,30,0.04);
-        box-shadow: 0 14px 40px rgba(30,45,60,0.06);
-        z-index: 2;
-        position: relative;
-        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) 80ms both;
-    }
-    .loginBox input {
-        width: 88%;
-        margin: 10px 0;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(20,30,40,0.06);
-        background: #fff;
-        color: #0f2330;
-        font-family: "Courier New", Courier, monospace;
-    }
+/* Slip output (hidden until print) */
+.slip { width: 80ch; margin: 14px auto; padding: 14px; border-radius:8px; white-space:pre; background:#fff; color:#000; font-family:"Courier New", monospace; box-shadow:0 10px 30px rgba(10,20,30,.08); }
 
-    #topBar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 15px;
-        z-index: 2;
-        position: relative;
-    }
-    #heading {
-        margin: 0;
-        color: #0b2330;
-        font-size: 20px;
-        font-weight: 600;
-    }
+/* Buttons */
+.btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+.btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
+.btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-    #logoutBtn {
-        padding: 6px 14px;
-        background: linear-gradient(180deg,#e14b3b,#c93b2a);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        cursor: pointer;
-        box-shadow: 0 6px 12px rgba(201,59,42,0.12);
-    }
-    #logoutBtn:hover {
-        transform: translateY(-1px);
-    }
+/* Footer helpers */
+.tools { display:flex; gap:8px; align-items:center; margin-top:10px; }
 
-    /* print behavior unchanged */
-    @media print {
-        body * { visibility: hidden; }
-        #slipOutput, #slipOutput * { visibility: visible; }
-        #slipOutput {
-            position: absolute;
-            left: 0;
-            top: 0;
-            margin: 0;
-            padding: 5mm;
-            border: none;
-            width: 100%;
-            background: white;
-            color: black;
-            box-shadow: none;
-        }
-    }
+/* Responsive */
+@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } }
 
-    @media (max-width: 720px) {
-        .slip { width: calc(100% - 40px); font-size: 13px; }
-        .loginBox { width: calc(100% - 40px); margin: 40px auto; padding: 20px; }
-    }
-
-    /* ==== Animations ==== */
-    @keyframes bgFadeIn {
-        0% { opacity: 0; transform: scale(1.06) translateY(6px); filter: blur(12px) brightness(0.9); }
-        100% { opacity: 1; transform: scale(1.03) translateY(0); filter: blur(6px) brightness(0.95); }
-    }
-    @keyframes overlayFadeIn {
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-    }
-    @keyframes cardPop {
-        0% { opacity: 0; transform: translateY(10px) scale(0.995); }
-        60% { opacity: 1; transform: translateY(-6px) scale(1.003); }
-        100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
+/* Animations */
+@keyframes bgFade { from{opacity:0; transform:scale(1.06);} to{opacity:1; transform:scale(1.03);} }
+@keyframes overlayFade { from{opacity:0} to{opacity:1} }
 </style>
 </head>
 <body>
 
-<div id="loginPage" class="loginBox">
-    <h2 style="margin-top:0;color:#0b2330">Login</h2>
-    <input type="text" id="username" placeholder="User ID"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <button onclick="checkLogin()">Login</button>
-    <p id="errorMsg" style="color:red; display:none;">Invalid credentials</p>
-</div>
-
-<div id="mainPage" style="display:none;">
-    <div id="topBar">
-        <h2 id="heading">Fill Vehicle Detail</h2>
-        <button id="logoutBtn" onclick="logout()">Logout</button>
+<div class="container">
+  <!-- LEFT: Login + Form -->
+  <div class="left">
+    <!-- Login box (kept as before) -->
+    <div class="card loginBox" id="loginBox">
+      <h2>Login</h2>
+      <input id="username" placeholder="User ID" />
+      <input id="password" placeholder="Password" type="password" />
+      <button id="loginBtn" class="btn btn-blue">Login</button>
+      <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
     </div>
 
-    <form id="slipForm">
-        <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME"></label>
+    <!-- Form -->
+    <div class="card" id="formCard">
+      <form id="slipForm">
+        <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
         <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS"></label>
-        <label>RST No: <input type="text" id="rstNo" value="101">   Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903"></label>
-        <label>Vehicle Type: <input type="text" id="vehicleType">   Party Name: <input type="text" id="partyName"></label>
-        <label>Address: <input type="text" id="address">   Item: <input type="text" id="item" value="20MM"></label>
-        <label>Gross: <input type="text" id="gross" value="70680 Kg">   Date: <input type="text" id="grossDate" value="29/07/2025">   Time: <input type="text" id="grossTime" value="19:37"></label>
-        <label>Tare: <input type="text" id="tare" value="15700 Kg">   Date: <input type="text" id="tareDate" value="29/07/2025">   Time: <input type="text" id="tareTime" value="19:37"></label>
+
+        <div class="form-grid">
+          <label>RST No: <input type="text" id="rstNo" value="101"></label>
+          <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+          <label>Party Name: <input type="text" id="partyName"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Address: <input type="text" id="address"></label>
+          <label>Item: <input type="text" id="item" value="20MM"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Gross: <input type="text" id="gross" value="70680 Kg"></label>
+          <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Tare: <input type="text" id="tare" value="15700 Kg"></label>
+          <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
+        </div>
+
         <label>Net: <input type="text" id="net" value="54980 Kg"></label>
         <label>Charges: Rs <input type="text" id="charges" value="0"></label>
         <label>Phone: <input type="text" id="phone" value="123456"></label>
-        <button type="button" onclick="generateSlip()">Print Slip</button>
-    </form>
 
-    <div id="slipOutput" class="slip" style="display:none;">
-        <pre id="slipPre" style="margin:0; white-space:pre;"></pre>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button type="button" id="printBtn" class="btn btn-blue">Print Slip & Save</button>
+          <button type="button" id="previewBtn" class="btn btn-ghost">Preview Slip</button>
+        </div>
+      </form>
     </div>
+  </div>
+
+  <!-- RIGHT: Dashboard / Records -->
+  <div>
+    <div class="card">
+      <div class="header-row">
+        <div>
+          <div class="h-title">Saved Slips</div>
+          <div style="font-size:13px; color:#235;">All saved slips are read-only (no edit/delete)</div>
+        </div>
+
+        <div class="controls">
+          <div class="filter">
+            <label style="font-size:13px; color:#07304b; margin-right:6px;">From</label>
+            <input type="date" id="filterFrom">
+            <label style="font-size:13px; color:#07304b; margin-left:6px;">To</label>
+            <input type="date" id="filterTo">
+            <button id="applyFilter" class="btn btn-ghost">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats" id="statsRow">
+        <div class="stat" id="totalAll">Total: 0</div>
+        <div class="stat" id="totalFiltered">Filtered: 0</div>
+        <div class="stat" id="dateRangeText">Range: -</div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:700">Records</div>
+        <div style="display:flex; gap:8px;">
+          <button id="exportPdfBtn" class="btn btn-blue">Download Filtered PDF</button>
+          <button id="exportCsvBtn" class="btn btn-ghost">Export CSV</button>
+        </div>
+      </div>
+
+      <table class="table" id="recordsTable" aria-live="polite">
+        <thead>
+          <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Time</th><th>Action</th></tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+
+      <div style="margin-top:10px; font-size:13px; color:#546;">Tip: Clicking "View" will open the slip preview and you can Download PDF for that slip.</div>
+    </div>
+  </div>
 </div>
 
+<!-- Hidden slip preview area (used for PDF & print) -->
+<div id="slipOutput" class="slip" style="display:none; position:fixed; left:50%; transform:translateX(-50%); top:48px; z-index:9999;"></div>
+
 <script>
-const USERNAME = "FxMiNds";  
-const PASSWORD = "Sk@#9136332836@";   
+/* ====================
+   IndexedDB wrapper (simple)
+   ==================== */
+const DB_NAME = 'secure_slips_db_v1';
+const STORE_NAME = 'slips';
 
-function checkLogin() {
-    const u = document.getElementById("username").value;
-    const p = document.getElementById("password").value;
-    if (u === USERNAME && p === PASSWORD) {
-        document.getElementById("loginPage").style.display = "none";
-        document.getElementById("mainPage").style.display = "block";
-    } else {
-        const e = document.getElementById("errorMsg");
-        e.style.display = "block";
-        setTimeout(()=> e.style.display='none', 2000);
-    }
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(STORE_NAME)){
+        const s = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('savedAt', 'savedAt', { unique:false });
+        s.createIndex('vehicleNo', 'vehicleNo', { unique:false });
+      }
+    };
+    r.onsuccess = e => resolve(e.target.result);
+    r.onerror = e => reject(e.target.error);
+  });
 }
 
-function logout() {
-    document.getElementById("mainPage").style.display = "none";
-    document.getElementById("loginPage").style.display = "block";
-    document.getElementById("username").value = "";
-    document.getElementById("password").value = "";
-    document.getElementById("slipOutput").style.display = "none";
-    document.getElementById("slipForm").reset();
+async function addSlipToDB(record){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    // make record immutable-ish by freezing a copy before storing
+    const toStore = Object.assign({}, record);
+    // do not allow future edits through our UI (no update route)
+    const req = store.add(toStore);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-function padCenter(text, width) {
+async function getAllSlips(){
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result.sort((a,b)=>a.id-b.id));
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getSlipsInRange(fromISO, toISO){
+  const all = await getAllSlips();
+  if(!fromISO && !toISO) return all;
+  const from = fromISO ? new Date(fromISO+'T00:00:00') : new Date('1970-01-01');
+  const to = toISO ? new Date(toISO+'T23:59:59') : new Date('9999-12-31');
+  return all.filter(r => {
+    const d = new Date(r.savedAt);
+    return d >= from && d <= to;
+  });
+}
+
+/* ====================
+   UI and behavior
+   ==================== */
+
+// Credentials (kept same)
+const USERNAME = "FxMiNds";
+const PASSWORD = "Sk@#9136332836@";
+
+const loginBtn = document.getElementById('loginBtn');
+const loginErr = document.getElementById('loginErr');
+const loginBox = document.getElementById('loginBox');
+const formCard = document.getElementById('formCard');
+const mainPrintBtn = document.getElementById('printBtn');
+const previewBtn = document.getElementById('previewBtn');
+const slipOutput = document.getElementById('slipOutput');
+const recordsBody = document.getElementById('recordsBody');
+
+let cachedAll = []; // local cache
+
+// login
+loginBtn.addEventListener('click', () => {
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if(u === USERNAME && p === PASSWORD){
+    loginBox.style.display = 'none';
+  } else {
+    loginErr.style.display = 'block';
+    setTimeout(()=>loginErr.style.display='none',2000);
+  }
+});
+
+// build slip text (same as your original but returns HTML for rendering)
+function buildSlipHtml(data){
+  const width = 80;
+  function padCenter(text, width){
     let left = Math.floor((width - text.length)/2);
     let right = width - text.length - left;
-    return ' '.repeat(left) + text + ' '.repeat(right);
+    return '&nbsp;'.repeat(left) + escapeHtml(text) + '&nbsp;'.repeat(right);
+  }
+  function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+  let lines = '';
+  lines += `<div style="font-family:Courier,monospace; white-space:pre;">`;
+  lines += padCenter(data.firmName || '', width) + '<br>';
+  lines += padCenter(data.firmAddress || '', width) + '<br>';
+  lines += '.'.repeat(width) + '<br>';
+  lines += (`RST No.     : ${data.rstNo || ''}`).padEnd(40) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '<br>';
+  lines += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '<br>';
+  lines += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '<br>';
+  lines += '.'.repeat(width) + '<br>';
+  lines += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '<br>';
+  lines += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '<br>';
+  lines += (`Net   :    ${data.net || ''}`) + '<br>';
+  lines += '.'.repeat(width) + '<br>';
+  lines += (`Charges    : Rs ${data.charges || ''}`) + '<br>';
+  lines += '.'.repeat(width) + '<br>';
+  lines += (`                                  Phone : ${data.phone || ''}`) + '<br>';
+  lines += padCenter('Thanks for your visit', width) + '<br>';
+  lines += `</div>`;
+  // header with serial and savedAt
+  const meta = `<div style="font-size:12px; color:#555; margin-bottom:8px;">
+      <strong>Serial:</strong> ${data._serial || ''} &nbsp;&nbsp; <strong>Saved At:</strong> ${new Date(data.savedAt).toLocaleString()}
+    </div>`;
+  return `<div style="padding:10px;">${meta}${lines}</div>`;
 }
 
-function generateSlip() {
-    const width = 80;
-    const firmName = document.getElementById("firmName").value;
-    const firmAddress = document.getElementById("firmAddress").value;
-    const rstNo = document.getElementById("rstNo").value;
-    const vehicleNo = document.getElementById("vehicleNo").value;
-    const vehicleType = document.getElementById("vehicleType").value;
-    const partyName = document.getElementById("partyName").value;
-    const address = document.getElementById("address").value;
-    const item = document.getElementById("item").value;
-    const gross = document.getElementById("gross").value;
-    const grossDate = document.getElementById("grossDate").value;
-    const grossTime = document.getElementById("grossTime").value;
-    const tare = document.getElementById("tare").value;
-    const tareDate = document.getElementById("tareDate").value;
-    const tareTime = document.getElementById("tareTime").value;
-    const net = document.getElementById("net").value;
-    const charges = document.getElementById("charges").value;
-    const phone = document.getElementById("phone").value;
-
-    let slip = '';
-    slip += padCenter(firmName, width) + '\n';
-    slip += padCenter(firmAddress, width) + '\n';
-    slip += '.'.repeat(width) + '\n';
-    slip += `RST No.     : ${rstNo}`.padEnd(40) + `Vehicle No.   : ${vehicleNo}` + '\n';
-    slip += `Vehicle Type: ${vehicleType}`.padEnd(40) + `Party Name    : ${partyName}` + '\n';
-    slip += `Address     : ${address}`.padEnd(40) + `Item          : ${item}` + '\n';
-    slip += '.'.repeat(width) + '\n';
-    slip += `Gross :    ${gross}`.padEnd(25) + ` Date: ${grossDate}`.padEnd(20) + `  Time: ${grossTime}` + '\n';
-    slip += `Tare  :    ${tare}`.padEnd(25) + ` Date: ${tareDate}`.padEnd(20) + `  Time: ${tareTime}` + '\n';
-    slip += `Net   :    ${net}` + '\n';
-    slip += '.'.repeat(width) + '\n';
-    slip += `Charges    : Rs ${charges}` + '\n';
-    slip += '.'.repeat(width) + '\n';
-    slip += `                                  Phone : ${phone}` + '\n';
-    slip += padCenter('Thanks for your visit', width) + '\n';
-
-    const slipDiv = document.getElementById("slipOutput");
-    const slipPre = document.getElementById("slipPre");
-    slipPre.textContent = slip;
-    slipDiv.style.display = 'block';
-
+// When Print & Save clicked
+mainPrintBtn.addEventListener('click', async() => {
+  const record = collectForm();
+  // add metadata
+  record.savedAt = new Date().toISOString();
+  // Temporarily compute _serial placeholder (actual id will be returned by DB)
+  const id = await addSlipToDB(record);
+  record._serial = id;
+  // Update UI (reload list)
+  await refreshList();
+  // Show slip and print via browser
+  renderSlip(record);
+  // Print window; but also provide PDF download via html2canvas+jsPDF after tiny delay
+  setTimeout(()=> {
     window.print();
+  }, 350);
+});
+
+// Preview only (no save)
+previewBtn.addEventListener('click', () => {
+  const record = collectForm();
+  record.savedAt = new Date().toISOString();
+  renderSlip(record);
+});
+
+function collectForm(){
+  return {
+    firmName: document.getElementById('firmName').value,
+    firmAddress: document.getElementById('firmAddress').value,
+    rstNo: document.getElementById('rstNo').value,
+    vehicleNo: document.getElementById('vehicleNo').value,
+    vehicleType: document.getElementById('vehicleType').value,
+    partyName: document.getElementById('partyName').value,
+    address: document.getElementById('address').value,
+    item: document.getElementById('item').value,
+    gross: document.getElementById('gross').value,
+    grossDate: document.getElementById('grossDate').value,
+    grossTime: document.getElementById('grossTime')?.value || '',
+    tare: document.getElementById('tare').value,
+    tareDate: document.getElementById('tareDate').value,
+    tareTime: document.getElementById('tareTime')?.value || '',
+    net: document.getElementById('net').value,
+    charges: document.getElementById('charges').value,
+    phone: document.getElementById('phone').value
+  };
 }
+
+/* render slip into preview area */
+function renderSlip(rec){
+  // rec may or may not have id
+  slipOutput.innerHTML = buildSlipHtml(rec);
+  slipOutput.style.display = 'block';
+}
+
+/* Refresh list from DB */
+async function refreshList(){
+  cachedAll = await getAllSlips();
+  document.getElementById('totalAll').textContent = 'Total: ' + cachedAll.length;
+  applyFilter(); // will fill table
+}
+
+/* Apply filter button */
+document.getElementById('applyFilter').addEventListener('click', applyFilter);
+
+async function applyFilter(){
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const filtered = await getSlipsInRange(from, to);
+  document.getElementById('totalFiltered').textContent = 'Filtered: ' + filtered.length;
+  document.getElementById('dateRangeText').textContent = (from || '-') + ' → ' + (to || '-');
+  // populate table
+  recordsBody.innerHTML = '';
+  filtered.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="width:60px">${r.id}</td>
+                    <td>${new Date(r.savedAt).toLocaleDateString()}</td>
+                    <td>${r.vehicleNo || '-'}</td>
+                    <td>${r.firmName || '-'}</td>
+                    <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
+                    <td style="width:120px">
+                      <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
+                      <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
+                    </td>`;
+    recordsBody.appendChild(tr);
+  });
+  // bind view/pdf
+  recordsBody.querySelectorAll('button').forEach(b => {
+    b.addEventListener('click', async e => {
+      const id = Number(e.currentTarget.dataset.id);
+      const action = e.currentTarget.dataset.action;
+      const rec = cachedAll.find(x=>x.id===id);
+      if(!rec) return;
+      if(action==='view'){ renderSlip(Object.assign({_serial:rec.id}, rec)); window.scrollTo({top:0, behavior:'smooth'}); }
+      if(action==='pdf'){ await downloadSingleRecAsPdf(rec); }
+    });
+  });
+}
+
+/* Export filtered PDF: combine all filtered slips into one PDF */
+document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const filtered = await getSlipsInRange(from, to);
+  if(filtered.length===0){ alert('No slips in selected range'); return; }
+  // generate pdf per slip and add pages
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  for(let i=0;i<filtered.length;i++){
+    const rec = filtered[i];
+    // render slip HTML into hidden div
+    slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
+    slipOutput.style.display = 'block';
+    // use html2canvas
+    const canvas = await html2canvas(slipOutput, { scale:2, useCORS:true });
+    const imgData = canvas.toDataURL('image/png');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    if(i>0) pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
+    slipOutput.style.display = 'none';
+  }
+  pdf.save(`slips_${from||'all'}_${to||'all'}.pdf`);
+});
+
+/* Download single record as PDF */
+async function downloadSingleRecAsPdf(rec){
+  slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
+  slipOutput.style.display = 'block';
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const canvas = await html2canvas(slipOutput, { scale:2, useCORS:true });
+  const imgData = canvas.toDataURL('image/png');
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
+  pdf.save(`slip_${rec.id}.pdf`);
+  slipOutput.style.display = 'none';
+}
+
+/* Export CSV of filtered slips */
+document.getElementById('exportCsvBtn').addEventListener('click', async () => {
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const rows = await getSlipsInRange(from, to);
+  if(rows.length===0){ alert('No slips to export'); return; }
+  const headers = ['id','savedAt','vehicleNo','firmName','gross','tare','net','charges','phone'];
+  const csv = [headers.join(',')].concat(rows.map(r=> headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `slips_${from||'all'}_${to||'all'}.csv`; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* On load: refresh */
+window.addEventListener('load', async () => {
+  await refreshList();
+});
 </script>
 
 </body>
