@@ -5,86 +5,181 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Secure Slip</title>
 <style>
+    /* page base */
+    html,body { height: 100%; }
     body {
-        font-family: monospace;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         padding: 20px;
-        background: #222;
-        color: white;
+        margin: 0;
+        min-height: 100vh;
+        color: #1b2b34;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        position: relative;
+        overflow-x: hidden;
+        background: transparent; /* actual image handled by pseudo-element */
     }
+
+    /* --- background layer (uses your uploaded truck.avif) ---
+       placed with ::before so we can apply blur + fade independently */
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+        background-image: url("truck.avif");
+        background-size: cover;
+        background-position: center;
+        transform: scale(1.03);
+        filter: blur(6px) brightness(0.95);
+        will-change: transform, filter, opacity;
+        animation: bgFadeIn 1000ms cubic-bezier(.2,.9,.3,1) both;
+    }
+
+    /* light overlay so cards/readables remain crisp */
+    body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background: linear-gradient(rgba(255,255,255,0.62), rgba(255,255,255,0.62));
+        animation: overlayFadeIn 900ms ease both;
+    }
+
+    /* Central slip display (kept monospace for alignment) */
     .slip {
         width: 80ch;
         margin: 0 auto;
-        padding: 10px;
-        border: 1px solid #000;
+        padding: 18px;
+        border-radius: 8px;
+        border: 1px solid rgba(30,40,50,0.08);
         white-space: pre;
-        background: white;
-        color: black;
-    }
-    input {
-        width: 25ch;
-        font-family: monospace;
-        margin: 2px 0;
-    }
-    label {
-        display: block;
-        color: white;
-    }
-    form {
-        padding: 20px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, yellow, black);
-        color: white;
-    }
-    button {
-        margin-top: 10px;
-        padding: 5px 15px;
-        font-size: 16px;
-        font-weight: bold;
-        color: black;
-        background: yellow;
-        border: 2px solid black;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-    .loginBox {
-        background: #333;
-        padding: 30px;
-        border-radius: 10px;
-        width: 320px;
-        margin: 80px auto;
-        text-align: center;
-    }
-    .loginBox input {
-        width: 90%;
-        margin: 10px 0;
-        padding: 5px;
+        background: #ffffff;
+        color: #0b0b0b;
+        box-shadow: 0 8px 24px rgba(30,45,60,0.12);
+        font-family: "Courier New", Courier, monospace;
+        z-index: 2;
+        position: relative;
+        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) both;
     }
 
-    /* Top bar with logout */
+    input {
+        width: 25ch;
+        font-family: "Courier New", Courier, monospace;
+        margin: 6px 0;
+        padding: 8px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(27,43,52,0.12);
+        background: rgba(255,255,255,0.9);
+        color: #102028;
+        outline: none;
+        transition: box-shadow .12s ease, border-color .12s ease;
+        z-index: 2;
+        position: relative;
+    }
+    input:focus {
+        box-shadow: 0 0 0 6px rgba(40,120,255,0.08);
+        border-color: rgba(40,120,255,0.9);
+        background: #fff;
+    }
+
+    label {
+        display: block;
+        color: #0f2330;
+        font-size: 14px;
+        z-index: 2;
+        position: relative;
+    }
+
+    /* Form area styling: light translucent card so background visible but content crisp */
+    form {
+        padding: 20px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.92));
+        color: #0b2130;
+        box-shadow: 0 6px 18px rgba(20,30,40,0.06);
+        border: 1px solid rgba(10,18,26,0.04);
+        z-index: 2;
+        position: relative;
+        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) 120ms both;
+    }
+
+    button {
+        margin-top: 10px;
+        padding: 8px 18px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #ffffff;
+        background: linear-gradient(180deg, #1976d2, #0b63b3);
+        border: 1px solid rgba(6,30,80,0.12);
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 6px 12px rgba(16,40,80,0.12);
+        z-index: 2;
+        position: relative;
+    }
+    button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(16,40,80,0.14);
+    }
+
+    .loginBox {
+        background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(245,247,249,0.95));
+        padding: 30px;
+        border-radius: 12px;
+        width: 360px;
+        margin: 80px auto;
+        text-align: center;
+        border: 1px solid rgba(12,20,30,0.04);
+        box-shadow: 0 14px 40px rgba(30,45,60,0.06);
+        z-index: 2;
+        position: relative;
+        animation: cardPop 520ms cubic-bezier(.2,.9,.3,1) 80ms both;
+    }
+    .loginBox input {
+        width: 88%;
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(20,30,40,0.06);
+        background: #fff;
+        color: #0f2330;
+        font-family: "Courier New", Courier, monospace;
+    }
+
     #topBar {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 15px;
+        z-index: 2;
+        position: relative;
     }
-    #logoutBtn {
-        padding: 5px 15px;
-        background: red;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-weight: bold;
-        cursor: pointer;
+    #heading {
+        margin: 0;
+        color: #0b2330;
+        font-size: 20px;
+        font-weight: 600;
     }
 
-    /* Print only slip */
+    #logoutBtn {
+        padding: 6px 14px;
+        background: linear-gradient(180deg,#e14b3b,#c93b2a);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 6px 12px rgba(201,59,42,0.12);
+    }
+    #logoutBtn:hover {
+        transform: translateY(-1px);
+    }
+
+    /* print behavior unchanged */
     @media print {
-        body * {
-            visibility: hidden;
-        }
-        #slipOutput, #slipOutput * {
-            visibility: visible;
-        }
+        body * { visibility: hidden; }
+        #slipOutput, #slipOutput * { visibility: visible; }
         #slipOutput {
             position: absolute;
             left: 0;
@@ -95,14 +190,35 @@
             width: 100%;
             background: white;
             color: black;
+            box-shadow: none;
         }
+    }
+
+    @media (max-width: 720px) {
+        .slip { width: calc(100% - 40px); font-size: 13px; }
+        .loginBox { width: calc(100% - 40px); margin: 40px auto; padding: 20px; }
+    }
+
+    /* ==== Animations ==== */
+    @keyframes bgFadeIn {
+        0% { opacity: 0; transform: scale(1.06) translateY(6px); filter: blur(12px) brightness(0.9); }
+        100% { opacity: 1; transform: scale(1.03) translateY(0); filter: blur(6px) brightness(0.95); }
+    }
+    @keyframes overlayFadeIn {
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+    }
+    @keyframes cardPop {
+        0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+        60% { opacity: 1; transform: translateY(-6px) scale(1.003); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
     }
 </style>
 </head>
 <body>
 
 <div id="loginPage" class="loginBox">
-    <h2 style="margin-top:0;color:white">Login</h2>
+    <h2 style="margin-top:0;color:#0b2330">Login</h2>
     <input type="text" id="username" placeholder="User ID"><br>
     <input type="password" id="password" placeholder="Password"><br>
     <button onclick="checkLogin()">Login</button>
@@ -152,18 +268,11 @@ function checkLogin() {
 }
 
 function logout() {
-    // Hide main page, show login
     document.getElementById("mainPage").style.display = "none";
     document.getElementById("loginPage").style.display = "block";
-
-    // Clear login fields
     document.getElementById("username").value = "";
     document.getElementById("password").value = "";
-
-    // Hide slip output
     document.getElementById("slipOutput").style.display = "none";
-
-    // Reset form fields (optional)
     document.getElementById("slipForm").reset();
 }
 
