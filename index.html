@@ -44,7 +44,7 @@ body::after{
 
 /* Form area */
 form label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-form input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
+form input[type="text"], form input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
 .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
 
 /* Right side: dashboard */
@@ -98,8 +98,8 @@ form input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px
       <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
     </div>
 
-    <!-- Form -->
-    <div class="card" id="formCard">
+    <!-- Form (hidden until login) -->
+    <div class="card" id="formCard" style="display:none;">
       <form id="slipForm">
         <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
         <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS"></label>
@@ -141,9 +141,9 @@ form input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px
     </div>
   </div>
 
-  <!-- RIGHT: Dashboard / Records -->
+  <!-- RIGHT: Dashboard / Records (hidden until login) -->
   <div>
-    <div class="card">
+    <div class="card" id="dashboardCard" style="display:none;">
       <div class="header-row">
         <div>
           <div class="h-title">Saved Slips</div>
@@ -158,6 +158,8 @@ form input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px
             <input type="date" id="filterTo">
             <button id="applyFilter" class="btn btn-ghost">Apply</button>
           </div>
+          <!-- Logout button visible in dashboard -->
+          <button id="logoutBtn" class="btn btn-ghost" style="margin-left:12px;">Logout</button>
         </div>
       </div>
 
@@ -218,9 +220,7 @@ async function addSlipToDB(record){
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    // make record immutable-ish by freezing a copy before storing
     const toStore = Object.assign({}, record);
-    // do not allow future edits through our UI (no update route)
     const req = store.add(toStore);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -261,23 +261,42 @@ const loginBtn = document.getElementById('loginBtn');
 const loginErr = document.getElementById('loginErr');
 const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
+const dashboardCard = document.getElementById('dashboardCard');
 const mainPrintBtn = document.getElementById('printBtn');
 const previewBtn = document.getElementById('previewBtn');
 const slipOutput = document.getElementById('slipOutput');
 const recordsBody = document.getElementById('recordsBody');
+const logoutBtn = document.getElementById('logoutBtn');
 
 let cachedAll = []; // local cache
+let isLoggedIn = false;
 
 // login
-loginBtn.addEventListener('click', () => {
+loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
   if(u === USERNAME && p === PASSWORD){
+    isLoggedIn = true;
     loginBox.style.display = 'none';
+    formCard.style.display = 'block';
+    dashboardCard.style.display = 'block';
+    // refresh list on login
+    await refreshList();
   } else {
     loginErr.style.display = 'block';
     setTimeout(()=>loginErr.style.display='none',2000);
   }
+});
+
+// logout
+logoutBtn.addEventListener('click', () => {
+  isLoggedIn = false;
+  loginBox.style.display = 'block';
+  formCard.style.display = 'none';
+  dashboardCard.style.display = 'none';
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  slipOutput.style.display = 'none';
 });
 
 // build slip text (same as your original but returns HTML for rendering)
@@ -317,17 +336,17 @@ function buildSlipHtml(data){
 
 // When Print & Save clicked
 mainPrintBtn.addEventListener('click', async() => {
+  if(!isLoggedIn){ alert('Please login first'); return; }
   const record = collectForm();
   // add metadata
   record.savedAt = new Date().toISOString();
-  // Temporarily compute _serial placeholder (actual id will be returned by DB)
+  // save to DB (returns id)
   const id = await addSlipToDB(record);
   record._serial = id;
   // Update UI (reload list)
   await refreshList();
   // Show slip and print via browser
   renderSlip(record);
-  // Print window; but also provide PDF download via html2canvas+jsPDF after tiny delay
   setTimeout(()=> {
     window.print();
   }, 350);
@@ -335,6 +354,7 @@ mainPrintBtn.addEventListener('click', async() => {
 
 // Preview only (no save)
 previewBtn.addEventListener('click', () => {
+  if(!isLoggedIn){ alert('Please login first'); return; }
   const record = collectForm();
   record.savedAt = new Date().toISOString();
   renderSlip(record);
@@ -364,7 +384,6 @@ function collectForm(){
 
 /* render slip into preview area */
 function renderSlip(rec){
-  // rec may or may not have id
   slipOutput.innerHTML = buildSlipHtml(rec);
   slipOutput.style.display = 'block';
 }
@@ -373,7 +392,7 @@ function renderSlip(rec){
 async function refreshList(){
   cachedAll = await getAllSlips();
   document.getElementById('totalAll').textContent = 'Total: ' + cachedAll.length;
-  applyFilter(); // will fill table
+  await applyFilter(); // will fill table
 }
 
 /* Apply filter button */
@@ -394,7 +413,7 @@ async function applyFilter(){
                     <td>${r.vehicleNo || '-'}</td>
                     <td>${r.firmName || '-'}</td>
                     <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
-                    <td style="width:120px">
+                    <td style="width:160px">
                       <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
                       <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
                     </td>`;
@@ -415,19 +434,17 @@ async function applyFilter(){
 
 /* Export filtered PDF: combine all filtered slips into one PDF */
 document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+  if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const filtered = await getSlipsInRange(from, to);
   if(filtered.length===0){ alert('No slips in selected range'); return; }
-  // generate pdf per slip and add pages
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
   for(let i=0;i<filtered.length;i++){
     const rec = filtered[i];
-    // render slip HTML into hidden div
     slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
     slipOutput.style.display = 'block';
-    // use html2canvas
     const canvas = await html2canvas(slipOutput, { scale:2, useCORS:true });
     const imgData = canvas.toDataURL('image/png');
     const imgProps = pdf.getImageProperties(imgData);
@@ -442,6 +459,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
 
 /* Download single record as PDF */
 async function downloadSingleRecAsPdf(rec){
+  if(!isLoggedIn){ alert('Please login first'); return; }
   slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
   slipOutput.style.display = 'block';
   const { jsPDF } = window.jspdf;
@@ -458,6 +476,7 @@ async function downloadSingleRecAsPdf(rec){
 
 /* Export CSV of filtered slips */
 document.getElementById('exportCsvBtn').addEventListener('click', async () => {
+  if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const rows = await getSlipsInRange(from, to);
@@ -471,9 +490,13 @@ document.getElementById('exportCsvBtn').addEventListener('click', async () => {
   URL.revokeObjectURL(url);
 });
 
-/* On load: refresh */
+/* On load: ensure only login visible (no data fetched until login) */
 window.addEventListener('load', async () => {
-  await refreshList();
+  // keep form/dashboard hidden until login
+  formCard.style.display = 'none';
+  dashboardCard.style.display = 'none';
+  // hide slip preview
+  slipOutput.style.display = 'none';
 });
 </script>
 
