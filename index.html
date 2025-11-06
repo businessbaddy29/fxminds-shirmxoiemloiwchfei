@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Clean</title>
+<title>Secure Slip — Clean (fixed print & times)</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -65,14 +65,15 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   display:none;
   position: fixed;
   left: 50%;
-  top: 10%;
+  top: 6%;
   transform: translateX(-50%);
   width: min(880px, 96%);
-  max-height: 80vh;
+  max-height: 88vh;
   overflow:auto;
   z-index: 9999;
   border-radius:8px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  background: transparent;
 }
 
 /* inside slip card */
@@ -82,6 +83,10 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   border-radius: 8px;
   color:#000;
   font-family: "Courier New", monospace;
+  box-sizing: border-box;
+  width: 100%;
+  /* ensure printable layout doesn't overflow */
+  overflow: visible;
 }
 
 /* preview toolbar */
@@ -95,16 +100,22 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   justify-content:flex-end;
 }
 
-/* hide unnecessary in print */
+/* hide unnecessary in print but ensure slip fills page */
+@page { size: auto; margin: 8mm; } /* small margins to use space */
 @media print {
+  html, body { height: auto !important; }
   body * { visibility: hidden !important; }
   #slipOutput, #slipOutput * { visibility: visible !important; }
-  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0; padding:10mm !important; box-shadow:none !important; background:#fff !important; color:#000 !important; }
+  /* place slip at top-left and fill page width */
+  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; background: #fff !important; box-shadow:none !important; }
+  #slipInner { box-shadow:none !important; border-radius:0 !important; padding:10mm !important; width:100% !important; height:auto !important; overflow: visible !important; }
   #previewToolbar { display:none !important; }
+  /* avoid page break inside slip */
+  #slipInner { page-break-inside: avoid; -webkit-print-color-adjust: exact; }
 }
 
 /* responsive */
-@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } #slipOutput { top:6%; } }
+@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } #slipOutput { top:4%; } }
 </style>
 </head>
 <body>
@@ -150,8 +161,18 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
         </div>
 
         <div class="form-grid">
+          <label>Gross Time (as-is): <input type="text" id="grossTime" placeholder="e.g. 13:37 or 1:37 PM"></label>
+          <label></label>
+        </div>
+
+        <div class="form-grid">
           <label>Tare: <input type="text" id="tare" value="15700 Kg"></label>
           <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Tare Time (as-is): <input type="text" id="tareTime" placeholder="e.g. 13:40"></label>
+          <label></label>
         </div>
 
         <label>Net: <input type="text" id="net" value="54980 Kg"></label>
@@ -313,10 +334,11 @@ logoutBtn.addEventListener('click', () => {
 });
 
 /* ====== collect & build slip ====== */
+// IMPORTANT: manualTime (entered as-is) overrides grossTime; tareTime is separate
 function collectForm(){
-  // IMPORTANT: Use manualTime (entered as-is) if present; otherwise fallback to grossTime element (if any)
   const manual = document.getElementById('manualTime')?.value || '';
   const grossTimeVal = manual || (document.getElementById('grossTime')?.value || '');
+  const tareTimeVal = document.getElementById('tareTime')?.value || '';
   return {
     firmName: document.getElementById('firmName').value,
     firmAddress: document.getElementById('firmAddress').value,
@@ -331,7 +353,7 @@ function collectForm(){
     grossTime: grossTimeVal,
     tare: document.getElementById('tare').value,
     tareDate: document.getElementById('tareDate').value,
-    tareTime: document.getElementById('tareTime')?.value || '',
+    tareTime: tareTimeVal,
     net: document.getElementById('net').value,
     charges: document.getElementById('charges').value,
     phone: document.getElementById('phone').value,
@@ -347,6 +369,7 @@ function buildSlipPlainText(data){
     const right = width - t.length - left;
     return ' '.repeat(Math.max(0,left)) + t + ' '.repeat(Math.max(0,right));
   }
+  // Ensure both grossTime and tareTime are inserted exactly as provided
   let s = '';
   s += padCenter(data.firmName) + '\n';
   s += padCenter(data.firmAddress) + '\n';
@@ -355,7 +378,9 @@ function buildSlipPlainText(data){
   s += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(25) + (`Party Name    : ${data.partyName || ''}`) + '\n';
   s += (`Address     : ${data.address || ''}`).padEnd(25) + (`Item          : ${data.item || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
+  // Put Gross with its date and grossTime exactly as provided
   s += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
+  // Put Tare with its date and tareTime exactly as provided
   s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
   s += (`Net   :    ${data.net || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
@@ -374,11 +399,15 @@ function renderSlipPreview(rec){
 
 /* ====== Preview controls ====== */
 closePreviewBtn.addEventListener('click', ()=> { slipOutput.style.display='none'; });
-printPreviewBtn.addEventListener('click', ()=> { window.print(); });
+printPreviewBtn.addEventListener('click', ()=> { 
+  // ensure slipOutput visible then print
+  slipOutput.style.display = 'block';
+  setTimeout(()=> window.print(), 120); 
+});
 downloadPdfPreview.addEventListener('click', async ()=> {
   const node = document.getElementById('slipInner');
   slipOutput.style.display = 'block';
-  const canvas = await html2canvas(node, { scale:2 });
+  const canvas = await html2canvas(node, { scale:2, useCORS:true });
   const img = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
@@ -397,7 +426,11 @@ mainPrintBtn.addEventListener('click', async ()=>{
   rec._serial = id;
   await refreshList();
   renderSlipPreview(rec);
-  setTimeout(()=> window.print(), 400);
+  setTimeout(()=> {
+    // ensure full slip visible for printing
+    slipOutput.style.display = 'block';
+    window.print();
+  }, 450);
 });
 
 /* preview (no save) */
@@ -441,7 +474,7 @@ async function applyFilter(){
       <td>${new Date(r.savedAt).toLocaleDateString()}</td>
       <td>${r.vehicleNo || '-'}</td>
       <td>${r.firmName || '-'}</td>
-      <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
+      <td style="width:120px">${r.grossTime || ''}${(r.tareTime ? ' / ' + r.tareTime : '')}</td>
       <td style="width:160px">
         <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
         <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
@@ -474,7 +507,7 @@ exportPdfBtn.addEventListener('click', async ()=>{
     const rec = filtered[i];
     document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
     slipOutput.style.display='block';
-    const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
+    const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2, useCORS:true });
     const img = canvas.toDataURL('image/png');
     const imgProps = pdf.getImageProperties(img);
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -491,7 +524,7 @@ async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
   slipOutput.style.display='block';
-  const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
+  const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2, useCORS:true });
   const img = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
@@ -510,7 +543,7 @@ exportCsvBtn.addEventListener('click', async ()=>{
   const to = document.getElementById('filterTo').value;
   const rows = await getSlipsInRange(from, to);
   if(rows.length===0){ alert('No slips to export'); return; }
-  const headers = ['id','savedAt','vehicleNo','firmName','gross','tare','net','charges','phone'];
+  const headers = ['id','savedAt','vehicleNo','firmName','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone'];
   const csv = [headers.join(',')].concat(rows.map(r=> headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
