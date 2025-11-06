@@ -3,265 +3,201 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Clean (fixed print & times)</title>
+<title>Secure Slip — Final Update</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* ===== Background & base styling (uses truck.avif from same folder) ===== */
-html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
-body {
-  position: relative; min-height:100vh; padding:22px;
-  background: transparent; color:#0d2433; -webkit-font-smoothing:antialiased;
-}
+/* ===== Base ===== */
+html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433;}
 body::before{
   content:""; position: fixed; inset:0; z-index:-3;
-  background-image: url("truck.avif");
-  background-size: cover; background-position: center; transform: scale(1.03);
-  filter: blur(6px) brightness(.95);
+  background-image: url("truck.avif"); background-size:cover; background-position:center; filter: blur(6px) brightness(.95);
 }
 body::after{
   content:""; position: fixed; inset:0; z-index:-2;
-  background: linear-gradient(rgba(255,255,255,0.62), rgba(255,255,255,0.62));
+  background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
 }
 
-/* Layout */
-.container { max-width:1100px; margin:0 auto; display:grid; grid-template-columns: 360px 1fr; gap:20px; align-items:start; }
-.card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); }
+.container { max-width:1100px; margin:22px auto; padding-bottom:60px; }
 
-/* Left panel */
-.left { position:sticky; top:22px; height:fit-content; }
+/* Card */
+.card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); margin-bottom:18px; }
+
+/* Login */
 .loginBox h2 { margin:0 0 12px 0; color:#0b2330; font-size:20px; }
 .loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New", monospace; }
 .loginBox button { width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
 
-/* Form area */
-form label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-form input[type="text"], form input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
-.form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+/* Form full-width (as requested) */
+.form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center; }
+.form-row { display:flex; gap:8px; }
+label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
+input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; box-sizing:border-box; }
 
-/* Right: dashboard */
-.header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
-.h-title { font-size:20px; color:#072033; font-weight:700; }
-.controls { display:flex; gap:8px; align-items:center; }
+/* Make two time fields appear on same row compactly */
+.time-row { display:flex; gap:8px; }
+.time-row input { flex:1; }
 
-/* Buttons & small */
+/* Buttons */
+.controls { display:flex; gap:8px; margin-top:10px; }
 .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
 .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
 .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-/* Records area hidden by default inside dashboard */
-.recordsWrap { display:none; margin-top:12px; }
+/* Saved slips section is below form and hidden by default */
+#recordsWrap { display:none; margin-top:8px; }
 
 /* Table */
 .table { width:100%; border-collapse:collapse; margin-top:8px; }
 .table th, .table td { padding:10px 8px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:14px; }
 .table th { color:#07304b; font-weight:700; }
 
-/* Slip preview area (overlay) */
+/* Slip preview overlay */
 #slipOutput {
-  display:none;
-  position: fixed;
-  left: 50%;
-  top: 6%;
-  transform: translateX(-50%);
-  width: min(880px, 96%);
-  max-height: 88vh;
-  overflow:auto;
-  z-index: 9999;
-  border-radius:8px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-  background: transparent;
+  display:none; position: fixed; left:50%; top:6%; transform:translateX(-50%);
+  width: min(880px, 96%); max-height:88vh; overflow:auto; z-index:9999;
+  border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,0.35); background:transparent;
 }
+#previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
+#slipInner { background:#fff; padding:18px; border-radius:8px; font-family:"Courier New", monospace; color:#000; box-sizing:border-box; }
 
-/* inside slip card */
-#slipInner {
-  background: #fff;
-  padding: 18px;
-  border-radius: 8px;
-  color:#000;
-  font-family: "Courier New", monospace;
-  box-sizing: border-box;
-  width: 100%;
-  /* ensure printable layout doesn't overflow */
-  overflow: visible;
-}
-
-/* preview toolbar */
-#previewToolbar {
-  display:flex;
-  gap:8px;
-  background: rgba(12,20,30,0.03);
-  padding:8px;
-  border-top-left-radius:8px;
-  border-top-right-radius:8px;
-  justify-content:flex-end;
-}
-
-/* hide unnecessary in print but ensure slip fills page */
-@page { size: auto; margin: 8mm; } /* small margins to use space */
+/* Print styling — portrait A4 friendly and make slip fill page */
+@page { size: A4 portrait; margin: 8mm; }
 @media print {
-  html, body { height: auto !important; }
+  html,body { height:auto !important; }
   body * { visibility: hidden !important; }
   #slipOutput, #slipOutput * { visibility: visible !important; }
-  /* place slip at top-left and fill page width */
-  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; background: #fff !important; box-shadow:none !important; }
-  #slipInner { box-shadow:none !important; border-radius:0 !important; padding:10mm !important; width:100% !important; height:auto !important; overflow: visible !important; }
+  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; background:#fff !important; box-shadow:none !important; }
+  #slipInner { padding: 12mm !important; border-radius:0 !important; box-shadow:none !important; width:100% !important; height:auto !important; overflow:visible !important; page-break-inside: avoid; -webkit-print-color-adjust: exact; }
   #previewToolbar { display:none !important; }
-  /* avoid page break inside slip */
-  #slipInner { page-break-inside: avoid; -webkit-print-color-adjust: exact; }
 }
 
-/* responsive */
-@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } #slipOutput { top:4%; } }
+/* Responsive small screens */
+@media (max-width:720px){
+  .form-grid { grid-template-columns: 1fr; }
+  .time-row { flex-direction:column; }
+  #slipOutput { top:4%; }
+}
 </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- LEFT -->
-  <div class="left">
-    <div class="card loginBox" id="loginBox">
-      <h2>Login</h2>
-      <input id="username" placeholder="User ID" autocomplete="off" />
-      <input id="password" placeholder="Password" type="password" autocomplete="off" />
-      <button id="loginBtn" class="btn btn-blue">Login</button>
-      <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
-    </div>
 
-    <div class="card" id="formCard" style="display:none;">
-      <form id="slipForm">
-
-        <!-- NEW: manual time field in header (enter as-is) -->
-        <label>Time (enter as-is): <input type="text" id="manualTime" placeholder="e.g. 13:37 or 1:37 PM — entered as-is"></label>
-
-        <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
-        <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS"></label>
-
-        <div class="form-grid">
-          <label>RST No: <input type="text" id="rstNo" value="101"></label>
-          <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903"></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Vehicle Type: <input type="text" id="vehicleType"></label>
-          <label>Party Name: <input type="text" id="partyName"></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Address: <input type="text" id="address"></label>
-          <label>Item: <input type="text" id="item" value="20MM"></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Gross: <input type="text" id="gross" value="70680 Kg"></label>
-          <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Gross Time (as-is): <input type="text" id="grossTime" placeholder="e.g. 13:37 or 1:37 PM"></label>
-          <label></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Tare: <input type="text" id="tare" value="15700 Kg"></label>
-          <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
-        </div>
-
-        <div class="form-grid">
-          <label>Tare Time (as-is): <input type="text" id="tareTime" placeholder="e.g. 13:40"></label>
-          <label></label>
-        </div>
-
-        <label>Net: <input type="text" id="net" value="54980 Kg"></label>
-        <label>Charges: Rs <input type="text" id="charges" value="0"></label>
-        <label>Phone: <input type="text" id="phone" value="123456"></label>
-
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button type="button" id="printBtn" class="btn btn-blue">Print Slip & Save</button>
-          <button type="button" id="previewBtn" class="btn btn-ghost">Preview Slip</button>
-        </div>
-      </form>
-    </div>
+  <!-- LOGIN CARD -->
+  <div class="card loginBox" id="loginBox">
+    <h2>Login</h2>
+    <input id="username" placeholder="User ID" autocomplete="off" />
+    <input id="password" placeholder="Password" type="password" autocomplete="off" />
+    <button id="loginBtn" class="btn btn-blue">Login</button>
+    <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
   </div>
 
-  <!-- RIGHT -->
-  <div>
-    <div class="card" id="dashboardCard" style="display:none;">
-      <div class="header-row">
-        <div>
-          <div class="h-title">Saved Slips</div>
-          <div style="font-size:13px; color:#235;">All saved slips are read-only (no edit/delete)</div>
-        </div>
+  <!-- FORM CARD (full width, top) -->
+  <div class="card" id="formCard" style="display:none;">
+    <form id="slipForm" onsubmit="return false;">
+      <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
+      <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS"></label>
 
-        <div class="controls">
-          <div class="filter" style="display:flex; gap:8px; align-items:center;">
-            <label style="font-size:13px; color:#07304b; margin-right:6px;">From</label>
-            <input type="date" id="filterFrom">
-            <label style="font-size:13px; color:#07304b; margin-left:6px;">To</label>
-            <input type="date" id="filterTo">
-            <button id="applyFilter" class="btn btn-ghost">Apply</button>
-          </div>
-
-          <!-- toggle records visibility button -->
-          <button id="toggleRecordsBtn" class="btn btn-ghost" style="margin-left:12px;">Show Saved Slips</button>
-
-          <!-- Logout -->
-          <button id="logoutBtn" class="btn btn-ghost" style="margin-left:12px;">Logout</button>
-        </div>
+      <div class="form-grid">
+        <label>RST No: <input type="text" id="rstNo" value="101"></label>
+        <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903"></label>
       </div>
 
-      <div class="stats" id="statsRow" style="display:flex; gap:12px; margin-bottom:8px;">
-        <div class="stat" id="totalAll">Total: 0</div>
-        <div class="stat" id="totalFiltered">Filtered: 0</div>
-        <div class="stat" id="dateRangeText">Range: -</div>
+      <div class="form-grid">
+        <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+        <label>Party Name: <input type="text" id="partyName"></label>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:700">Records</div>
-        <div style="display:flex; gap:8px;">
-          <button id="exportPdfBtn" class="btn btn-blue">Download Filtered PDF</button>
-          <button id="exportCsvBtn" class="btn btn-ghost">Export CSV</button>
+      <div class="form-grid">
+        <label>Address: <input type="text" id="address"></label>
+        <label>Item: <input type="text" id="item" value="20MM"></label>
+      </div>
+
+      <div class="form-grid">
+        <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
+        <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
+      </div>
+
+      <!-- BOTH TIMES ON SAME ROW as requested -->
+      <div class="time-row" style="margin-top:6px;">
+        <div style="flex:1">
+          <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37 or 1:37 PM"></label>
+        </div>
+        <div style="flex:1">
+          <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
         </div>
       </div>
 
-      <!-- records are inside this container; hidden until toggle clicked -->
-      <div class="recordsWrap card" id="recordsWrap" style="margin-top:12px; display:none;">
-        <table class="table" id="recordsTable" aria-live="polite">
-          <thead>
-            <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Time</th><th>Action</th></tr>
-          </thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
+      <div class="form-grid">
+        <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
+        <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
       </div>
 
-      <div style="margin-top:10px; font-size:13px; color:#546;">Tip: Click "Show Saved Slips" to view saved records (hidden by default).</div>
+      <label>Net: <input type="text" id="net" value="54980 Kg"></label>
+      <label>Charges: Rs <input type="text" id="charges" value="0"></label>
+      <label>Phone: <input type="text" id="phone" value="123456"></label>
+
+      <div class="controls">
+        <button type="button" id="printBtn" class="btn btn-blue">Print Slip & Save</button>
+        <button type="button" id="previewBtn" class="btn btn-ghost">Preview Slip</button>
+        <button type="button" id="toggleRecordsBtn" class="btn btn-ghost" style="margin-left:auto">Show Saved Slips</button>
+        <button type="button" id="logoutBtn" class="btn btn-ghost">Logout</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SAVED SLIPS (below form) -->
+  <div class="card" id="dashboardCard" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
+        <div style="font-size:13px; color:#235">Read-only — use export buttons below.</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="font-size:13px; color:#07304b;">From</label>
+        <input type="date" id="filterFrom">
+        <label style="font-size:13px; color:#07304b;">To</label>
+        <input type="date" id="filterTo">
+        <button id="applyFilter" class="btn btn-ghost">Apply</button>
+        <button id="exportPdfBtn" class="btn btn-blue">Download Filtered PDF</button>
+        <button id="exportCsvBtn" class="btn btn-ghost">Export CSV</button>
+      </div>
+    </div>
+
+    <div id="recordsWrap" style="margin-top:12px; display:none;">
+      <div style="display:flex; gap:12px; margin-bottom:8px;">
+        <div style="font-weight:700">Total: <span id="totalAll">0</span></div>
+        <div style="font-weight:700">Filtered: <span id="totalFiltered">0</span></div>
+        <div id="dateRangeText">Range: -</div>
+      </div>
+
+      <table class="table" id="recordsTable" aria-live="polite">
+        <thead><tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Times</th><th>Action</th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- Slip preview overlay (NO meta shown anywhere) -->
+<!-- Slip preview overlay -->
 <div id="slipOutput" role="dialog" aria-modal="true">
   <div id="previewToolbar">
-    <!-- Close highlighted blue -->
     <button id="closePreviewBtn" class="btn btn-blue">Close</button>
     <button id="downloadPdfPreview" class="btn btn-blue">Download PDF</button>
     <button id="printPreviewBtn" class="btn btn-blue">Print</button>
   </div>
 
   <div id="slipInner">
-    <!-- NO meta area here any more -->
-    <!-- slip content here -->
-    <div id="slipContent" style="white-space:pre; font-family:Courier, monospace;"></div>
+    <div id="slipContent" style="white-space:pre; font-family:Courier, monospace; color:#000;"></div>
   </div>
 </div>
 
 <script>
-/* -------------------------
-  IndexedDB helpers (same)
---------------------------*/
+/* ==================== IndexedDB (unchanged) ==================== */
 const DB_NAME = 'secure_slips_db_v1';
 const STORE_NAME = 'slips';
 function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
@@ -269,9 +205,7 @@ async function addSlipToDB(record){ const db=await openDB(); return new Promise(
 async function getAllSlips(){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const store=tx.objectStore(STORE_NAME); const req=store.getAll(); req.onsuccess=()=>res(req.result.sort((a,b)=>a.id-b.id)); req.onerror=()=>rej(req.error); }); }
 async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
-/* =========================
-   UI elements & state
-   ========================= */
+/* ==================== UI elements ==================== */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn=false;
@@ -283,8 +217,10 @@ const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
 const dashboardCard = document.getElementById('dashboardCard');
 
-const mainPrintBtn = document.getElementById('printBtn');
+const mainPrintBtn = document.getElementById('printBtn') || document.getElementById('printBtn');
 const previewBtn = document.getElementById('previewBtn');
+const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 
 const slipOutput = document.getElementById('slipOutput');
 const slipContent = document.getElementById('slipContent');
@@ -293,20 +229,17 @@ const closePreviewBtn = document.getElementById('closePreviewBtn');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const downloadPdfPreview = document.getElementById('downloadPdfPreview');
 
-const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
 const recordsWrap = document.getElementById('recordsWrap');
 const recordsBody = document.getElementById('recordsBody');
 
 const applyFilterBtn = document.getElementById('applyFilter');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
 const exportCsvBtn = document.getElementById('exportCsvBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-
 const totalAllEl = document.getElementById('totalAll');
 const totalFilteredEl = document.getElementById('totalFiltered');
 const dateRangeText = document.getElementById('dateRangeText');
 
-/* ====== login/logout ====== */
+/* ===== login/logout ===== */
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
@@ -333,12 +266,8 @@ logoutBtn.addEventListener('click', () => {
   document.getElementById('password').value='';
 });
 
-/* ====== collect & build slip ====== */
-// IMPORTANT: manualTime (entered as-is) overrides grossTime; tareTime is separate
+/* ===== collect form (both times preserved exactly) ===== */
 function collectForm(){
-  const manual = document.getElementById('manualTime')?.value || '';
-  const grossTimeVal = manual || (document.getElementById('grossTime')?.value || '');
-  const tareTimeVal = document.getElementById('tareTime')?.value || '';
   return {
     firmName: document.getElementById('firmName').value,
     firmAddress: document.getElementById('firmAddress').value,
@@ -350,10 +279,10 @@ function collectForm(){
     item: document.getElementById('item').value,
     gross: document.getElementById('gross').value,
     grossDate: document.getElementById('grossDate').value,
-    grossTime: grossTimeVal,
+    grossTime: document.getElementById('grossTime')?.value || '',
     tare: document.getElementById('tare').value,
-    tareDate: document.getElementById('tareDate').value,
-    tareTime: tareTimeVal,
+    tareDate: document.getElementById('tareDate')?.value || '',
+    tareTime: document.getElementById('tareTime')?.value || '',
     net: document.getElementById('net').value,
     charges: document.getElementById('charges').value,
     phone: document.getElementById('phone').value,
@@ -361,6 +290,7 @@ function collectForm(){
   };
 }
 
+/* ===== build slip text - ensure both times display exactly as entered ===== */
 function buildSlipPlainText(data){
   const width = 80;
   function padCenter(text){
@@ -369,7 +299,6 @@ function buildSlipPlainText(data){
     const right = width - t.length - left;
     return ' '.repeat(Math.max(0,left)) + t + ' '.repeat(Math.max(0,right));
   }
-  // Ensure both grossTime and tareTime are inserted exactly as provided
   let s = '';
   s += padCenter(data.firmName) + '\n';
   s += padCenter(data.firmAddress) + '\n';
@@ -378,9 +307,7 @@ function buildSlipPlainText(data){
   s += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(25) + (`Party Name    : ${data.partyName || ''}`) + '\n';
   s += (`Address     : ${data.address || ''}`).padEnd(25) + (`Item          : ${data.item || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
-  // Put Gross with its date and grossTime exactly as provided
   s += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
-  // Put Tare with its date and tareTime exactly as provided
   s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
   s += (`Net   :    ${data.net || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
@@ -391,22 +318,23 @@ function buildSlipPlainText(data){
   return s;
 }
 
+/* ===== preview / render ===== */
 function renderSlipPreview(rec){
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
   slipOutput.style.display = 'block';
   slipOutput.scrollIntoView({behavior:'smooth'});
 }
 
-/* ====== Preview controls ====== */
-closePreviewBtn.addEventListener('click', ()=> { slipOutput.style.display='none'; });
-printPreviewBtn.addEventListener('click', ()=> { 
-  // ensure slipOutput visible then print
+/* ===== preview toolbar handlers ===== */
+closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
+printPreviewBtn.addEventListener('click', ()=> {
   slipOutput.style.display = 'block';
-  setTimeout(()=> window.print(), 120); 
+  // allow rendering then print
+  setTimeout(()=> window.print(), 150);
 });
 downloadPdfPreview.addEventListener('click', async ()=> {
-  const node = document.getElementById('slipInner');
   slipOutput.style.display = 'block';
+  const node = document.getElementById('slipInner');
   const canvas = await html2canvas(node, { scale:2, useCORS:true });
   const img = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
@@ -418,29 +346,25 @@ downloadPdfPreview.addEventListener('click', async ()=> {
   pdf.save(`slip_preview.pdf`);
 });
 
-/* ====== Save / Print action ====== */
-mainPrintBtn.addEventListener('click', async ()=>{
+/* ===== save & print button ===== */
+document.getElementById('printBtn').addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
   renderSlipPreview(rec);
-  setTimeout(()=> {
-    // ensure full slip visible for printing
-    slipOutput.style.display = 'block';
-    window.print();
-  }, 450);
+  setTimeout(()=> { slipOutput.style.display='block'; window.print(); }, 450);
 });
 
-/* preview (no save) */
+/* preview only */
 previewBtn.addEventListener('click', ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
   renderSlipPreview(rec);
 });
 
-/* ====== records toggle ====== */
+/* toggle records view */
 toggleRecordsBtn.addEventListener('click', async ()=>{
   if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
     recordsWrap.style.display = 'block';
@@ -452,29 +376,29 @@ toggleRecordsBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* ====== refresh & populate records ====== */
+/* refresh list */
 async function refreshList(){
   cachedAll = await getAllSlips();
-  totalAllEl.textContent = 'Total: ' + cachedAll.length;
+  totalAllEl.textContent = cachedAll.length;
   await applyFilter();
 }
 
+/* apply filter & populate table */
 applyFilterBtn.addEventListener('click', applyFilter);
-
 async function applyFilter(){
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const filtered = await getSlipsInRange(from, to);
-  totalFilteredEl.textContent = 'Filtered: ' + filtered.length;
-  dateRangeText.textContent = (from || '-') + ' → ' + (to || '-');
+  totalFilteredEl.textContent = filtered.length;
+  dateRangeText.textContent = (from||'-') + ' → ' + (to||'-');
   recordsBody.innerHTML = '';
   filtered.forEach(r=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `<td style="width:60px">${r.id}</td>
       <td>${new Date(r.savedAt).toLocaleDateString()}</td>
-      <td>${r.vehicleNo || '-'}</td>
-      <td>${r.firmName || '-'}</td>
-      <td style="width:120px">${r.grossTime || ''}${(r.tareTime ? ' / ' + r.tareTime : '')}</td>
+      <td>${r.vehicleNo||'-'}</td>
+      <td>${r.firmName||'-'}</td>
+      <td>${(r.grossTime||'')}${(r.tareTime? ' / ' + r.tareTime : '')}</td>
       <td style="width:160px">
         <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
         <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
@@ -494,7 +418,7 @@ async function applyFilter(){
   });
 }
 
-/* ====== Export filtered PDF ====== */
+/* export filtered PDF */
 exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -516,10 +440,10 @@ exportPdfBtn.addEventListener('click', async ()=>{
     pdf.addImage(img, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
     slipOutput.style.display='none';
   }
-  pdf.save(`slips_${from||'all'}_${to||'all'}.pdf`);
+  pdf.save(`slips_${document.getElementById('filterFrom').value||'all'}_${document.getElementById('filterTo').value||'all'}.pdf`);
 });
 
-/* ====== single record pdf ====== */
+/* single record PDF */
 async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
@@ -536,7 +460,7 @@ async function downloadSingleRecAsPdf(rec){
   slipOutput.style.display='none';
 }
 
-/* ====== CSV export ====== */
+/* CSV export */
 exportCsvBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -547,12 +471,11 @@ exportCsvBtn.addEventListener('click', async ()=>{
   const csv = [headers.join(',')].concat(rows.map(r=> headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `slips_${from||'all'}_${to||'all'}.csv`; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = `slips_${from||'all'}_${to||'all'}.csv`; a.click();
   URL.revokeObjectURL(url);
 });
 
-/* On load: keep UI clean (login only visible) */
+/* initial UI state */
 window.addEventListener('load', ()=>{
   formCard.style.display='none';
   dashboardCard.style.display='none';
