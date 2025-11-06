@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Clean</title>
+<title>Secure Slip — Clean (with Time)</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -39,7 +39,7 @@ body::after{
 
 /* Form area */
 form label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-form input[type="text"], form input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
+form input[type="text"], form input[type="date"], form input[type="time"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
 .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
 
 /* Right: dashboard */
@@ -142,12 +142,22 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
 
         <div class="form-grid">
           <label>Gross: <input type="text" id="gross" value="70680 Kg"></label>
-          <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
+          <label>Gross Date: <input type="date" id="grossDate" value="2025-07-29"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Gross Time: <input type="time" id="grossTime" value=""></label>
+          <label></label>
         </div>
 
         <div class="form-grid">
           <label>Tare: <input type="text" id="tare" value="15700 Kg"></label>
-          <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
+          <label>Tare Date: <input type="date" id="tareDate" value="2025-07-29"></label>
+        </div>
+
+        <div class="form-grid">
+          <label>Tare Time: <input type="time" id="tareTime" value=""></label>
+          <label></label>
         </div>
 
         <label>Net: <input type="text" id="net" value="54980 Kg"></label>
@@ -217,7 +227,7 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   </div>
 </div>
 
-<!-- Slip preview overlay (NO meta shown anywhere) -->
+<!-- Slip preview overlay (NO meta shown) -->
 <div id="slipOutput" role="dialog" aria-modal="true">
   <div id="previewToolbar">
     <!-- Close highlighted blue -->
@@ -227,7 +237,6 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   </div>
 
   <div id="slipInner">
-    <!-- NO meta area here any more -->
     <!-- slip content here -->
     <div id="slipContent" style="white-space:pre; font-family:Courier, monospace;"></div>
   </div>
@@ -321,13 +330,14 @@ function collectForm(){
     item: document.getElementById('item').value,
     gross: document.getElementById('gross').value,
     grossDate: document.getElementById('grossDate').value,
-    grossTime: document.getElementById('grossTime')?.value || '',
+    grossTime: document.getElementById('grossTime').value || '',
     tare: document.getElementById('tare').value,
     tareDate: document.getElementById('tareDate').value,
-    tareTime: document.getElementById('tareTime')?.value || '',
+    tareTime: document.getElementById('tareTime').value || '',
     net: document.getElementById('net').value,
     charges: document.getElementById('charges').value,
-    phone: document.getElementById('phone').value
+    phone: document.getElementById('phone').value,
+    savedAt: new Date().toISOString()
   };
 }
 
@@ -347,8 +357,8 @@ function buildSlipPlainText(data){
   s += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '\n';
   s += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
-  s += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
-  s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
+  s += (`Gross :    ${data.gross || ''}`).padEnd(18) + ` Date: ${data.grossDate || ''}`.padEnd(16) + ` Time: ${data.grossTime || ''}` + '\n';
+  s += (`Tare  :    ${data.tare || ''}`).padEnd(18) + ` Date: ${data.tareDate || ''}`.padEnd(16) + ` Time: ${data.tareTime || ''}` + '\n';
   s += (`Net   :    ${data.net || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
   s += (`Charges    : Rs ${data.charges || ''}`) + '\n';
@@ -385,7 +395,6 @@ downloadPdfPreview.addEventListener('click', async ()=> {
 mainPrintBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
-  rec.savedAt = new Date().toISOString();
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
@@ -397,7 +406,6 @@ mainPrintBtn.addEventListener('click', async ()=>{
 previewBtn.addEventListener('click', ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
-  rec.savedAt = new Date().toISOString();
   renderSlipPreview(rec);
 });
 
@@ -435,7 +443,7 @@ async function applyFilter(){
       <td>${new Date(r.savedAt).toLocaleDateString()}</td>
       <td>${r.vehicleNo || '-'}</td>
       <td>${r.firmName || '-'}</td>
-      <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
+      <td style="width:120px">${(r.grossTime||'') || ''}</td>
       <td style="width:160px">
         <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
         <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
@@ -504,7 +512,7 @@ exportCsvBtn.addEventListener('click', async ()=>{
   const to = document.getElementById('filterTo').value;
   const rows = await getSlipsInRange(from, to);
   if(rows.length===0){ alert('No slips to export'); return; }
-  const headers = ['id','savedAt','vehicleNo','firmName','gross','tare','net','charges','phone'];
+  const headers = ['id','savedAt','vehicleNo','firmName','gross','tare','net','charges','phone','grossDate','grossTime','tareDate','tareTime'];
   const csv = [headers.join(',')].concat(rows.map(r=> headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
