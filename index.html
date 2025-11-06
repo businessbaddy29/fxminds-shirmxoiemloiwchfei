@@ -95,14 +95,12 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   justify-content:flex-end;
 }
 
-/* hide meta in print */
+/* hide unnecessary in print */
 @media print {
   body * { visibility: hidden !important; }
   #slipOutput, #slipOutput * { visibility: visible !important; }
   #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0; padding:10mm !important; box-shadow:none !important; background:#fff !important; color:#000 !important; }
-  /* hide the preview toolbar and meta in print */
   #previewToolbar { display:none !important; }
-  #slipInner .meta { display:none !important; }
 }
 
 /* responsive */
@@ -219,21 +217,17 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
   </div>
 </div>
 
-<!-- Slip preview overlay -->
+<!-- Slip preview overlay (NO meta shown anywhere) -->
 <div id="slipOutput" role="dialog" aria-modal="true">
   <div id="previewToolbar">
-    <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
-    <button id="toggleMetaBtn" class="btn btn-ghost">Cut Meta</button>
+    <!-- Close highlighted blue -->
+    <button id="closePreviewBtn" class="btn btn-blue">Close</button>
     <button id="downloadPdfPreview" class="btn btn-blue">Download PDF</button>
     <button id="printPreviewBtn" class="btn btn-blue">Print</button>
   </div>
 
   <div id="slipInner">
-    <!-- meta (hidden in print via CSS) -->
-    <div class="meta" style="font-size:12px; color:#555; margin-bottom:8px;">
-      <strong>Serial:</strong> <span id="metaSerial"></span> &nbsp;&nbsp;
-      <strong>Saved At:</strong> <span id="metaSavedAt"></span>
-    </div>
+    <!-- NO meta area here any more -->
     <!-- slip content here -->
     <div id="slipContent" style="white-space:pre; font-family:Courier, monospace;"></div>
   </div>
@@ -269,12 +263,8 @@ const previewBtn = document.getElementById('previewBtn');
 
 const slipOutput = document.getElementById('slipOutput');
 const slipContent = document.getElementById('slipContent');
-const metaSerial = document.getElementById('metaSerial');
-const metaSavedAt = document.getElementById('metaSavedAt');
-const previewToolbar = document.getElementById('previewToolbar');
 
 const closePreviewBtn = document.getElementById('closePreviewBtn');
-const toggleMetaBtn = document.getElementById('toggleMetaBtn');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const downloadPdfPreview = document.getElementById('downloadPdfPreview');
 
@@ -291,8 +281,6 @@ const totalAllEl = document.getElementById('totalAll');
 const totalFilteredEl = document.getElementById('totalFiltered');
 const dateRangeText = document.getElementById('dateRangeText');
 
-let metaVisible = true;
-
 /* ====== login/logout ====== */
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('username').value;
@@ -302,7 +290,6 @@ loginBtn.addEventListener('click', async () => {
     loginBox.style.display = 'none';
     formCard.style.display = 'block';
     dashboardCard.style.display = 'block';
-    // ensure records hidden by default
     recordsWrap.style.display = 'none';
     toggleRecordsBtn.textContent = 'Show Saved Slips';
     await refreshList();
@@ -371,33 +358,16 @@ function buildSlipPlainText(data){
   return s;
 }
 
-function renderSlipPreview(rec, showMeta=true){
-  // meta
-  metaSerial.textContent = rec._serial || (rec.id||'');
-  metaSavedAt.textContent = new Date(rec.savedAt || new Date()).toLocaleString();
-  document.querySelector('#slipContent').textContent = buildSlipPlainText(rec);
-  // show/hide meta in preview
-  document.querySelector('#slipInner .meta').style.display = showMeta ? 'block' : 'none';
-  // show overlay
+function renderSlipPreview(rec){
+  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
   slipOutput.style.display = 'block';
-  // scroll into view
   slipOutput.scrollIntoView({behavior:'smooth'});
 }
 
 /* ====== Preview controls ====== */
 closePreviewBtn.addEventListener('click', ()=> { slipOutput.style.display='none'; });
-toggleMetaBtn.addEventListener('click', ()=> {
-  metaVisible = !metaVisible;
-  document.querySelector('#slipInner .meta').style.display = metaVisible ? 'block' : 'none';
-  toggleMetaBtn.textContent = metaVisible ? 'Cut Meta' : 'Show Meta';
-});
-printPreviewBtn.addEventListener('click', ()=> {
-  // print the page (CSS ensures only slipOutput prints)
-  window.print();
-});
+printPreviewBtn.addEventListener('click', ()=> { window.print(); });
 downloadPdfPreview.addEventListener('click', async ()=> {
-  // generate PDF just for shown slip
-  // convert slipInner to canvas then pdf
   const node = document.getElementById('slipInner');
   slipOutput.style.display = 'block';
   const canvas = await html2canvas(node, { scale:2 });
@@ -419,10 +389,7 @@ mainPrintBtn.addEventListener('click', async ()=>{
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
-  // show preview (meta shown by default)
-  metaVisible = true;
-  renderSlipPreview(rec, true);
-  // small delay then open print dialog automatically (optional)
+  renderSlipPreview(rec);
   setTimeout(()=> window.print(), 400);
 });
 
@@ -431,15 +398,12 @@ previewBtn.addEventListener('click', ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
   rec.savedAt = new Date().toISOString();
-  rec._serial = '(preview)';
-  metaVisible = true;
-  renderSlipPreview(rec, true);
+  renderSlipPreview(rec);
 });
 
 /* ====== records toggle ====== */
 toggleRecordsBtn.addEventListener('click', async ()=>{
   if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
-    // show
     recordsWrap.style.display = 'block';
     toggleRecordsBtn.textContent = 'Hide Saved Slips';
     await applyFilter();
@@ -485,13 +449,13 @@ async function applyFilter(){
       const action = e.currentTarget.dataset.action;
       const rec = cachedAll.find(x=>x.id===id);
       if(!rec) return;
-      if(action==='view'){ metaVisible=true; renderSlipPreview(Object.assign({_serial:rec.id},rec), true); }
+      if(action==='view'){ renderSlipPreview(rec); }
       if(action==='pdf'){ await downloadSingleRecAsPdf(rec); }
     };
   });
 }
 
-/* ====== Export PDF (filtered) ====== */
+/* ====== Export filtered PDF ====== */
 exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -502,9 +466,7 @@ exportPdfBtn.addEventListener('click', async ()=>{
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
   for(let i=0;i<filtered.length;i++){
     const rec = filtered[i];
-    // render into slipInner
     document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
-    document.querySelector('#slipInner .meta').style.display = 'none'; // hide meta in pdf
     slipOutput.style.display='block';
     const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
     const img = canvas.toDataURL('image/png');
@@ -522,7 +484,6 @@ exportPdfBtn.addEventListener('click', async ()=>{
 async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
-  document.querySelector('#slipInner .meta').style.display = 'none';
   slipOutput.style.display='block';
   const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
   const img = canvas.toDataURL('image/png');
