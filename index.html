@@ -3,41 +3,36 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Advanced</title>
+<title>Secure Slip — Clean</title>
 
-<!-- External libs (CDN) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="" crossorigin="anonymous"></script>
+<!-- External libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 /* ===== Background & base styling (uses truck.avif from same folder) ===== */
 html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
 body {
   position: relative; min-height:100vh; padding:22px;
-  background: transparent;
-  color:#0d2433;
-  -webkit-font-smoothing:antialiased;
+  background: transparent; color:#0d2433; -webkit-font-smoothing:antialiased;
 }
 body::before{
   content:""; position: fixed; inset:0; z-index:-3;
   background-image: url("truck.avif");
   background-size: cover; background-position: center; transform: scale(1.03);
   filter: blur(6px) brightness(.95);
-  animation: bgFade 900ms ease both;
 }
 body::after{
   content:""; position: fixed; inset:0; z-index:-2;
   background: linear-gradient(rgba(255,255,255,0.62), rgba(255,255,255,0.62));
-  animation: overlayFade 800ms ease both;
 }
 
 /* Layout */
 .container { max-width:1100px; margin:0 auto; display:grid; grid-template-columns: 360px 1fr; gap:20px; align-items:start; }
 .card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); }
 
-/* Left panel (login / form) */
+/* Left panel */
 .left { position:sticky; top:22px; height:fit-content; }
-.loginBox { margin-bottom:12px; }
 .loginBox h2 { margin:0 0 12px 0; color:#0b2330; font-size:20px; }
 .loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New", monospace; }
 .loginBox button { width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
@@ -47,58 +42,86 @@ form label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
 form input[type="text"], form input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; }
 .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
 
-/* Right side: dashboard */
+/* Right: dashboard */
 .header-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
 .h-title { font-size:20px; color:#072033; font-weight:700; }
 .controls { display:flex; gap:8px; align-items:center; }
 
-/* Date filter */
-.filter { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.filter input[type="date"] { padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,0.06); }
-
-/* Stats */
-.stats { display:flex; gap:12px; margin:8px 0 12px 0; flex-wrap:wrap; }
-.stat { background: linear-gradient(180deg,#fff,#f7fbff); padding:10px 14px; border-radius:10px; border:1px solid rgba(10,18,30,0.03); font-weight:700; }
-
-/* Records table */
-.table { width:100%; border-collapse:collapse; margin-top:8px; }
-.table th, .table td { padding:10px 8px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:14px; }
-.table th { color:#07304b; font-weight:700; }
-
-/* Slip output (hidden until print) */
-.slip { width: 80ch; margin: 14px auto; padding: 14px; border-radius:8px; white-space:pre; background:#fff; color:#000; font-family:"Courier New", monospace; box-shadow:0 10px 30px rgba(10,20,30,.08); }
-
-/* Buttons */
+/* Buttons & small */
 .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
 .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
 .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-/* Footer helpers */
-.tools { display:flex; gap:8px; align-items:center; margin-top:10px; }
+/* Records area hidden by default inside dashboard */
+.recordsWrap { display:none; margin-top:12px; }
 
-/* Responsive */
-@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } }
+/* Table */
+.table { width:100%; border-collapse:collapse; margin-top:8px; }
+.table th, .table td { padding:10px 8px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:14px; }
+.table th { color:#07304b; font-weight:700; }
 
-/* Animations */
-@keyframes bgFade { from{opacity:0; transform:scale(1.06);} to{opacity:1; transform:scale(1.03);} }
-@keyframes overlayFade { from{opacity:0} to{opacity:1} }
+/* Slip preview area (overlay) */
+#slipOutput {
+  display:none;
+  position: fixed;
+  left: 50%;
+  top: 10%;
+  transform: translateX(-50%);
+  width: min(880px, 96%);
+  max-height: 80vh;
+  overflow:auto;
+  z-index: 9999;
+  border-radius:8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+/* inside slip card */
+#slipInner {
+  background: #fff;
+  padding: 18px;
+  border-radius: 8px;
+  color:#000;
+  font-family: "Courier New", monospace;
+}
+
+/* preview toolbar */
+#previewToolbar {
+  display:flex;
+  gap:8px;
+  background: rgba(12,20,30,0.03);
+  padding:8px;
+  border-top-left-radius:8px;
+  border-top-right-radius:8px;
+  justify-content:flex-end;
+}
+
+/* hide meta in print */
+@media print {
+  body * { visibility: hidden !important; }
+  #slipOutput, #slipOutput * { visibility: visible !important; }
+  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0; padding:10mm !important; box-shadow:none !important; background:#fff !important; color:#000 !important; }
+  /* hide the preview toolbar and meta in print */
+  #previewToolbar { display:none !important; }
+  #slipInner .meta { display:none !important; }
+}
+
+/* responsive */
+@media (max-width:980px) { .container { grid-template-columns: 1fr; } .left{ position:static; } #slipOutput { top:6%; } }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- LEFT: Login + Form -->
+  <!-- LEFT -->
   <div class="left">
-    <!-- Login box (kept as before) -->
     <div class="card loginBox" id="loginBox">
       <h2>Login</h2>
-      <input id="username" placeholder="User ID" />
-      <input id="password" placeholder="Password" type="password" />
+      <input id="username" placeholder="User ID" autocomplete="off" />
+      <input id="password" placeholder="Password" type="password" autocomplete="off" />
       <button id="loginBtn" class="btn btn-blue">Login</button>
       <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
     </div>
 
-    <!-- Form (hidden until login) -->
     <div class="card" id="formCard" style="display:none;">
       <form id="slipForm">
         <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
@@ -141,7 +164,7 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
     </div>
   </div>
 
-  <!-- RIGHT: Dashboard / Records (hidden until login) -->
+  <!-- RIGHT -->
   <div>
     <div class="card" id="dashboardCard" style="display:none;">
       <div class="header-row">
@@ -151,19 +174,23 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
         </div>
 
         <div class="controls">
-          <div class="filter">
+          <div class="filter" style="display:flex; gap:8px; align-items:center;">
             <label style="font-size:13px; color:#07304b; margin-right:6px;">From</label>
             <input type="date" id="filterFrom">
             <label style="font-size:13px; color:#07304b; margin-left:6px;">To</label>
             <input type="date" id="filterTo">
             <button id="applyFilter" class="btn btn-ghost">Apply</button>
           </div>
-          <!-- Logout button visible in dashboard -->
+
+          <!-- toggle records visibility button -->
+          <button id="toggleRecordsBtn" class="btn btn-ghost" style="margin-left:12px;">Show Saved Slips</button>
+
+          <!-- Logout -->
           <button id="logoutBtn" class="btn btn-ghost" style="margin-left:12px;">Logout</button>
         </div>
       </div>
 
-      <div class="stats" id="statsRow">
+      <div class="stats" id="statsRow" style="display:flex; gap:12px; margin-bottom:8px;">
         <div class="stat" id="totalAll">Total: 0</div>
         <div class="stat" id="totalFiltered">Filtered: 0</div>
         <div class="stat" id="dateRangeText">Range: -</div>
@@ -177,101 +204,96 @@ form input[type="text"], form input[type="date"] { width:100%; padding:8px; bord
         </div>
       </div>
 
-      <table class="table" id="recordsTable" aria-live="polite">
-        <thead>
-          <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Time</th><th>Action</th></tr>
-        </thead>
-        <tbody id="recordsBody"></tbody>
-      </table>
+      <!-- records are inside this container; hidden until toggle clicked -->
+      <div class="recordsWrap card" id="recordsWrap" style="margin-top:12px; display:none;">
+        <table class="table" id="recordsTable" aria-live="polite">
+          <thead>
+            <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Time</th><th>Action</th></tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
 
-      <div style="margin-top:10px; font-size:13px; color:#546;">Tip: Clicking "View" will open the slip preview and you can Download PDF for that slip.</div>
+      <div style="margin-top:10px; font-size:13px; color:#546;">Tip: Click "Show Saved Slips" to view saved records (hidden by default).</div>
     </div>
   </div>
 </div>
 
-<!-- Hidden slip preview area (used for PDF & print) -->
-<div id="slipOutput" class="slip" style="display:none; position:fixed; left:50%; transform:translateX(-50%); top:48px; z-index:9999;"></div>
+<!-- Slip preview overlay -->
+<div id="slipOutput" role="dialog" aria-modal="true">
+  <div id="previewToolbar">
+    <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
+    <button id="toggleMetaBtn" class="btn btn-ghost">Cut Meta</button>
+    <button id="downloadPdfPreview" class="btn btn-blue">Download PDF</button>
+    <button id="printPreviewBtn" class="btn btn-blue">Print</button>
+  </div>
+
+  <div id="slipInner">
+    <!-- meta (hidden in print via CSS) -->
+    <div class="meta" style="font-size:12px; color:#555; margin-bottom:8px;">
+      <strong>Serial:</strong> <span id="metaSerial"></span> &nbsp;&nbsp;
+      <strong>Saved At:</strong> <span id="metaSavedAt"></span>
+    </div>
+    <!-- slip content here -->
+    <div id="slipContent" style="white-space:pre; font-family:Courier, monospace;"></div>
+  </div>
+</div>
 
 <script>
-/* ====================
-   IndexedDB wrapper (simple)
-   ==================== */
+/* -------------------------
+  IndexedDB helpers (same)
+--------------------------*/
 const DB_NAME = 'secure_slips_db_v1';
 const STORE_NAME = 'slips';
+function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
+async function addSlipToDB(record){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readwrite'); const store=tx.objectStore(STORE_NAME); const toStore=Object.assign({}, record); const req=store.add(toStore); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
+async function getAllSlips(){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const store=tx.objectStore(STORE_NAME); const req=store.getAll(); req.onsuccess=()=>res(req.result.sort((a,b)=>a.id-b.id)); req.onerror=()=>rej(req.error); }); }
+async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
-function openDB(){
-  return new Promise((resolve, reject) => {
-    const r = indexedDB.open(DB_NAME, 1);
-    r.onupgradeneeded = e => {
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains(STORE_NAME)){
-        const s = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-        s.createIndex('savedAt', 'savedAt', { unique:false });
-        s.createIndex('vehicleNo', 'vehicleNo', { unique:false });
-      }
-    };
-    r.onsuccess = e => resolve(e.target.result);
-    r.onerror = e => reject(e.target.error);
-  });
-}
-
-async function addSlipToDB(record){
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const toStore = Object.assign({}, record);
-    const req = store.add(toStore);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function getAllSlips(){
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result.sort((a,b)=>a.id-b.id));
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function getSlipsInRange(fromISO, toISO){
-  const all = await getAllSlips();
-  if(!fromISO && !toISO) return all;
-  const from = fromISO ? new Date(fromISO+'T00:00:00') : new Date('1970-01-01');
-  const to = toISO ? new Date(toISO+'T23:59:59') : new Date('9999-12-31');
-  return all.filter(r => {
-    const d = new Date(r.savedAt);
-    return d >= from && d <= to;
-  });
-}
-
-/* ====================
-   UI and behavior
-   ==================== */
-
-// Credentials (kept same)
+/* =========================
+   UI elements & state
+   ========================= */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
+let isLoggedIn=false;
+let cachedAll=[];
 
 const loginBtn = document.getElementById('loginBtn');
 const loginErr = document.getElementById('loginErr');
 const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
 const dashboardCard = document.getElementById('dashboardCard');
+
 const mainPrintBtn = document.getElementById('printBtn');
 const previewBtn = document.getElementById('previewBtn');
+
 const slipOutput = document.getElementById('slipOutput');
+const slipContent = document.getElementById('slipContent');
+const metaSerial = document.getElementById('metaSerial');
+const metaSavedAt = document.getElementById('metaSavedAt');
+const previewToolbar = document.getElementById('previewToolbar');
+
+const closePreviewBtn = document.getElementById('closePreviewBtn');
+const toggleMetaBtn = document.getElementById('toggleMetaBtn');
+const printPreviewBtn = document.getElementById('printPreviewBtn');
+const downloadPdfPreview = document.getElementById('downloadPdfPreview');
+
+const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
+const recordsWrap = document.getElementById('recordsWrap');
 const recordsBody = document.getElementById('recordsBody');
+
+const applyFilterBtn = document.getElementById('applyFilter');
+const exportPdfBtn = document.getElementById('exportPdfBtn');
+const exportCsvBtn = document.getElementById('exportCsvBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 
-let cachedAll = []; // local cache
-let isLoggedIn = false;
+const totalAllEl = document.getElementById('totalAll');
+const totalFilteredEl = document.getElementById('totalFiltered');
+const dateRangeText = document.getElementById('dateRangeText');
 
-// login
+let metaVisible = true;
+
+/* ====== login/logout ====== */
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
@@ -280,86 +302,26 @@ loginBtn.addEventListener('click', async () => {
     loginBox.style.display = 'none';
     formCard.style.display = 'block';
     dashboardCard.style.display = 'block';
-    // refresh list on login
+    // ensure records hidden by default
+    recordsWrap.style.display = 'none';
+    toggleRecordsBtn.textContent = 'Show Saved Slips';
     await refreshList();
   } else {
     loginErr.style.display = 'block';
     setTimeout(()=>loginErr.style.display='none',2000);
   }
 });
-
-// logout
 logoutBtn.addEventListener('click', () => {
   isLoggedIn = false;
   loginBox.style.display = 'block';
   formCard.style.display = 'none';
   dashboardCard.style.display = 'none';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
   slipOutput.style.display = 'none';
+  document.getElementById('username').value='';
+  document.getElementById('password').value='';
 });
 
-// build slip text (same as your original but returns HTML for rendering)
-function buildSlipHtml(data){
-  const width = 80;
-  function padCenter(text, width){
-    let left = Math.floor((width - text.length)/2);
-    let right = width - text.length - left;
-    return '&nbsp;'.repeat(left) + escapeHtml(text) + '&nbsp;'.repeat(right);
-  }
-  function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-
-  let lines = '';
-  lines += `<div style="font-family:Courier,monospace; white-space:pre;">`;
-  lines += padCenter(data.firmName || '', width) + '<br>';
-  lines += padCenter(data.firmAddress || '', width) + '<br>';
-  lines += '.'.repeat(width) + '<br>';
-  lines += (`RST No.     : ${data.rstNo || ''}`).padEnd(40) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '<br>';
-  lines += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '<br>';
-  lines += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '<br>';
-  lines += '.'.repeat(width) + '<br>';
-  lines += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '<br>';
-  lines += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '<br>';
-  lines += (`Net   :    ${data.net || ''}`) + '<br>';
-  lines += '.'.repeat(width) + '<br>';
-  lines += (`Charges    : Rs ${data.charges || ''}`) + '<br>';
-  lines += '.'.repeat(width) + '<br>';
-  lines += (`                                  Phone : ${data.phone || ''}`) + '<br>';
-  lines += padCenter('Thanks for your visit', width) + '<br>';
-  lines += `</div>`;
-  // header with serial and savedAt
-  const meta = `<div style="font-size:12px; color:#555; margin-bottom:8px;">
-      <strong>Serial:</strong> ${data._serial || ''} &nbsp;&nbsp; <strong>Saved At:</strong> ${new Date(data.savedAt).toLocaleString()}
-    </div>`;
-  return `<div style="padding:10px;">${meta}${lines}</div>`;
-}
-
-// When Print & Save clicked
-mainPrintBtn.addEventListener('click', async() => {
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  const record = collectForm();
-  // add metadata
-  record.savedAt = new Date().toISOString();
-  // save to DB (returns id)
-  const id = await addSlipToDB(record);
-  record._serial = id;
-  // Update UI (reload list)
-  await refreshList();
-  // Show slip and print via browser
-  renderSlip(record);
-  setTimeout(()=> {
-    window.print();
-  }, 350);
-});
-
-// Preview only (no save)
-previewBtn.addEventListener('click', () => {
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  const record = collectForm();
-  record.savedAt = new Date().toISOString();
-  renderSlip(record);
-});
-
+/* ====== collect & build slip ====== */
 function collectForm(){
   return {
     firmName: document.getElementById('firmName').value,
@@ -382,58 +344,155 @@ function collectForm(){
   };
 }
 
-/* render slip into preview area */
-function renderSlip(rec){
-  slipOutput.innerHTML = buildSlipHtml(rec);
-  slipOutput.style.display = 'block';
+function buildSlipPlainText(data){
+  const width = 80;
+  function padCenter(text){
+    const t = String(text || '');
+    const left = Math.floor((width - t.length)/2);
+    const right = width - t.length - left;
+    return ' '.repeat(Math.max(0,left)) + t + ' '.repeat(Math.max(0,right));
+  }
+  let s = '';
+  s += padCenter(data.firmName) + '\n';
+  s += padCenter(data.firmAddress) + '\n';
+  s += '.'.repeat(width) + '\n';
+  s += (`RST No.     : ${data.rstNo || ''}`).padEnd(40) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '\n';
+  s += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '\n';
+  s += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '\n';
+  s += '.'.repeat(width) + '\n';
+  s += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
+  s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
+  s += (`Net   :    ${data.net || ''}`) + '\n';
+  s += '.'.repeat(width) + '\n';
+  s += (`Charges    : Rs ${data.charges || ''}`) + '\n';
+  s += '.'.repeat(width) + '\n';
+  s += (`                                  Phone : ${data.phone || ''}`) + '\n';
+  s += padCenter('Thanks for your visit') + '\n';
+  return s;
 }
 
-/* Refresh list from DB */
+function renderSlipPreview(rec, showMeta=true){
+  // meta
+  metaSerial.textContent = rec._serial || (rec.id||'');
+  metaSavedAt.textContent = new Date(rec.savedAt || new Date()).toLocaleString();
+  document.querySelector('#slipContent').textContent = buildSlipPlainText(rec);
+  // show/hide meta in preview
+  document.querySelector('#slipInner .meta').style.display = showMeta ? 'block' : 'none';
+  // show overlay
+  slipOutput.style.display = 'block';
+  // scroll into view
+  slipOutput.scrollIntoView({behavior:'smooth'});
+}
+
+/* ====== Preview controls ====== */
+closePreviewBtn.addEventListener('click', ()=> { slipOutput.style.display='none'; });
+toggleMetaBtn.addEventListener('click', ()=> {
+  metaVisible = !metaVisible;
+  document.querySelector('#slipInner .meta').style.display = metaVisible ? 'block' : 'none';
+  toggleMetaBtn.textContent = metaVisible ? 'Cut Meta' : 'Show Meta';
+});
+printPreviewBtn.addEventListener('click', ()=> {
+  // print the page (CSS ensures only slipOutput prints)
+  window.print();
+});
+downloadPdfPreview.addEventListener('click', async ()=> {
+  // generate PDF just for shown slip
+  // convert slipInner to canvas then pdf
+  const node = document.getElementById('slipInner');
+  slipOutput.style.display = 'block';
+  const canvas = await html2canvas(node, { scale:2 });
+  const img = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const imgProps = pdf.getImageProperties(img);
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  pdf.addImage(img, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
+  pdf.save(`slip_preview.pdf`);
+});
+
+/* ====== Save / Print action ====== */
+mainPrintBtn.addEventListener('click', async ()=>{
+  if(!isLoggedIn){ alert('Please login first'); return; }
+  const rec = collectForm();
+  rec.savedAt = new Date().toISOString();
+  const id = await addSlipToDB(rec);
+  rec._serial = id;
+  await refreshList();
+  // show preview (meta shown by default)
+  metaVisible = true;
+  renderSlipPreview(rec, true);
+  // small delay then open print dialog automatically (optional)
+  setTimeout(()=> window.print(), 400);
+});
+
+/* preview (no save) */
+previewBtn.addEventListener('click', ()=>{
+  if(!isLoggedIn){ alert('Please login first'); return; }
+  const rec = collectForm();
+  rec.savedAt = new Date().toISOString();
+  rec._serial = '(preview)';
+  metaVisible = true;
+  renderSlipPreview(rec, true);
+});
+
+/* ====== records toggle ====== */
+toggleRecordsBtn.addEventListener('click', async ()=>{
+  if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
+    // show
+    recordsWrap.style.display = 'block';
+    toggleRecordsBtn.textContent = 'Hide Saved Slips';
+    await applyFilter();
+  } else {
+    recordsWrap.style.display = 'none';
+    toggleRecordsBtn.textContent = 'Show Saved Slips';
+  }
+});
+
+/* ====== refresh & populate records ====== */
 async function refreshList(){
   cachedAll = await getAllSlips();
-  document.getElementById('totalAll').textContent = 'Total: ' + cachedAll.length;
-  await applyFilter(); // will fill table
+  totalAllEl.textContent = 'Total: ' + cachedAll.length;
+  await applyFilter();
 }
 
-/* Apply filter button */
-document.getElementById('applyFilter').addEventListener('click', applyFilter);
+applyFilterBtn.addEventListener('click', applyFilter);
 
 async function applyFilter(){
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const filtered = await getSlipsInRange(from, to);
-  document.getElementById('totalFiltered').textContent = 'Filtered: ' + filtered.length;
-  document.getElementById('dateRangeText').textContent = (from || '-') + ' → ' + (to || '-');
-  // populate table
+  totalFilteredEl.textContent = 'Filtered: ' + filtered.length;
+  dateRangeText.textContent = (from || '-') + ' → ' + (to || '-');
   recordsBody.innerHTML = '';
-  filtered.forEach(r => {
+  filtered.forEach(r=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `<td style="width:60px">${r.id}</td>
-                    <td>${new Date(r.savedAt).toLocaleDateString()}</td>
-                    <td>${r.vehicleNo || '-'}</td>
-                    <td>${r.firmName || '-'}</td>
-                    <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
-                    <td style="width:160px">
-                      <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
-                      <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
-                    </td>`;
+      <td>${new Date(r.savedAt).toLocaleDateString()}</td>
+      <td>${r.vehicleNo || '-'}</td>
+      <td>${r.firmName || '-'}</td>
+      <td style="width:120px">${new Date(r.savedAt).toLocaleTimeString()}</td>
+      <td style="width:160px">
+        <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
+        <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
+      </td>`;
     recordsBody.appendChild(tr);
   });
-  // bind view/pdf
-  recordsBody.querySelectorAll('button').forEach(b => {
-    b.addEventListener('click', async e => {
+  // bind actions
+  recordsBody.querySelectorAll('button').forEach(b=>{
+    b.onclick = async (e)=>{
       const id = Number(e.currentTarget.dataset.id);
       const action = e.currentTarget.dataset.action;
       const rec = cachedAll.find(x=>x.id===id);
       if(!rec) return;
-      if(action==='view'){ renderSlip(Object.assign({_serial:rec.id}, rec)); window.scrollTo({top:0, behavior:'smooth'}); }
+      if(action==='view'){ metaVisible=true; renderSlipPreview(Object.assign({_serial:rec.id},rec), true); }
       if(action==='pdf'){ await downloadSingleRecAsPdf(rec); }
-    });
+    };
   });
 }
 
-/* Export filtered PDF: combine all filtered slips into one PDF */
-document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+/* ====== Export PDF (filtered) ====== */
+exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
@@ -443,39 +502,42 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
   for(let i=0;i<filtered.length;i++){
     const rec = filtered[i];
-    slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
-    slipOutput.style.display = 'block';
-    const canvas = await html2canvas(slipOutput, { scale:2, useCORS:true });
-    const imgData = canvas.toDataURL('image/png');
-    const imgProps = pdf.getImageProperties(imgData);
+    // render into slipInner
+    document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+    document.querySelector('#slipInner .meta').style.display = 'none'; // hide meta in pdf
+    slipOutput.style.display='block';
+    const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
+    const img = canvas.toDataURL('image/png');
+    const imgProps = pdf.getImageProperties(img);
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
     if(i>0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
-    slipOutput.style.display = 'none';
+    pdf.addImage(img, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
+    slipOutput.style.display='none';
   }
   pdf.save(`slips_${from||'all'}_${to||'all'}.pdf`);
 });
 
-/* Download single record as PDF */
+/* ====== single record pdf ====== */
 async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
-  slipOutput.innerHTML = buildSlipHtml(Object.assign({_serial:rec.id},rec));
-  slipOutput.style.display = 'block';
+  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+  document.querySelector('#slipInner .meta').style.display = 'none';
+  slipOutput.style.display='block';
+  const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2 });
+  const img = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
-  const canvas = await html2canvas(slipOutput, { scale:2, useCORS:true });
-  const imgData = canvas.toDataURL('image/png');
-  const imgProps = pdf.getImageProperties(imgData);
+  const imgProps = pdf.getImageProperties(img);
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-  pdf.addImage(imgData, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
+  pdf.addImage(img, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
   pdf.save(`slip_${rec.id}.pdf`);
-  slipOutput.style.display = 'none';
+  slipOutput.style.display='none';
 }
 
-/* Export CSV of filtered slips */
-document.getElementById('exportCsvBtn').addEventListener('click', async () => {
+/* ====== CSV export ====== */
+exportCsvBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
@@ -490,13 +552,11 @@ document.getElementById('exportCsvBtn').addEventListener('click', async () => {
   URL.revokeObjectURL(url);
 });
 
-/* On load: ensure only login visible (no data fetched until login) */
-window.addEventListener('load', async () => {
-  // keep form/dashboard hidden until login
-  formCard.style.display = 'none';
-  dashboardCard.style.display = 'none';
-  // hide slip preview
-  slipOutput.style.display = 'none';
+/* On load: keep UI clean (login only visible) */
+window.addEventListener('load', ()=>{
+  formCard.style.display='none';
+  dashboardCard.style.display='none';
+  slipOutput.style.display='none';
 });
 </script>
 
