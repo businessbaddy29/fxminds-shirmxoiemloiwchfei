@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Print Settings</title>
+<title>Secure Slip — Amount per Slip</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -46,18 +46,13 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
 .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-.print-options { display:flex; gap:10px; align-items:center; margin-left:8px; }
-.print-options label { font-size:13px; color:#07304b; margin:0 6px 0 0; }
-
-/* Saved slips below */
+/* Saved slips area */
 #recordsWrap { display:none; margin-top:8px; }
-
-/* Table */
 .table { width:100%; border-collapse:collapse; margin-top:8px; }
-.table th, .table td { padding:10px 8px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:14px; }
+.table th, .table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:13px; vertical-align:middle; }
 .table th { color:#07304b; font-weight:700; }
 
-/* Slip preview overlay */
+/* Slip preview overlay (Close only) */
 #slipOutput {
   display:none; position: fixed; left:50%; top:6%; transform:translateX(-50%);
   width: min(880px, 96%); max-height:88vh; overflow:auto; z-index:9999;
@@ -66,7 +61,7 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
 #slipInner { background:#fff; padding:18px; border-radius:8px; font-family:"Courier New", monospace; color:#000; box-sizing:border-box; white-space:pre; }
 
-/* Print fallback CSS (keeps preview hidden during printing) */
+/* Print fallback CSS */
 @media print {
   body * { visibility: hidden !important; }
   #slipOutput, #slipOutput * { visibility: visible !important; }
@@ -80,6 +75,9 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
   .time-row { flex-direction:column; }
   #slipOutput { top:4%; }
 }
+.amount-input { width:100px; padding:6px; font-family: monospace; }
+.amount-submit { padding:6px 8px; margin-left:6px; }
+.total-box { font-weight:700; padding:8px; background:#f2f8ff; border-radius:8px; display:inline-block; }
 </style>
 </head>
 <body>
@@ -121,7 +119,7 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
         <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
       </div>
 
-      <!-- BOTH TIMEs -->
+      <!-- BOTH TIMES -->
       <div class="time-row" style="margin-top:6px;">
         <div style="flex:1">
           <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
@@ -188,11 +186,12 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 
   <!-- SAVED SLIPS -->
   <div class="card" id="dashboardCard" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
       <div>
         <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
-        <div style="font-size:13px; color:#235">Read-only — use export buttons below.</div>
+        <div style="font-size:13px; color:#235">Read-only — Amount becomes permanent after submit.</div>
       </div>
+
       <div style="display:flex; gap:8px; align-items:center;">
         <label style="font-size:13px; color:#07304b;">From</label>
         <input type="date" id="filterFrom">
@@ -205,14 +204,17 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
     </div>
 
     <div id="recordsWrap" style="margin-top:12px; display:none;">
-      <div style="display:flex; gap:12px; margin-bottom:8px;">
-        <div style="font-weight:700">Total: <span id="totalAll">0</span></div>
+      <div style="display:flex; gap:12px; margin-bottom:8px; align-items:center;">
+        <div style="font-weight:700">Total Slips: <span id="totalAll">0</span></div>
         <div style="font-weight:700">Filtered: <span id="totalFiltered">0</span></div>
+        <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
         <div id="dateRangeText">Range: -</div>
       </div>
 
       <table class="table" id="recordsTable" aria-live="polite">
-        <thead><tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Times</th><th>Action</th></tr></thead>
+        <thead><tr>
+          <th>Sr</th><th>Date</th><th>Vehicle</th><th>Firm</th><th>Times</th><th>Amount (₹)</th><th>Action</th>
+        </tr></thead>
         <tbody id="recordsBody"></tbody>
       </table>
     </div>
@@ -234,9 +236,47 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 /* ==================== IndexedDB helpers ==================== */
 const DB_NAME = 'secure_slips_db_v1';
 const STORE_NAME = 'slips';
-function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
-async function addSlipToDB(record){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readwrite'); const store=tx.objectStore(STORE_NAME); const toStore=Object.assign({}, record); const req=store.add(toStore); req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error); }); }
+function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,2); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } else { // if upgrading from v1, keep store
+        const s = e.target.transaction.objectStore(STORE_NAME);
+        // no structural change needed, we'll store amount field on records
+      } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
+
+async function addSlipToDB(record){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_NAME,'readwrite');
+    const store=tx.objectStore(STORE_NAME);
+    const toStore=Object.assign({}, record);
+    const req=store.add(toStore);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>rej(req.error);
+  });
+}
+
+async function updateSlipAmount(id, amount){
+  // Only allow writing amount if not already present
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const rec = getReq.result;
+      if(!rec) return rej(new Error('Record not found'));
+      if(rec.amount !== undefined && rec.amount !== null) return rej(new Error('Amount already set'));
+      // set amount and save immutably
+      rec.amount = Number(amount) || 0;
+      rec.amountSetAt = new Date().toISOString();
+      const putReq = store.put(rec);
+      putReq.onsuccess = () => res(true);
+      putReq.onerror = () => rej(putReq.error);
+    };
+    getReq.onerror = () => rej(getReq.error);
+  });
+}
+
 async function getAllSlips(){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const store=tx.objectStore(STORE_NAME); const req=store.getAll(); req.onsuccess=()=>res(req.result.sort((a,b)=>a.id-b.id)); req.onerror=()=>rej(req.error); }); }
+
 async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
 /* ==================== UI state & elements ==================== */
@@ -269,6 +309,7 @@ const exportPdfBtn = document.getElementById('exportPdfBtn');
 const exportCsvBtn = document.getElementById('exportCsvBtn');
 const totalAllEl = document.getElementById('totalAll');
 const totalFilteredEl = document.getElementById('totalFiltered');
+const totalAmountEl = document.getElementById('totalAmount');
 const dateRangeText = document.getElementById('dateRangeText');
 
 /* Print controls */
@@ -328,7 +369,7 @@ function collectForm(){
   };
 }
 
-/* ====== build slip text ====== */
+/* ====== build slip text (includes amount if present) ====== */
 function buildSlipPlainText(data){
   const width = 80;
   function padCenter(text){
@@ -349,6 +390,11 @@ function buildSlipPlainText(data){
   s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
   s += (`Net   :    ${data.net || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
+  // show amount if set
+  if(data.amount !== undefined && data.amount !== null){
+    s += (`Amount :    ₹ ${data.amount}`).padEnd(width) + '\n';
+    s += '.'.repeat(width) + '\n';
+  }
   s += (`Charges    : Rs ${data.charges || ''}`) + '\n';
   s += '.'.repeat(width) + '\n';
   s += (`                                  Phone : ${data.phone || ''}`) + '\n';
@@ -366,33 +412,22 @@ function renderSlipPreview(rec){
 /* ====== preview close ====== */
 closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
 
-/* ====== Print: generate PDF with user settings and open in new tab ====== */
+/* ====== PDF generation (as before) ====== */
 async function generatePdfAndOpen(rec){
-  // Put slip content into slipInner
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
   slipOutput.style.display = 'block';
-  // read settings
   const orientation = printOrientation.value || 'portrait';
   const paper = printPaper.value || 'a4';
-  const marginMM = Number(printMargin.value || 8); // mm
+  const marginMM = Number(printMargin.value || 8);
   const scaleFactor = Number(printScale.value || 1);
-
-  // html2canvas options: increase scale to get crisp image
   const canvas = await html2canvas(document.getElementById('slipInner'), { scale: 2 * scaleFactor, useCORS:true, allowTaint:false });
   const imgData = canvas.toDataURL('image/png');
-
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'mm', format: paper, orientation: orientation });
-
-  // compute usable width/height in mm
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = pdf.internal.pageSize.getHeight();
   const usableW = pdfWidth - (marginMM*2);
   const usableH = pdfHeight - (marginMM*2);
-
-  // compute image size to fit into usable area while preserving aspect ratio
-  // canvas dimensions are in px; convert to mm: px -> mm = (px / dpi) * 25.4
-  // But easier: compute aspect ratio from canvas
   const img = new Image();
   img.src = imgData;
   await new Promise(res => img.onload = res);
@@ -405,38 +440,32 @@ async function generatePdfAndOpen(rec){
     drawH = usableH;
     drawW = drawH * imgRatio;
   }
-
-  // center the image
   const x = (pdfWidth - drawW) / 2;
   const y = (pdfHeight - drawH) / 2;
-
   pdf.addImage(imgData, 'PNG', x, y, drawW, drawH);
-  // open in new tab
   const blob = pdf.output('blob');
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
 }
 
-/* ====== Print & Save button behavior ====== */
+/* ====== Print & Save button ====== */
 document.getElementById('printBtn').addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
-  // Save to DB
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
-  // Generate PDF according to settings and open new tab for printing
   await generatePdfAndOpen(rec);
 });
 
-/* ====== preview-only button ====== */
+/* preview only */
 previewBtn.addEventListener('click', ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
   renderSlipPreview(rec);
 });
 
-/* ====== records toggle ====== */
+/* toggle records view */
 toggleRecordsBtn.addEventListener('click', async ()=>{
   if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
     recordsWrap.style.display = 'block';
@@ -448,49 +477,91 @@ toggleRecordsBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* ====== refresh & populate records ====== */
+/* refresh list */
 async function refreshList(){
   cachedAll = await getAllSlips();
   totalAllEl.textContent = cachedAll.length;
   await applyFilter();
 }
 
+/* apply filter & populate table (now with amount box & submit) */
 applyFilterBtn.addEventListener('click', applyFilter);
-
 async function applyFilter(){
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const filtered = await getSlipsInRange(from, to);
   totalFilteredEl.textContent = filtered.length;
-  dateRangeText.textContent = (from||'-') + ' → ' + (to||'-');
+  dateRangeText.textContent = (from || '-') + ' → ' + (to || '-');
+  // compute amount total
+  const totalAmt = filtered.reduce((s,r)=> s + (Number(r.amount)||0), 0);
+  totalAmountEl.textContent = totalAmt.toFixed(2);
   recordsBody.innerHTML = '';
   filtered.forEach(r=>{
     const tr = document.createElement('tr');
+    // amount display and input
+    const amountDisplay = (r.amount !== undefined && r.amount !== null) ? `₹ ${Number(r.amount).toFixed(2)}` : '';
+    const amountInputId = `amt_in_${r.id}`;
+    const amountBtnId = `amt_btn_${r.id}`;
     tr.innerHTML = `<td style="width:60px">${r.id}</td>
-      <td>${new Date(r.savedAt).toLocaleDateString()}</td>
-      <td>${r.vehicleNo||'-'}</td>
+      <td style="width:90px">${new Date(r.savedAt).toLocaleDateString()}</td>
+      <td style="width:140px">${r.vehicleNo||'-'}</td>
       <td>${r.firmName||'-'}</td>
-      <td>${(r.grossTime||'')}${(r.tareTime? ' / ' + r.tareTime : '')}</td>
+      <td style="width:120px">${(r.grossTime||'')}${(r.tareTime? ' / ' + r.tareTime : '')}</td>
+      <td style="width:150px" id="amountCell_${r.id}">
+        ${ r.amount !== undefined && r.amount !== null
+          ? `<span>₹ ${Number(r.amount).toFixed(2)}</span>`
+          : `<input type="number" step="0.01" min="0" id="${amountInputId}" class="amount-input" placeholder="0.00">
+             <button class="btn btn-blue amount-submit" id="${amountBtnId}" data-id="${r.id}">Submit</button>`
+        }
+      </td>
       <td style="width:160px">
         <button class="btn btn-ghost" data-id="${r.id}" data-action="view">View</button>
         <button class="btn btn-blue" data-id="${r.id}" data-action="pdf">PDF</button>
       </td>`;
     recordsBody.appendChild(tr);
   });
+
   // bind actions
   recordsBody.querySelectorAll('button').forEach(b=>{
     b.onclick = async (e)=>{
       const id = Number(e.currentTarget.dataset.id);
       const action = e.currentTarget.dataset.action;
-      const rec = cachedAll.find(x=>x.id===id);
-      if(!rec) return;
-      if(action==='view'){ renderSlipPreview(rec); }
-      if(action==='pdf'){ await downloadSingleRecAsPdf(rec); }
+      if(action==='view'){
+        const rec = filtered.find(x=>x.id===id);
+        if(rec) renderSlipPreview(rec);
+      }
+      if(action==='pdf'){
+        const rec = filtered.find(x=>x.id===id);
+        if(rec) await downloadSingleRecAsPdf(rec);
+      }
+      // amount submit handled separately below
     };
+  });
+
+  // bind amount submit buttons
+  filtered.forEach(r=>{
+    const btn = document.getElementById(`amt_btn_${r.id}`);
+    if(btn){
+      btn.addEventListener('click', async (ev)=>{
+        const id = Number(ev.currentTarget.dataset.id);
+        const input = document.getElementById(`amt_in_${id}`);
+        const val = input.value;
+        if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
+        try{
+          await updateSlipAmount(id, Number(val));
+          // refresh UI
+          await refreshList();
+        }catch(err){
+          alert('Could not set amount: ' + (err.message || err));
+          // refresh to show current state
+          await refreshList();
+        }
+      });
+    }
   });
 }
 
-/* ====== Export filtered PDF (keeps previous behavior) ====== */
+/* ====== Export filtered PDF (unchanged) ====== */
 exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -532,14 +603,14 @@ async function downloadSingleRecAsPdf(rec){
   slipOutput.style.display='none';
 }
 
-/* ====== CSV export (unchanged) ====== */
+/* ====== CSV export (include amount) ====== */
 exportCsvBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
   const rows = await getSlipsInRange(from, to);
   if(rows.length===0){ alert('No slips to export'); return; }
-  const headers = ['id','savedAt','vehicleNo','firmName','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone'];
+  const headers = ['id','savedAt','vehicleNo','firmName','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','amount','phone'];
   const csv = [headers.join(',')].concat(rows.map(r=> headers.map(h => `"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
