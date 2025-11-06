@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Final Update</title>
+<title>Secure Slip — Final Update (preview buttons removed)</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -186,9 +186,8 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
 <!-- Slip preview overlay -->
 <div id="slipOutput" role="dialog" aria-modal="true">
   <div id="previewToolbar">
+    <!-- ONLY Close button remains -->
     <button id="closePreviewBtn" class="btn btn-blue">Close</button>
-    <button id="downloadPdfPreview" class="btn btn-blue">Download PDF</button>
-    <button id="printPreviewBtn" class="btn btn-blue">Print</button>
   </div>
 
   <div id="slipInner">
@@ -217,7 +216,6 @@ const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
 const dashboardCard = document.getElementById('dashboardCard');
 
-const mainPrintBtn = document.getElementById('printBtn') || document.getElementById('printBtn');
 const previewBtn = document.getElementById('previewBtn');
 const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -226,8 +224,6 @@ const slipOutput = document.getElementById('slipOutput');
 const slipContent = document.getElementById('slipContent');
 
 const closePreviewBtn = document.getElementById('closePreviewBtn');
-const printPreviewBtn = document.getElementById('printPreviewBtn');
-const downloadPdfPreview = document.getElementById('downloadPdfPreview');
 
 const recordsWrap = document.getElementById('recordsWrap');
 const recordsBody = document.getElementById('recordsBody');
@@ -325,26 +321,8 @@ function renderSlipPreview(rec){
   slipOutput.scrollIntoView({behavior:'smooth'});
 }
 
-/* ===== preview toolbar handlers ===== */
+/* ===== preview toolbar handlers (only Close) ===== */
 closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
-printPreviewBtn.addEventListener('click', ()=> {
-  slipOutput.style.display = 'block';
-  // allow rendering then print
-  setTimeout(()=> window.print(), 150);
-});
-downloadPdfPreview.addEventListener('click', async ()=> {
-  slipOutput.style.display = 'block';
-  const node = document.getElementById('slipInner');
-  const canvas = await html2canvas(node, { scale:2, useCORS:true });
-  const img = canvas.toDataURL('image/png');
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'pt', format:'a4' });
-  const imgProps = pdf.getImageProperties(img);
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-  pdf.addImage(img, 'PNG', 10, 10, pdfWidth-20, pdfHeight-20);
-  pdf.save(`slip_preview.pdf`);
-});
 
 /* ===== save & print button ===== */
 document.getElementById('printBtn').addEventListener('click', async ()=>{
