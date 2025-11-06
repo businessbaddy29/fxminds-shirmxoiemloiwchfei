@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Final Update (preview buttons removed)</title>
+<title>Secure Slip — Print Settings</title>
 
 <!-- External libs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -31,23 +31,25 @@ body::after{
 .loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New", monospace; }
 .loginBox button { width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
 
-/* Form full-width (as requested) */
+/* Form full-width */
 .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center; }
-.form-row { display:flex; gap:8px; }
 label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; box-sizing:border-box; }
+input[type="text"], input[type="date"], select { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; box-sizing:border-box; }
 
-/* Make two time fields appear on same row compactly */
+/* Both times row */
 .time-row { display:flex; gap:8px; }
 .time-row input { flex:1; }
 
-/* Buttons */
-.controls { display:flex; gap:8px; margin-top:10px; }
+/* Buttons & print settings */
+.controls { display:flex; gap:8px; margin-top:10px; align-items:center; }
 .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
 .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
 .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-/* Saved slips section is below form and hidden by default */
+.print-options { display:flex; gap:10px; align-items:center; margin-left:8px; }
+.print-options label { font-size:13px; color:#07304b; margin:0 6px 0 0; }
+
+/* Saved slips below */
 #recordsWrap { display:none; margin-top:8px; }
 
 /* Table */
@@ -62,20 +64,17 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
   border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,0.35); background:transparent;
 }
 #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
-#slipInner { background:#fff; padding:18px; border-radius:8px; font-family:"Courier New", monospace; color:#000; box-sizing:border-box; }
+#slipInner { background:#fff; padding:18px; border-radius:8px; font-family:"Courier New", monospace; color:#000; box-sizing:border-box; white-space:pre; }
 
-/* Print styling — portrait A4 friendly and make slip fill page */
-@page { size: A4 portrait; margin: 8mm; }
+/* Print fallback CSS (keeps preview hidden during printing) */
 @media print {
-  html,body { height:auto !important; }
   body * { visibility: hidden !important; }
   #slipOutput, #slipOutput * { visibility: visible !important; }
-  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; background:#fff !important; box-shadow:none !important; }
-  #slipInner { padding: 12mm !important; border-radius:0 !important; box-shadow:none !important; width:100% !important; height:auto !important; overflow:visible !important; page-break-inside: avoid; -webkit-print-color-adjust: exact; }
+  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0 !important; padding:10mm !important; background:#fff !important; box-shadow:none !important; }
   #previewToolbar { display:none !important; }
 }
 
-/* Responsive small screens */
+/* responsive */
 @media (max-width:720px){
   .form-grid { grid-template-columns: 1fr; }
   .time-row { flex-direction:column; }
@@ -87,7 +86,7 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
 
 <div class="container">
 
-  <!-- LOGIN CARD -->
+  <!-- LOGIN -->
   <div class="card loginBox" id="loginBox">
     <h2>Login</h2>
     <input id="username" placeholder="User ID" autocomplete="off" />
@@ -96,7 +95,7 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
     <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
   </div>
 
-  <!-- FORM CARD (full width, top) -->
+  <!-- FORM -->
   <div class="card" id="formCard" style="display:none;">
     <form id="slipForm" onsubmit="return false;">
       <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
@@ -122,10 +121,10 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
         <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
       </div>
 
-      <!-- BOTH TIMES ON SAME ROW as requested -->
+      <!-- BOTH TIMEs -->
       <div class="time-row" style="margin-top:6px;">
         <div style="flex:1">
-          <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37 or 1:37 PM"></label>
+          <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
         </div>
         <div style="flex:1">
           <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
@@ -141,6 +140,43 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
       <label>Charges: Rs <input type="text" id="charges" value="0"></label>
       <label>Phone: <input type="text" id="phone" value="123456"></label>
 
+      <!-- PRINT SETTINGS UI -->
+      <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
+        <div class="print-options">
+          <label>Orientation</label>
+          <select id="printOrientation">
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+
+        <div class="print-options">
+          <label>Paper</label>
+          <select id="printPaper">
+            <option value="a4">A4</option>
+            <option value="letter">Letter</option>
+          </select>
+        </div>
+
+        <div class="print-options">
+          <label>Margins</label>
+          <select id="printMargin">
+            <option value="8">Default (8mm)</option>
+            <option value="4">Small (4mm)</option>
+            <option value="0">None (0mm)</option>
+          </select>
+        </div>
+
+        <div class="print-options">
+          <label>Scale</label>
+          <select id="printScale">
+            <option value="1">100%</option>
+            <option value="0.95">95%</option>
+            <option value="0.9">90%</option>
+          </select>
+        </div>
+      </div>
+
       <div class="controls">
         <button type="button" id="printBtn" class="btn btn-blue">Print Slip & Save</button>
         <button type="button" id="previewBtn" class="btn btn-ghost">Preview Slip</button>
@@ -150,7 +186,7 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
     </form>
   </div>
 
-  <!-- SAVED SLIPS (below form) -->
+  <!-- SAVED SLIPS -->
   <div class="card" id="dashboardCard" style="display:none;">
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <div>
@@ -183,10 +219,9 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
   </div>
 </div>
 
-<!-- Slip preview overlay -->
+<!-- Slip preview overlay (Close only) -->
 <div id="slipOutput" role="dialog" aria-modal="true">
   <div id="previewToolbar">
-    <!-- ONLY Close button remains -->
     <button id="closePreviewBtn" class="btn btn-blue">Close</button>
   </div>
 
@@ -196,7 +231,7 @@ input[type="text"], input[type="date"] { width:100%; padding:8px; border-radius:
 </div>
 
 <script>
-/* ==================== IndexedDB (unchanged) ==================== */
+/* ==================== IndexedDB helpers ==================== */
 const DB_NAME = 'secure_slips_db_v1';
 const STORE_NAME = 'slips';
 function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
@@ -204,7 +239,7 @@ async function addSlipToDB(record){ const db=await openDB(); return new Promise(
 async function getAllSlips(){ const db=await openDB(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE_NAME,'readonly'); const store=tx.objectStore(STORE_NAME); const req=store.getAll(); req.onsuccess=()=>res(req.result.sort((a,b)=>a.id-b.id)); req.onerror=()=>rej(req.error); }); }
 async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
-/* ==================== UI elements ==================== */
+/* ==================== UI state & elements ==================== */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn=false;
@@ -216,6 +251,7 @@ const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
 const dashboardCard = document.getElementById('dashboardCard');
 
+const mainPrintBtn = document.getElementById('printBtn');
 const previewBtn = document.getElementById('previewBtn');
 const toggleRecordsBtn = document.getElementById('toggleRecordsBtn');
 const logoutBtn = document.getElementById('logoutBtn');
@@ -235,7 +271,13 @@ const totalAllEl = document.getElementById('totalAll');
 const totalFilteredEl = document.getElementById('totalFiltered');
 const dateRangeText = document.getElementById('dateRangeText');
 
-/* ===== login/logout ===== */
+/* Print controls */
+const printOrientation = document.getElementById('printOrientation');
+const printPaper = document.getElementById('printPaper');
+const printMargin = document.getElementById('printMargin');
+const printScale = document.getElementById('printScale');
+
+/* ====== login/logout ====== */
 loginBtn.addEventListener('click', async () => {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
@@ -262,7 +304,7 @@ logoutBtn.addEventListener('click', () => {
   document.getElementById('password').value='';
 });
 
-/* ===== collect form (both times preserved exactly) ===== */
+/* ====== collect form ====== */
 function collectForm(){
   return {
     firmName: document.getElementById('firmName').value,
@@ -286,7 +328,7 @@ function collectForm(){
   };
 }
 
-/* ===== build slip text - ensure both times display exactly as entered ===== */
+/* ====== build slip text ====== */
 function buildSlipPlainText(data){
   const width = 80;
   function padCenter(text){
@@ -314,35 +356,87 @@ function buildSlipPlainText(data){
   return s;
 }
 
-/* ===== preview / render ===== */
+/* ====== render preview ====== */
 function renderSlipPreview(rec){
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
   slipOutput.style.display = 'block';
   slipOutput.scrollIntoView({behavior:'smooth'});
 }
 
-/* ===== preview toolbar handlers (only Close) ===== */
+/* ====== preview close ====== */
 closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
 
-/* ===== save & print button ===== */
+/* ====== Print: generate PDF with user settings and open in new tab ====== */
+async function generatePdfAndOpen(rec){
+  // Put slip content into slipInner
+  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+  slipOutput.style.display = 'block';
+  // read settings
+  const orientation = printOrientation.value || 'portrait';
+  const paper = printPaper.value || 'a4';
+  const marginMM = Number(printMargin.value || 8); // mm
+  const scaleFactor = Number(printScale.value || 1);
+
+  // html2canvas options: increase scale to get crisp image
+  const canvas = await html2canvas(document.getElementById('slipInner'), { scale: 2 * scaleFactor, useCORS:true, allowTaint:false });
+  const imgData = canvas.toDataURL('image/png');
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'mm', format: paper, orientation: orientation });
+
+  // compute usable width/height in mm
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = pdf.internal.pageSize.getHeight();
+  const usableW = pdfWidth - (marginMM*2);
+  const usableH = pdfHeight - (marginMM*2);
+
+  // compute image size to fit into usable area while preserving aspect ratio
+  // canvas dimensions are in px; convert to mm: px -> mm = (px / dpi) * 25.4
+  // But easier: compute aspect ratio from canvas
+  const img = new Image();
+  img.src = imgData;
+  await new Promise(res => img.onload = res);
+  const imgW = img.width;
+  const imgH = img.height;
+  const imgRatio = imgW / imgH;
+  let drawW = usableW;
+  let drawH = drawW / imgRatio;
+  if(drawH > usableH){
+    drawH = usableH;
+    drawW = drawH * imgRatio;
+  }
+
+  // center the image
+  const x = (pdfWidth - drawW) / 2;
+  const y = (pdfHeight - drawH) / 2;
+
+  pdf.addImage(imgData, 'PNG', x, y, drawW, drawH);
+  // open in new tab
+  const blob = pdf.output('blob');
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
+/* ====== Print & Save button behavior ====== */
 document.getElementById('printBtn').addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
+  // Save to DB
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
-  renderSlipPreview(rec);
-  setTimeout(()=> { slipOutput.style.display='block'; window.print(); }, 450);
+  // Generate PDF according to settings and open new tab for printing
+  await generatePdfAndOpen(rec);
 });
 
-/* preview only */
+/* ====== preview-only button ====== */
 previewBtn.addEventListener('click', ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const rec = collectForm();
   renderSlipPreview(rec);
 });
 
-/* toggle records view */
+/* ====== records toggle ====== */
 toggleRecordsBtn.addEventListener('click', async ()=>{
   if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
     recordsWrap.style.display = 'block';
@@ -354,15 +448,15 @@ toggleRecordsBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* refresh list */
+/* ====== refresh & populate records ====== */
 async function refreshList(){
   cachedAll = await getAllSlips();
   totalAllEl.textContent = cachedAll.length;
   await applyFilter();
 }
 
-/* apply filter & populate table */
 applyFilterBtn.addEventListener('click', applyFilter);
+
 async function applyFilter(){
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
@@ -396,7 +490,7 @@ async function applyFilter(){
   });
 }
 
-/* export filtered PDF */
+/* ====== Export filtered PDF (keeps previous behavior) ====== */
 exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -421,7 +515,7 @@ exportPdfBtn.addEventListener('click', async ()=>{
   pdf.save(`slips_${document.getElementById('filterFrom').value||'all'}_${document.getElementById('filterTo').value||'all'}.pdf`);
 });
 
-/* single record PDF */
+/* ====== single record PDF (unchanged) ====== */
 async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
   document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
@@ -438,7 +532,7 @@ async function downloadSingleRecAsPdf(rec){
   slipOutput.style.display='none';
 }
 
-/* CSV export */
+/* ====== CSV export (unchanged) ====== */
 exportCsvBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
