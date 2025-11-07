@@ -283,24 +283,34 @@ async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if
 /* Replace these two values with your Web App URL and the secret token you used in Apps Script */
 const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzMCSOXh-bdZwkDEATU-b8e_It-2qT-G5TDIGB7cNrlpZeg532OxSIC6an6e4H44h5BOw/exec";
 const SHEET_SECRET = "mY_v3ryfrjFQtrOpL0ng$ecret_T0ken_9x4Kf8q2z";
-  
-async function sendSlipToSheet(payload){
-  // payload: { rstNo, vehicleNo, grossDate, amount }
-  try {
-    const body = Object.assign({}, payload, { secret: SHEET_SECRET });
+
+/* ---- point-1: robust sender function (urlencoded) ---- */
+async function sendSlipToGoogleSheet(record){
+  try{
+    const body = new URLSearchParams({
+      secret: SHEET_SECRET,
+      rstNo: record.rstNo || '',
+      vehicleNo: record.vehicleNo || '',
+      grossDate: record.grossDate || '',
+      amount: (record.amount !== undefined && record.amount !== null) ? String(record.amount) : ''
+    }).toString();
+
     const resp = await fetch(SHEET_WEBAPP_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: body
     });
-    const json = await resp.json();
-    return json; // {ok:true, sNo:..., row:...} on success
+
+    const text = await resp.text();
+    console.log('WEBAPP RAW:', text);
+    // try parse JSON (Apps Script returns JSON)
+    try { return JSON.parse(text); } catch(e){ return { ok:false, error: 'invalid_json', raw: text }; }
   } catch(err){
-    console.error('sendSlipToSheet error', err);
-    return { ok:false, error: err.toString() };
+    console.error('sendSlipToGoogleSheet error', err);
+    return { ok:false, error: err.message || String(err) };
   }
 }
-/* ====== END Google Sheets sender ====== */
+/* ====== END point-1 ====== */
 
 /* ==================== UI state & elements ==================== */
 const USERNAME = "FxMiNds";
@@ -479,18 +489,20 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
   rec._serial = id;
   await refreshList();
 
-  // --- SEND TO GOOGLE SHEET (added) ---
+  // --- POINT-2: SEND TO GOOGLE SHEET (added) ---
   try {
-    const sheetResp = await sendSlipToSheet({
+    // send required fields (amount may be empty)
+    const sheetResp = await sendSlipToGoogleSheet({
       rstNo: rec.rstNo,
       vehicleNo: rec.vehicleNo,
       grossDate: rec.grossDate,
       amount: rec.amount || ""
     });
     console.log('Sheet save response:', sheetResp);
-    // optional: you can show a small UI message here if you want
+    // if you want, show a small toast here when sheetResp.ok === true
   } catch(err){
     console.error('Error sending to sheet:', err);
+    // ignore — local DB still has record
   }
   // --- end sheet send ---
 
