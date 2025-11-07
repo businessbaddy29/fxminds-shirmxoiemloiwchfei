@@ -463,18 +463,21 @@ function buildSlipHtml(data){
 
   // Replace placeholders with span wrappers (escape text)
   function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-  const restHtml = esc(rest)
-    .replaceAll('<<GROSS>>', `<span class="big-val">${esc(grossVal)}</span>`)
-    .replaceAll('<<TARE>>', `<span class="big-val">${esc(tareVal)}</span>`)
-    .replaceAll('<<NET>>', `<span class="big-val">${esc(netVal)}</span>`)
-    .replaceAll('\n','\n'); // keep newlines for <pre>
+
+  // Escape the rest first (so any user-supplied <>& are safe)
+  const restEsc = esc(rest);
+
+  // Now replace the escaped placeholder tokens (&lt;&lt;GROSS&gt;&gt; etc) with span-wrapped escaped values
+  const withGross = restEsc.replaceAll('&lt;&lt;GROSS&gt;&gt;', `<span class="big-val">${esc(grossVal)}</span>`);
+  const withTare = withGross.replaceAll('&lt;&lt;TARE&gt;&gt;', `<span class="big-val">${esc(tareVal)}</span>`);
+  const withNet = withTare.replaceAll('&lt;&lt;NET&gt;&gt;', `<span class="big-val">${esc(netVal)}</span>`);
 
   // Build final HTML block
   const html = `
     <div>
       <div class="slip-firm">${esc(data.firmName || '')}</div>
       <div class="slip-address">${esc(data.firmAddress || '')}</div>
-      <pre class="slip-wrapper">${restHtml}</pre>
+      <pre class="slip-wrapper">${withNet}</pre>
     </div>
   `;
   return html;
