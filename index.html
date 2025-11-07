@@ -10,8 +10,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* ===== Base ===== */
-html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433;}
+/* ===== Base & background ===== */
+html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433; }
 body::before{
   content:""; position: fixed; inset:0; z-index:-3;
   background-image: url("truck.avif"); background-size:cover; background-position:center; filter: blur(6px) brightness(.95);
@@ -54,12 +54,29 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 
 /* Slip preview overlay (Close only) */
 #slipOutput {
-  display:none; position: fixed; left:50%; top:6%; transform:translateX(-50%);
-  width: min(880px, 96%); max-height:88vh; overflow:auto; z-index:9999;
-  border-radius:8px; box-shadow:0 20px 60px rgba(0,0,0,0.35); background:transparent;
+  display:none;
+  position: fixed;
+  left: 50%;
+  top: 6%;
+  transform: translateX(-50%);
+  width: min(880px, 96%);
+  max-height: 88vh;
+  overflow:auto;
+  z-index: 9999;
+  border-radius:8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  background: transparent;
 }
 #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
-#slipInner { background:#fff; padding:18px; border-radius:8px; font-family:"Courier New", monospace; color:#000; box-sizing:border-box; white-space:pre; }
+
+/* inside slip card */
+#slipInner { background: #fff; padding: 18px; border-radius: 8px; color:#000; font-family: "Courier New", monospace; box-sizing:border-box; }
+
+/* styling for slip content elements */
+.slip-wrapper { white-space: pre; font-family: "Courier New", monospace; color:#000; }
+.slip-firm { text-align:center; font-weight:700; font-size:18px; margin-bottom:6px; }
+.slip-address { text-align:center; font-size:12px; margin-bottom:6px; color:#333; }
+.big-val { font-weight:700; font-size:15px; }
 
 /* Print fallback CSS */
 @media print {
@@ -228,7 +245,7 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
   </div>
 
   <div id="slipInner">
-    <div id="slipContent" style="white-space:pre; font-family:Courier, monospace; color:#000;"></div>
+    <div id="slipContent" style="color:#000;"></div>
   </div>
 </div>
 
@@ -250,7 +267,6 @@ async function addSlipToDB(record){
   });
 }
 
-/* UPDATED: return updated record on success so caller can send to sheet */
 async function updateSlipAmount(id, amount){
   const db = await openDB();
   return new Promise((res, rej) => {
@@ -265,10 +281,9 @@ async function updateSlipAmount(id, amount){
       rec.amountSetAt = new Date().toISOString();
       const putReq = store.put(rec);
       putReq.onsuccess = () => {
-        // fetch fresh record and return it
         const get2 = store.get(id);
         get2.onsuccess = () => res(get2.result);
-        get2.onerror = () => res(rec); // fallback
+        get2.onerror = () => res(rec);
       };
       putReq.onerror = () => rej(putReq.error);
     };
@@ -282,7 +297,7 @@ async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if
 
 /* ====== GOOGLE SHEETS WEBAPP CONFIG & SENDER ====== */
 /* Replace with your webapp URL & secret */
-const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbylJPToXhv9L29Hy3hSk6VbRXRAaZd6LvtCSBjp4ylG8zFPVQw9NJ-8jfHXUHZfA8yHIw/exec";
+const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzMCSOXh-bdZwkDEATU-b8e_It-2qT-G5TDIGB7cNrlpZeg532OxSIC6an6e4H44h5BOw/exec";
 const SHEET_SECRET = "mY_v3ryfrjFQtrOpL0ng$ecret_T0ken_9x4Kf8q2z";
 
 /* sender — urlencoded form (robust) */
@@ -401,42 +416,73 @@ function collectForm(){
   };
 }
 
-/* ====== build slip text (includes amount if present) ====== */
-function buildSlipPlainText(data){
+/* ====== build slip HTML (includes styled firm + big values) ====== */
+function buildSlipHtml(data){
   const width = 80;
-  function padCenter(text){
+  function padCenterText(text){
     const t = String(text || '');
     const left = Math.floor((width - t.length)/2);
     const right = width - t.length - left;
     return ' '.repeat(Math.max(0,left)) + t + ' '.repeat(Math.max(0,right));
   }
-  let s = '';
-  s += padCenter(data.firmName) + '\n';
-  s += padCenter(data.firmAddress) + '\n';
-  s += '.'.repeat(width) + '\n';
-  s += (`RST No.     : ${data.rstNo || ''}`).padEnd(25) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '\n';
-  s += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(25) + (`Party Name    : ${data.partyName || ''}`) + '\n';
-  s += (`Address     : ${data.address || ''}`).padEnd(25) + (`Item          : ${data.item || ''}`) + '\n';
-  s += '.'.repeat(width) + '\n';
-  s += (`Gross :    ${data.gross || ''}`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
-  s += (`Tare  :    ${data.tare || ''}`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
-  s += (`Net   :    ${data.net || ''}`) + '\n';
-  s += '.'.repeat(width) + '\n';
-  // show amount if set
-  if(data.amount !== undefined && data.amount !== null){
-    s += (`Amount :    ₹ ${data.amount}`).padEnd(width) + '\n';
-    s += '.'.repeat(width) + '\n';
+  // Prepare lines (plain) but we will wrap certain pieces in spans
+  const grossVal = data.gross || '';
+  const tareVal = data.tare || '';
+  const netVal = data.net || '';
+  // We'll use a <pre> for alignment but place styled spans for firm and big values
+  let lines = '';
+  lines += padCenterText(data.firmName || '') + '\n';
+  lines += padCenterText(data.firmAddress || '') + '\n';
+  lines += '.'.repeat(width) + '\n';
+  lines += (`RST No.     : ${data.rstNo || ''}`).padEnd(40) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '\n';
+  lines += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '\n';
+  lines += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '\n';
+  lines += '.'.repeat(width) + '\n';
+  // For gross/tare/net lines we will mark values so we can style them via span replacement below
+  lines += (`Gross :    <<GROSS>>`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
+  lines += (`Tare  :    <<TARE>>`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
+  lines += (`Net   :    <<NET>>`) + '\n';
+  lines += '.'.repeat(width) + '\n';
+  if(data.amount !== undefined && data.amount !== null && data.amount !== ''){
+    lines += (`Amount :    ₹ ${data.amount}`).padEnd(width) + '\n';
+    lines += '.'.repeat(width) + '\n';
   }
-  s += (`Charges    : Rs ${data.charges || ''}`) + '\n';
-  s += '.'.repeat(width) + '\n';
-  s += (`                                  Phone : ${data.phone || ''}`) + '\n';
-  s += padCenter('Thanks for your visit') + '\n';
-  return s;
+  lines += (`Charges    : Rs ${data.charges || ''}`) + '\n';
+  lines += '.'.repeat(width) + '\n';
+  lines += (`                                  Phone : ${data.phone || ''}`) + '\n';
+  lines += padCenterText('Thanks for your visit') + '\n';
+
+  // Now convert to HTML: we want firm name bold & larger, and replace placeholders with spans having .big-val
+  // We'll split the lines and replace first two center lines (firm + address) specially
+  const allLines = lines.split('\n');
+  // the first line is firmName centered; second is firmAddress
+  const firmLine = allLines[0] || '';
+  const addressLine = allLines[1] || '';
+  // join the rest (starting from index 2)
+  const rest = allLines.slice(2).join('\n');
+
+  // Replace placeholders with span wrappers (escape text)
+  function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  const restHtml = esc(rest)
+    .replaceAll('<<GROSS>>', `<span class="big-val">${esc(grossVal)}</span>`)
+    .replaceAll('<<TARE>>', `<span class="big-val">${esc(tareVal)}</span>`)
+    .replaceAll('<<NET>>', `<span class="big-val">${esc(netVal)}</span>`)
+    .replaceAll('\n','\n'); // keep newlines for <pre>
+
+  // Build final HTML block
+  const html = `
+    <div>
+      <div class="slip-firm">${esc(data.firmName || '')}</div>
+      <div class="slip-address">${esc(data.firmAddress || '')}</div>
+      <pre class="slip-wrapper">${restHtml}</pre>
+    </div>
+  `;
+  return html;
 }
 
-/* ====== render preview ====== */
+/* ====== render preview (use innerHTML since we now return HTML) ====== */
 function renderSlipPreview(rec){
-  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+  document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
   slipOutput.style.display = 'block';
   slipOutput.scrollIntoView({behavior:'smooth'});
 }
@@ -446,12 +492,12 @@ closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
 
 /* ====== PDF generation (as before) ====== */
 async function generatePdfAndOpen(rec){
-  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+  document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
   slipOutput.style.display = 'block';
-  const orientation = printOrientation.value || 'portrait';
-  const paper = printPaper.value || 'a4';
-  const marginMM = Number(printMargin.value || 8);
-  const scaleFactor = Number(printScale.value || 1);
+  const orientation = printOrientation?.value || 'portrait';
+  const paper = printPaper?.value || 'a4';
+  const marginMM = Number(printMargin?.value || 8);
+  const scaleFactor = Number(printScale?.value || 1);
   const canvas = await html2canvas(document.getElementById('slipInner'), { scale: 2 * scaleFactor, useCORS:true, allowTaint:false });
   const imgData = canvas.toDataURL('image/png');
   const { jsPDF } = window.jspdf;
@@ -488,7 +534,7 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
   rec._serial = id;
   await refreshList();
 
-  // send to sheet if you want immediate row
+  // send to sheet (new row)
   try {
     const sheetResp = await sendSlipToGoogleSheet({
       rstNo: rec.rstNo,
@@ -511,7 +557,7 @@ previewBtn.addEventListener('click', ()=>{
   renderSlipPreview(rec);
 });
 
-/* toggle records view */
+/* ====== toggle records view ====== */
 toggleRecordsBtn.addEventListener('click', async ()=>{
   if(recordsWrap.style.display === 'none' || recordsWrap.style.display === '') {
     recordsWrap.style.display = 'block';
@@ -523,14 +569,13 @@ toggleRecordsBtn.addEventListener('click', async ()=>{
   }
 });
 
-/* refresh list */
+/* ====== refresh & filter ====== */
 async function refreshList(){
   cachedAll = await getAllSlips();
   totalAllEl.textContent = cachedAll.length;
   await applyFilter();
 }
 
-/* apply filter & populate table (now with amount box & submit) */
 applyFilterBtn.addEventListener('click', applyFilter);
 async function applyFilter(){
   const from = document.getElementById('filterFrom').value;
@@ -538,13 +583,11 @@ async function applyFilter(){
   const filtered = await getSlipsInRange(from, to);
   totalFilteredEl.textContent = filtered.length;
   dateRangeText.textContent = (from || '-') + ' → ' + (to || '-');
-  // compute amount total
   const totalAmt = filtered.reduce((s,r)=> s + (Number(r.amount)||0), 0);
   totalAmountEl.textContent = totalAmt.toFixed(2);
   recordsBody.innerHTML = '';
   filtered.forEach(r=>{
     const tr = document.createElement('tr');
-    // amount display and input
     const amountInputId = `amt_in_${r.id}`;
     const amountBtnId = `amt_btn_${r.id}`;
     tr.innerHTML = `<td style="width:60px">${r.id}</td>
@@ -566,7 +609,7 @@ async function applyFilter(){
     recordsBody.appendChild(tr);
   });
 
-  // bind actions (view/pdf)
+  // bind actions
   recordsBody.querySelectorAll('button').forEach(b=>{
     b.onclick = async (e)=>{
       const id = Number(e.currentTarget.dataset.id);
@@ -582,7 +625,7 @@ async function applyFilter(){
     };
   });
 
-  // bind amount submit buttons -> now saves to DB then sends to sheet
+  // bind amount submit buttons
   filtered.forEach(r=>{
     const btn = document.getElementById(`amt_btn_${r.id}`);
     if(btn){
@@ -592,9 +635,8 @@ async function applyFilter(){
         const val = input.value;
         if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
         try{
-          // 1) save to IndexedDB and get updated record
           const updatedRec = await updateSlipAmount(id, Number(val));
-          // 2) send updated record to Google Sheet (so Amount column gets filled)
+          // send amount update to Google Sheet (update existing row by vehicleNo)
           const sheetResp = await sendSlipToGoogleSheet({
             rstNo: updatedRec.rstNo,
             vehicleNo: updatedRec.vehicleNo,
@@ -605,8 +647,7 @@ async function applyFilter(){
           if(sheetResp && sheetResp.ok){
             alert('Amount saved and synced to sheet.');
           } else {
-            // still saved locally; show info
-            alert('Amount saved locally but sheet sync failed. Check console.');
+            alert('Amount saved locally but sheet sync failed (check console).');
           }
           await refreshList();
         }catch(err){
@@ -618,7 +659,7 @@ async function applyFilter(){
   });
 }
 
-/* ====== Export filtered PDF (unchanged) ====== */
+/* ====== Export filtered PDF ====== */
 exportPdfBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   const from = document.getElementById('filterFrom').value;
@@ -629,7 +670,7 @@ exportPdfBtn.addEventListener('click', async ()=>{
   const pdf = new jsPDF({ unit:'pt', format:'a4' });
   for(let i=0;i<filtered.length;i++){
     const rec = filtered[i];
-    document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+    document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
     slipOutput.style.display='block';
     const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2, useCORS:true });
     const img = canvas.toDataURL('image/png');
@@ -643,10 +684,10 @@ exportPdfBtn.addEventListener('click', async ()=>{
   pdf.save(`slips_${document.getElementById('filterFrom').value||'all'}_${document.getElementById('filterTo').value||'all'}.pdf`);
 });
 
-/* ====== single record PDF (unchanged) ====== */
+/* ====== single record PDF ====== */
 async function downloadSingleRecAsPdf(rec){
   if(!isLoggedIn){ alert('Please login first'); return; }
-  document.getElementById('slipContent').textContent = buildSlipPlainText(rec);
+  document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
   slipOutput.style.display='block';
   const canvas = await html2canvas(document.getElementById('slipInner'), { scale:2, useCORS:true });
   const img = canvas.toDataURL('image/png');
