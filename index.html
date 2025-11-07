@@ -236,10 +236,7 @@ input[type="text"], input[type="date"], select { width:100%; padding:8px; border
 /* ==================== IndexedDB helpers ==================== */
 const DB_NAME = 'secure_slips_db_v1';
 const STORE_NAME = 'slips';
-function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,2); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } else { // if upgrading from v1, keep store
-        const s = e.target.transaction.objectStore(STORE_NAME);
-        // no structural change needed, we'll store amount field on records
-      } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
+function openDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,2); r.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains(STORE_NAME)){ const s=db.createObjectStore(STORE_NAME,{keyPath:'id',autoIncrement:true}); s.createIndex('savedAt','savedAt',{unique:false}); } }; r.onsuccess=e=>res(e.target.result); r.onerror=e=>rej(e.target.error); }); }
 
 async function addSlipToDB(record){
   const db=await openDB();
@@ -253,8 +250,8 @@ async function addSlipToDB(record){
   });
 }
 
+/* UPDATED: return updated record on success so caller can send to sheet */
 async function updateSlipAmount(id, amount){
-  // Only allow writing amount if not already present
   const db = await openDB();
   return new Promise((res, rej) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -264,11 +261,15 @@ async function updateSlipAmount(id, amount){
       const rec = getReq.result;
       if(!rec) return rej(new Error('Record not found'));
       if(rec.amount !== undefined && rec.amount !== null) return rej(new Error('Amount already set'));
-      // set amount and save immutably
       rec.amount = Number(amount) || 0;
       rec.amountSetAt = new Date().toISOString();
       const putReq = store.put(rec);
-      putReq.onsuccess = () => res(true);
+      putReq.onsuccess = () => {
+        // fetch fresh record and return it
+        const get2 = store.get(id);
+        get2.onsuccess = () => res(get2.result);
+        get2.onerror = () => res(rec); // fallback
+      };
       putReq.onerror = () => rej(putReq.error);
     };
     getReq.onerror = () => rej(getReq.error);
@@ -280,11 +281,11 @@ async function getAllSlips(){ const db=await openDB(); return new Promise((res,r
 async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
 /* ====== GOOGLE SHEETS WEBAPP CONFIG & SENDER ====== */
-/* Replace these two values with your Web App URL and the secret token you used in Apps Script */
+/* Replace with your webapp URL & secret */
 const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzMCSOXh-bdZwkDEATU-b8e_It-2qT-G5TDIGB7cNrlpZeg532OxSIC6an6e4H44h5BOw/exec";
 const SHEET_SECRET = "mY_v3ryfrjFQtrOpL0ng$ecret_T0ken_9x4Kf8q2z";
 
-/* ---- point-1: robust sender function (urlencoded) ---- */
+/* sender — urlencoded form (robust) */
 async function sendSlipToGoogleSheet(record){
   try{
     const body = new URLSearchParams({
@@ -303,14 +304,12 @@ async function sendSlipToGoogleSheet(record){
 
     const text = await resp.text();
     console.log('WEBAPP RAW:', text);
-    // try parse JSON (Apps Script returns JSON)
-    try { return JSON.parse(text); } catch(e){ return { ok:false, error: 'invalid_json', raw: text }; }
+    try { return JSON.parse(text); } catch(e){ return { ok:false, error:'invalid_json', raw:text }; }
   } catch(err){
     console.error('sendSlipToGoogleSheet error', err);
     return { ok:false, error: err.message || String(err) };
   }
 }
-/* ====== END point-1 ====== */
 
 /* ==================== UI state & elements ==================== */
 const USERNAME = "FxMiNds";
@@ -489,9 +488,8 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
   rec._serial = id;
   await refreshList();
 
-  // --- POINT-2: SEND TO GOOGLE SHEET (added) ---
+  // send to sheet if you want immediate row
   try {
-    // send required fields (amount may be empty)
     const sheetResp = await sendSlipToGoogleSheet({
       rstNo: rec.rstNo,
       vehicleNo: rec.vehicleNo,
@@ -499,12 +497,9 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
       amount: rec.amount || ""
     });
     console.log('Sheet save response:', sheetResp);
-    // if you want, show a small toast here when sheetResp.ok === true
   } catch(err){
     console.error('Error sending to sheet:', err);
-    // ignore — local DB still has record
   }
-  // --- end sheet send ---
 
   await generatePdfAndOpen(rec);
 });
@@ -550,7 +545,6 @@ async function applyFilter(){
   filtered.forEach(r=>{
     const tr = document.createElement('tr');
     // amount display and input
-    const amountDisplay = (r.amount !== undefined && r.amount !== null) ? `₹ ${Number(r.amount).toFixed(2)}` : '';
     const amountInputId = `amt_in_${r.id}`;
     const amountBtnId = `amt_btn_${r.id}`;
     tr.innerHTML = `<td style="width:60px">${r.id}</td>
@@ -572,7 +566,7 @@ async function applyFilter(){
     recordsBody.appendChild(tr);
   });
 
-  // bind actions
+  // bind actions (view/pdf)
   recordsBody.querySelectorAll('button').forEach(b=>{
     b.onclick = async (e)=>{
       const id = Number(e.currentTarget.dataset.id);
@@ -585,11 +579,10 @@ async function applyFilter(){
         const rec = filtered.find(x=>x.id===id);
         if(rec) await downloadSingleRecAsPdf(rec);
       }
-      // amount submit handled separately below
     };
   });
 
-  // bind amount submit buttons
+  // bind amount submit buttons -> now saves to DB then sends to sheet
   filtered.forEach(r=>{
     const btn = document.getElementById(`amt_btn_${r.id}`);
     if(btn){
@@ -599,12 +592,25 @@ async function applyFilter(){
         const val = input.value;
         if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
         try{
-          await updateSlipAmount(id, Number(val));
-          // refresh UI
+          // 1) save to IndexedDB and get updated record
+          const updatedRec = await updateSlipAmount(id, Number(val));
+          // 2) send updated record to Google Sheet (so Amount column gets filled)
+          const sheetResp = await sendSlipToGoogleSheet({
+            rstNo: updatedRec.rstNo,
+            vehicleNo: updatedRec.vehicleNo,
+            grossDate: updatedRec.grossDate,
+            amount: updatedRec.amount
+          });
+          console.log('Amount -> sheet resp:', sheetResp);
+          if(sheetResp && sheetResp.ok){
+            alert('Amount saved and synced to sheet.');
+          } else {
+            // still saved locally; show info
+            alert('Amount saved locally but sheet sync failed. Check console.');
+          }
           await refreshList();
         }catch(err){
           alert('Could not set amount: ' + (err.message || err));
-          // refresh to show current state
           await refreshList();
         }
       });
