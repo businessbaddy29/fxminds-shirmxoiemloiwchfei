@@ -279,6 +279,29 @@ async function getAllSlips(){ const db=await openDB(); return new Promise((res,r
 
 async function getSlipsInRange(fromISO,toISO){ const all=await getAllSlips(); if(!fromISO && !toISO) return all; const from=fromISO?new Date(fromISO+'T00:00:00'):new Date('1970-01-01'); const to=toISO?new Date(toISO+'T23:59:59'):new Date('9999-12-31'); return all.filter(r=>{ const d=new Date(r.savedAt); return d>=from && d<=to; }); }
 
+/* ====== GOOGLE SHEETS WEBAPP CONFIG & SENDER ====== */
+/* Replace these two values with your Web App URL and the secret token you used in Apps Script */
+const SHEET_WEBAPP_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; // e.g. https://script.google.com/macros/s/XXXX/exec
+const SHEET_SECRET = "PASTE_YOUR_SECRET_TOKEN_HERE";
+
+async function sendSlipToSheet(payload){
+  // payload: { rstNo, vehicleNo, grossDate, amount }
+  try {
+    const body = Object.assign({}, payload, { secret: SHEET_SECRET });
+    const resp = await fetch(SHEET_WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const json = await resp.json();
+    return json; // {ok:true, sNo:..., row:...} on success
+  } catch(err){
+    console.error('sendSlipToSheet error', err);
+    return { ok:false, error: err.toString() };
+  }
+}
+/* ====== END Google Sheets sender ====== */
+
 /* ==================== UI state & elements ==================== */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
@@ -455,6 +478,22 @@ document.getElementById('printBtn').addEventListener('click', async ()=>{
   const id = await addSlipToDB(rec);
   rec._serial = id;
   await refreshList();
+
+  // --- SEND TO GOOGLE SHEET (added) ---
+  try {
+    const sheetResp = await sendSlipToSheet({
+      rstNo: rec.rstNo,
+      vehicleNo: rec.vehicleNo,
+      grossDate: rec.grossDate,
+      amount: rec.amount || ""
+    });
+    console.log('Sheet save response:', sheetResp);
+    // optional: you can show a small UI message here if you want
+  } catch(err){
+    console.error('Error sending to sheet:', err);
+  }
+  // --- end sheet send ---
+
   await generatePdfAndOpen(rec);
 });
 
