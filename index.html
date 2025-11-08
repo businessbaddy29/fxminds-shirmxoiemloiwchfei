@@ -3,46 +3,50 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Slip Editor — Alignment Tool</title>
-<!-- html2canvas + jspdf for PDF generation -->
+<title>Slip Editor — Live (Fixed)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
-  :root{--mono:"Courier New",monospace}
-  body{font-family:Inter,system-ui,Arial; margin:12px; background:#f4f6f8; color:#072033}
-  .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:360px 1fr;gap:14px;align-items:start}
+  :root{--mono:"Courier New", monospace}
+  body{font-family:Inter,system-ui,Arial;margin:12px;background:#f5f7f8;color:#072033}
+  .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:380px 1fr;gap:12px;align-items:start}
   .panel{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
   label{display:block;font-family:var(--mono);margin-top:8px;font-size:13px;color:#0b2330}
-  input[type=text], input[type=number], select, textarea{width:100%;padding:8px;box-sizing:border-box;font-family:var(--mono);font-size:13px}
+  input[type=text], input[type=number], textarea, select{width:100%;padding:8px;box-sizing:border-box;font-family:var(--mono);font-size:13px}
   .btn{padding:8px 10px;border-radius:6px;border:none;cursor:pointer;font-weight:700}
   .btn-blue{background:#0b63b3;color:#fff}
-  .controls-row{display:flex;gap:8px;align-items:center;margin-top:10px}
   #slipInner{background:#fff;padding:12px;border-radius:6px;font-family:var(--mono);width:10in;height:4in;box-sizing:border-box;overflow:hidden}
   pre{white-space:pre;font-family:var(--mono);line-height:1.05;margin:0}
-  .small{font-size:12px;color:#555;margin-top:6px}
-  .inline{display:flex;gap:8px;align-items:center}
-  textarea#templateEditor{height:300px; font-family:var(--mono); font-size:13px}
+  .controls-row{display:flex;gap:8px;align-items:center;margin-top:10px}
   .hint{font-size:12px;color:#666;margin-top:6px}
+  textarea#templateEditor{height:220px; font-family:var(--mono); font-size:13px}
   @media(max-width:920px){.wrap{grid-template-columns:1fr} #slipInner{width:100%;height:48vh}}
 </style>
 </head>
 <body>
 
 <div style="max-width:1200px;margin:0 auto 12px">
-  <h2 style="font-family:var(--mono);margin:0">Slip Editor — Alignment & Template Builder</h2>
-  <p class="hint">Use the numeric controls to nudge columns (characters). You can also edit the final template text below and Apply Template.</p>
+  <h2 style="font-family:var(--mono);margin:0">Slip Editor — Live (Fixed)</h2>
+  <p class="hint">Fields editable on left → Preview updates live. Use numeric nudges to align columns. When correct, click Create PDF or Download Template.</p>
 </div>
 
 <div class="wrap">
 
   <!-- LEFT: controls -->
-  <div class="panel">
-    <label>Firm name</label>
+  <div class="panel" id="controls">
+    <label>Firm name (editable)</label>
     <input id="firmName" type="text" value="MODI AGGREGATE SOLUTION">
 
-    <label>Firm address</label>
+    <label>Firm address (editable)</label>
     <input id="firmAddress" type="text" value="NEAR RAIPUR MOD  TEH  NEEMKATHANA">
+
+    <label style="margin-top:10px">Header shift: add spaces before header (chars)</label>
+    <div style="display:flex;gap:8px">
+      <input id="firmLeftPad" type="number" value="0" min="0" style="width:80px">
+      <input id="firmRightPad" type="number" value="0" min="0" style="width:80px">
+    </div>
+
+    <hr style="margin-top:12px"/>
 
     <label>RST No</label><input id="rstNo" type="text" value="101">
     <label>Vehicle No</label><input id="vehicleNo" type="text" value="RJ32GE0903">
@@ -53,12 +57,14 @@
 
     <hr style="margin-top:12px"/>
 
-    <label>Gross (number only)</label><input id="gross" type="text" value="76190">
+    <label>Gross (number)</label><input id="gross" type="text" value="76190">
     <label>Gross Date</label><input id="grossDate" type="text" value="02/11/2025">
     <label>Gross Time</label><input id="grossTime" type="text" value="13:45">
+
     <label>Tare</label><input id="tare" type="text" value="16600">
     <label>Tare Date</label><input id="tareDate" type="text" value="02/11/2025">
     <label>Tare Time</label><input id="tareTime" type="text" value="13:45">
+
     <label>Net</label><input id="net" type="text" value="59590">
 
     <label>Charges</label><input id="charges" type="text" value="0">
@@ -66,40 +72,23 @@
 
     <hr style="margin-top:12px"/>
 
-    <label>Dots (line length)</label>
-    <input id="dotLength" type="number" value="120" min="40" max="300">
+    <label>Dots (line length)</label><input id="dotLength" type="number" value="120" min="40" max="300">
 
-    <label>Font size (px)</label>
-    <input id="fontSize" type="number" value="14" min="9" max="24">
+    <label>Font size (px)</label><input id="fontSize" type="number" value="14" min="9" max="24">
 
-    <div class="small hint">Alignment helpers (character counts used when building lines)</div>
+    <div class="hint">Alignment nudges — change then Preview (or live preview if input changes)</div>
 
-    <label>Vehicle column start (chars from left)</label>
-    <input id="vehicleCol" type="number" min="20" max="160" value="56">
-
-    <label>Party column start</label>
-    <input id="partyCol" type="number" min="30" max="200" value="56">
-
-    <label>Item column start</label>
-    <input id="itemCol" type="number" min="40" max="220" value="80">
-
-    <label>Kg spacing (between number and "Kg")</label>
-    <input id="kgSpaces" type="number" min="1" max="6" value="2">
-
-    <label>Date shift (right, chars)</label>
-    <input id="dateShift" type="number" min="0" max="40" value="6">
-
-    <label>Time shift (right, chars)</label>
-    <input id="timeShift" type="number" min="0" max="40" value="6">
+    <label>Vehicle column start (chars)</label><input id="vehicleCol" type="number" min="20" max="160" value="56">
+    <label>Party column start (chars)</label><input id="partyCol" type="number" min="30" max="200" value="56">
+    <label>Item column start (chars)</label><input id="itemCol" type="number" min="40" max="220" value="80">
+    <label>Kg spaces (between number and "Kg")</label><input id="kgSpaces" type="number" min="1" max="6" value="2">
+    <label>Date shift (chars)</label><input id="dateShift" type="number" min="0" max="40" value="6">
+    <label>Time shift (chars)</label><input id="timeShift" type="number" min="0" max="40" value="6">
 
     <div style="margin-top:12px" class="controls-row">
       <button id="previewBtn" class="btn btn-blue">Preview</button>
       <button id="downloadTpl" class="btn" style="margin-left:8px">Download Template</button>
       <button id="createPdfBtn" class="btn btn-blue" style="margin-left:8px">Create PDF</button>
-    </div>
-
-    <div style="margin-top:12px" class="hint">
-      <strong>Manual workflow</strong>: adjust numeric controls → click <em>Preview</em> → if still off, edit the template below, click <em>Apply Template</em>.
     </div>
   </div>
 
@@ -116,8 +105,7 @@
     <hr style="margin:14px 0"/>
 
     <h4 style="margin:6px 0;font-family:var(--mono)">Template editor (editable)</h4>
-    <div class="small hint">You can edit the template text (monospace). Use placeholders exactly as: <code>{{firmName}}</code>, <code>{{firmAddress}}</code>, <code>{{rstNo}}</code>, <code>{{vehicleNo}}</code>, <code>{{vehicleType}}</code>, <code>{{partyName}}</code>, <code>{{address}}</code>, <code>{{item}}</code>, <code>{{gross}}</code>, <code>{{grossDate}}</code>, <code>{{grossTime}}</code>, <code>{{tare}}</code>, <code>{{tareDate}}</code>, <code>{{tareTime}}</code>, <code>{{net}}</code>, <code>{{charges}}</code>, <code>{{phone}}</code></div>
-
+    <div class="hint">Edit the template text directly and click Apply Template to preview exact spacing.</div>
     <textarea id="templateEditor"></textarea>
 
     <div style="margin-top:8px; display:flex; gap:8px;">
@@ -129,64 +117,51 @@
 </div>
 
 <script>
-(function(){
-  // helpers
-  const $ = id => document.getElementById(id);
+/* All bindings in DOMContentLoaded to avoid partial execution */
+document.addEventListener('DOMContentLoaded', ()=>{
+
+  const $ = id=>document.getElementById(id);
   const placeholders = ['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone'];
 
-  function pad(n){ return n>0? ' '.repeat(n) : '' }
-  function esc(s){ return String(s||''); }
-  function numOr(s,def){ const v = parseInt(s,10); return Number.isFinite(v)? v: def; }
+  function pad(n){ return n>0 ? ' '.repeat(n) : '' }
+  function esc(s){ return String(s||'') }
 
-  // default template generator (uses char positions and control inputs)
   function buildTemplateFromControls(){
-    const D = numOr($.dotLength.value, 120);
+    const D = Math.max(40, Number($('dotLength').value||120));
     const dots = '.'.repeat(D);
-    const vehicleCol = numOr($.vehicleCol.value, 56);
-    const partyCol = numOr($.partyCol.value, 56);
-    const itemCol = numOr($.itemCol.value, 80);
-    const kgSpaces = numOr($.kgSpaces.value, 2);
-    const dateShift = numOr($.dateShift.value, 6);
-    const timeShift = numOr($.timeShift.value, 6);
+    const vehicleCol = Number($('vehicleCol').value||56);
+    const partyCol = Number($('partyCol').value||56);
+    const itemCol = Number($('itemCol').value||80);
+    const kgSpaces = Number($('kgSpaces').value||2);
+    const dateShift = Number($('dateShift').value||6);
+    const timeShift = Number($('timeShift').value||6);
+    const firmLeftPad = Math.max(0, Number($('firmLeftPad').value||0));
+    const firmRightPad = Math.max(0, Number($('firmRightPad').value||0));
 
-    // helper to place right column at specific char index
     function rightAt(startIndex, leftText, rightText){
-      leftText = esc(leftText || '');
-      rightText = esc(rightText || '');
+      leftText = esc(leftText||''); rightText = esc(rightText||'');
       const leftLen = leftText.length;
-      const curLen = leftLen;
-      const needed = Math.max(1, startIndex - curLen);
+      const needed = Math.max(1, startIndex - leftLen);
       return leftText + pad(needed) + rightText;
     }
 
-    // Lines built with placeholders
-    const lines = [];
-    // centered firm lines: center using dot length as width
     function centerText(t){
       const s = esc(t||'');
       const left = Math.max(0, Math.floor((D - s.length)/2));
-      return pad(left) + s;
+      return pad(firmLeftPad + left) + s + pad(firmRightPad);
     }
 
+    const lines = [];
     lines.push(centerText('{{firmName}}'));
     lines.push(centerText('{{firmAddress}}'));
     lines.push(dots);
-    // left column and vehicle on right
-    const left1 = 'RST No.     : {{rstNo}}';
-    const right1 = 'Vehicle No. : {{vehicleNo}}';
-    lines.push( rightAt(vehicleCol, left1, right1) );
 
-    const left2 = 'Vh l typ.   : {{vehicleType}}';
-    const right2 = 'Party name  : {{partyName}}';
-    lines.push( rightAt(partyCol, left2, right2) );
-
-    const left3 = 'Address     : {{address}}';
-    const right3 = 'Item        : {{item}}';
-    lines.push( rightAt(itemCol, left3, right3) );
+    lines.push( rightAt(vehicleCol, 'RST No.     : {{rstNo}}', 'Vehicle No. : {{vehicleNo}}') );
+    lines.push( rightAt(partyCol, 'Vh l typ.   : {{vehicleType}}', 'Party name  : {{partyName}}') );
+    lines.push( rightAt(itemCol, 'Address     : {{address}}', 'Item        : {{item}}') );
 
     lines.push(dots);
 
-    // gross/tare/net line formatting with KG spacing and date/time shifts
     const kgPad = pad(kgSpaces);
     const datePad = pad(dateShift);
     const timePad = pad(timeShift);
@@ -198,126 +173,104 @@
     lines.push(`Charges : Rs {{charges}}`);
     lines.push(dots);
     lines.push('');
-    lines.push(pad(10) + `Phone : {{phone}}`);
+    lines.push(pad(10)+`Phone : {{phone}}`);
     lines.push('');
-    lines.push(pad(6) + `Thanks for your visit`);
+    lines.push(pad(6)+`Thanks for your visit`);
+
     return lines.join('\n');
   }
 
-  // populate template editor with initial template
   function setEditorFromControls(){
     const tpl = buildTemplateFromControls();
-    $.templateEditor.value = tpl;
+    $('templateEditor').value = tpl;
   }
 
-  // gather data object from inputs
   function collectData(){
     const data = {};
-    placeholders.forEach(k => { const el = $(k); data[k] = el ? esc(el.value) : ''; });
-    // ensure gross/tare/net numbers if user typed '76190 Kg' we strip non-digits
+    placeholders.forEach(k => { const el = $(k); data[k] = el ? esc(el.value) : '' });
+    // ensure numbers only for gross/tare/net if user typed units
     ['gross','tare','net'].forEach(k=>{
       if(data[k] && data[k].match(/\d/)){
-        data[k] = data[k].replace(/[^\d\-]/g,''); // keep digits only
+        data[k] = data[k].replace(/[^\d\-]/g,'');
       }
     });
     return data;
   }
 
-  // render template (replace placeholders) into preview
   function renderPreviewFromTemplate(templateText){
     const d = collectData();
-    function x(s){ return String(s||''); }
     let out = String(templateText || '');
-    // simple safe replacement for placeholders
-    placeholders.forEach(p => {
-      // replace all occurrences
+    placeholders.forEach(p=>{
       const re = new RegExp('\\{\\{\\s*' + p + '\\s*\\}\\}', 'g');
-      out = out.replace(re, x(d[p]));
+      out = out.replace(re, String(d[p]||''));
     });
-    // update preview
-    $.slipContent.style.fontSize = (numOr($.fontSize.value, 14)) + 'px';
-    $.slipContent.textContent = out;
+    $('slipContent').style.fontSize = Math.max(9, Number($('fontSize').value||14)) + 'px';
+    $('slipContent').textContent = out;
   }
 
-  // apply editor to preview
   function applyEditor(){
-    const tpl = $.templateEditor.value || '';
+    const tpl = $('templateEditor').value || '';
     renderPreviewFromTemplate(tpl);
   }
 
-  // download template as html file (pdf_template style)
   function downloadTemplateHtml(){
-    const tpl = $.templateEditor.value || '';
+    const tpl = $('templateEditor').value || '';
     const safe = tpl.replaceAll('&','&amp;').replaceAll('<','&lt;');
-    const html = '<!doctype html><html><head><meta charset="utf-8"><title>slip-template</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:10px}</style></head><body><pre>' + safe + '</pre></body></html>';
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>pdf_template</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:10px}</style></head><body><pre>' + safe + '</pre></body></html>';
     const blob = new Blob([html], {type:'text/html'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'pdf_template.html'; a.click(); URL.revokeObjectURL(url);
   }
 
-  // Create PDF (10in x 4in) from preview container
   async function createPdf(){
     try{
       applyEditor();
-      // ensure preview container size matches 10in x 4in
       const inner = $('slipInner');
       inner.style.width = '10in';
       inner.style.height = '4in';
-      // small delay to allow reflow
-      await new Promise(r=>setTimeout(r,70));
+      await new Promise(r=>setTimeout(r,80));
       const canvas = await html2canvas(inner, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
       const img = canvas.toDataURL('image/png');
       const { jsPDF } = window.jspdf;
       const widthMM = 10 * 25.4;
       const heightMM = 4 * 25.4;
-      // create landscape PDF with exact size (we'll keep orientation 'landscape' so width>height)
       const pdf = new jsPDF({unit:'mm', format:[widthMM, heightMM], orientation:'landscape'});
       pdf.addImage(img, 'PNG', 0, 0, widthMM, heightMM);
       const blob = pdf.output('blob'); const url = URL.createObjectURL(blob); window.open(url, '_blank');
     }catch(err){
       console.error('PDF error', err);
-      alert('PDF creation failed — check console for details.');
+      alert('PDF creation failed — check console for details');
     }
   }
 
-  // open preview in separate tab (plain pre)
   function openPreviewTab(){
     applyEditor();
-    const safe = $.slipContent.textContent.replaceAll('&','&amp;').replaceAll('<','&lt;');
+    const safe = $('slipContent').textContent.replaceAll('&','&amp;').replaceAll('<','&lt;');
     const html = '<!doctype html><html><head><meta charset="utf-8"><title>preview</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:12px}</style></head><body><pre>' + safe + '</pre></body></html>';
     const w = window.open('about:blank','_blank'); w.document.open(); w.document.write(html); w.document.close();
   }
 
-  // initial bind
-  function bind(){
-    // controls that should re-generate template automatically when changed
-    const autoIds = ['dotLength','vehicleCol','partyCol','itemCol','kgSpaces','dateShift','timeShift'];
-    autoIds.forEach(id => {
-      const el = $(id); if(el) el.addEventListener('input', ()=> setEditorFromControls() );
-    });
-    // inputs that update preview when changed
-    const dataIds = ['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone','fontSize'];
-    dataIds.forEach(id=>{
-      const el = $(id); if(el) el.addEventListener('input', ()=> renderPreviewFromTemplate($.templateEditor.value || '') );
-    });
+  // Bind events
+  const autoUpdateIds = ['firmName','firmAddress','firmLeftPad','firmRightPad','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone','fontSize'];
+  autoUpdateIds.forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', ()=> renderPreviewFromTemplate($('templateEditor').value || '') ) });
 
-    $('previewBtn').addEventListener('click', ()=> applyEditor() );
-    $('applyTemplate').addEventListener('click', ()=> applyEditor() );
-    $('downloadTpl').addEventListener('click', ()=> downloadTemplateHtml() );
-    $('createPdfBtn').addEventListener('click', ()=> createPdf() );
-    $('openPreviewTab').addEventListener('click', ()=> openPreviewTab() );
-    $('clearPreview').addEventListener('click', ()=> { $('slipContent').textContent=''; } );
-    $('downloadHtml').addEventListener('click', ()=> downloadTemplateHtml() );
+  ['dotLength','vehicleCol','partyCol','itemCol','kgSpaces','dateShift','timeShift'].forEach(id=>{
+    const el=$(id); if(el) el.addEventListener('input', ()=> { setEditorFromControls(); applyEditor(); } );
+  });
 
-    // initial
-    setEditorFromControls();
-    applyEditor();
-  }
+  $('previewBtn').addEventListener('click', ()=> applyEditor());
+  $('applyTemplate').addEventListener('click', ()=> applyEditor());
+  $('downloadTpl').addEventListener('click', ()=> downloadTemplateHtml());
+  $('downloadHtml').addEventListener('click', ()=> downloadTemplateHtml());
+  $('createPdfBtn').addEventListener('click', ()=> createPdf());
+  $('openPreviewTab').addEventListener('click', ()=> openPreviewTab());
+  $('clearPreview').addEventListener('click', ()=> { $('slipContent').textContent = ''; });
 
-  // startup
-  bind();
+  // init
+  setEditorFromControls();
+  applyEditor();
 
-})();
+}); // DOMContentLoaded
 </script>
 
 </body>
