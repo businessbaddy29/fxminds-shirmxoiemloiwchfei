@@ -1,410 +1,189 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Secure Slip — Amount per Slip</title>
-
-<!-- External libs -->
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Slip Editor — WORKING (fixed)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
-/* ===== Base & background ===== */
-html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433; }
-body::before{
-  content:""; position: fixed; inset:0; z-index:-3;
-  background-image: url("truck.avif"); background-size:cover; background-position:center; filter: blur(6px) brightness(.95);
-}
-body::after{
-  content:""; position: fixed; inset:0; z-index:-2;
-  background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
-}
-
-.container { max-width:1100px; margin:22px auto; padding-bottom:60px; }
-
-/* Card */
-.card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); margin-bottom:18px; }
-
-/* Login */
-.loginBox h2 { margin:0 0 12px 0; color:#0b2330; font-size:20px; }
-.loginBox input { width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New", monospace; }
-.loginBox button { width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
-
-/* Form full-width */
-.form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center; }
-label { display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-input[type="text"], input[type="date"], select { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New", monospace; box-sizing:border-box; }
-
-/* Both times row */
-.time-row { display:flex; gap:8px; }
-.time-row input { flex:1; }
-
-/* Buttons & print settings */
-.controls { display:flex; gap:8px; margin-top:10px; align-items:center; }
-.btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
-.btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
-.btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
-
-/* Slip preview overlay (Close only) */
-#slipOutput {
-  display:none;
-  position: fixed;
-  left: 50%;
-  top: 6%;
-  transform: translateX(-50%);
-  width: min(880px, 96%);
-  max-height: 88vh;
-  overflow:auto;
-  z-index: 9999;
-  border-radius:8px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-  background: transparent;
-}
-#previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
-
-/* inside slip card */
-#slipInner { background: #fff; padding: 18px; border-radius: 8px; color:#000; font-family: "Courier New", monospace; box-sizing:border-box; }
-
-/* styling for slip content elements */
-.slip-wrapper { white-space: pre; font-family: "Courier New", monospace; color:#000; }
-.slip-firm { text-align:center; font-weight:700; font-size:18px; margin-bottom:6px; }
-.slip-address { text-align:center; font-size:12px; margin-bottom:6px; color:#333; }
-.big-val { font-weight:700; font-size:15px; }
-
-/* Print fallback CSS */
-@media print {
-  body * { visibility: hidden !important; }
-  #slipOutput, #slipOutput * { visibility: visible !important; }
-  #slipOutput { position: absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0 !important; padding:10mm !important; background:#fff !important; box-shadow:none !important; }
-  #previewToolbar { display:none !important; }
-}
-
-/* responsive */
-@media (max-width:720px){
-  .form-grid { grid-template-columns: 1fr; }
-  .time-row { flex-direction:column; }
-  #slipOutput { top:4%; }
-}
-.amount-input { width:100px; padding:6px; font-family: monospace; }
-.amount-submit { padding:6px 8px; margin-left:6px; }
-.total-box { font-weight:700; padding:8px; background:#f2f8ff; border-radius:8px; display:inline-block; }
+  :root{--mono:"Courier New",monospace}
+  body{font-family:Inter,system-ui,Arial; margin:12px; background:#f4f6f8;}
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:420px 1fr;gap:12px;}
+  .panel{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+  label{display:block;font-family:var(--mono);margin-top:8px;font-size:13px}
+  input[type=text],input[type=number]{width:100%;padding:8px;box-sizing:border-box;font-family:var(--mono)}
+  .btn{padding:8px 10px;border-radius:6px;border:none;cursor:pointer;font-weight:700}
+  .btn-blue{background:#0b63b3;color:#fff}
+  #slipInner{background:#fff;padding:12px;border-radius:6px;font-family:var(--mono);width:10in;height:4in;box-sizing:border-box}
+  pre{white-space:pre;font-family:var(--mono);line-height:1.05}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
-<div class="container">
-
-  <!-- LOGIN -->
-  <div class="card loginBox" id="loginBox">
-    <h2>Login</h2>
-    <input id="username" placeholder="User ID" autocomplete="off" />
-    <input id="password" placeholder="Password" type="password" autocomplete="off" />
-    <button id="loginBtn" class="btn btn-blue">Login</button>
-    <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
-  </div>
-
-  <!-- FORM -->
-  <div class="card" id="formCard" style="display:none;">
-    <form id="slipForm" onsubmit="return false;">
-      <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
-      <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS"></label>
-
-      <div class="form-grid">
-        <label>RST No: <input type="text" id="rstNo" value="101"></label>
-        <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903"></label>
-      </div>
-
-      <div class="form-grid">
-        <label>Vehicle Type: <input type="text" id="vehicleType"></label>
-        <label>Party Name: <input type="text" id="partyName"></label>
-      </div>
-
-      <div class="form-grid">
-        <label>Address: <input type="text" id="address"></label>
-        <label>Item: <input type="text" id="item" value="20MM"></label>
-      </div>
-
-      <div class="form-grid">
-        <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
-        <label>Gross Date: <input type="text" id="grossDate" value="29/07/2025"></label>
-      </div>
-
-      <!-- BOTH TIMES -->
-      <div class="time-row" style="margin-top:6px;">
-        <div style="flex:1">
-          <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
-        </div>
-        <div style="flex:1">
-          <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
-        </div>
-      </div>
-
-      <div class="form-grid">
-        <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
-        <label>Tare Date: <input type="text" id="tareDate" value="29/07/2025"></label>
-      </div>
-
-      <label>Net: <input type="text" id="net" value="54980 Kg"></label>
-      <label>Charges: Rs <input type="text" id="charges" value="0"></label>
-      <label>Phone: <input type="text" id="phone" value="123456"></label>
-
-      <!-- PRINT SETTINGS UI -->
-      <div style="display:flex; gap:10px; align-items:center; margin-top:12px;">
-        <div class="print-options">
-          <label>Orientation</label>
-          <select id="printOrientation">
-            <option value="portrait">Portrait</option>
-            <option value="landscape">Landscape</option>
-          </select>
-        </div>
-
-        <div class="print-options">
-          <label>Paper</label>
-          <select id="printPaper">
-            <option value="a4">A4</option>
-            <option value="letter">Letter</option>
-          </select>
-        </div>
-
-        <div class="print-options">
-          <label>Margins</label>
-          <select id="printMargin">
-            <option value="8">Default (8mm)</option>
-            <option value="4">Small (4mm)</option>
-            <option value="0">None (0mm)</option>
-          </select>
-        </div>
-
-        <div class="print-options">
-          <label>Scale</label>
-          <select id="printScale">
-            <option value="1">100%</option>
-            <option value="0.95">95%</option>
-            <option value="0.9">90%</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="controls">
-        <button type="button" id="printBtn" class="btn btn-blue">Print Slip & Save</button>
-        <button type="button" id="previewBtn" class="btn btn-ghost">Preview Slip</button>
-        <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
-      </div>
-    </form>
-  </div>
-
+<div style="max-width:1100px;margin:0 auto 12px">
+  <h2 style="font-family:var(--mono)">Slip Editor — Fixed</h2>
+  <p style="color:#333">Edit fields and click Preview. When ready: Download Template or Create PDF (10in×4in).</p>
 </div>
 
-<!-- Slip preview overlay (Close only) -->
-<div id="slipOutput" role="dialog" aria-modal="true">
-  <div id="previewToolbar">
-    <button id="closePreviewBtn" class="btn btn-blue">Close</button>
+<div class="wrap">
+  <div class="panel">
+    <label>Firm name</label><input id="firmName" type="text" value="MODI AGGREGATE SOLUTION">
+    <label>Firm address</label><input id="firmAddress" type="text" value="NEAR RAIPUR MOD  TEH  NEEMKATHANA">
+    <label>RST No</label><input id="rstNo" type="text" value="101">
+    <label>Vehicle No</label><input id="vehicleNo" type="text" value="RJ32GE0903">
+    <label>Vehicle Type</label><input id="vehicleType" type="text" value="Vh l   typ.">
+    <label>Party name</label><input id="partyName" type="text" value="Cash">
+    <label>Address</label><input id="address" type="text" value="">
+    <label>Item</label><input id="item" type="text" value="20MM">
+
+    <hr>
+
+    <label>Gross</label><input id="gross" type="text" value="76190 Kg">
+    <label>Gross Date</label><input id="grossDate" type="text" value="02/11/2025">
+    <label>Gross Time</label><input id="grossTime" type="text" value="13:45">
+    <label>Tare</label><input id="tare" type="text" value="16600 Kg">
+    <label>Tare Date</label><input id="tareDate" type="text" value="02/11/2025">
+    <label>Tare Time</label><input id="tareTime" type="text" value="13:45">
+    <label>Net</label><input id="net" type="text" value="59590 Kg">
+
+    <label>Charges</label><input id="charges" type="text" value="0">
+    <label>Phone</label><input id="phone" type="text" value="123456">
+
+    <label>Dotted length</label><input id="dotLength" type="number" value="96" min="30" max="300">
+    <label>Font size (px)</label><input id="fontSize" type="number" value="14" min="9" max="22">
+
+    <div style="margin-top:10px">
+      <button id="previewBtn" class="btn btn-blue">Preview</button>
+      <button id="downloadTpl" class="btn" style="margin-left:8px">Download Template</button>
+      <button id="createPdfBtn" class="btn btn-blue" style="margin-left:8px">Create PDF</button>
+    </div>
   </div>
 
-  <div id="slipInner">
-    <div id="slipContent" style="color:#000;"></div>
+  <div class="panel">
+    <h3 style="margin-top:0;font-family:var(--mono)">Preview (10in × 4in)</h3>
+    <div id="slipInner"><pre id="slipContent" style="font-size:14px"></pre></div>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
+      <button id="openPreviewTab" class="btn">Open Preview</button>
+      <button id="clearPreview" class="btn">Clear</button>
+    </div>
   </div>
 </div>
 
 <script>
-/* ====== (Removed) IndexedDB and Google-Sheets sending code per request ====== */
-/* All storage (saved slips) and sheet-sending functionality removed.
-   Only preview / PDF generation / print logic remains. */
+(function(){
+  // helper selectors and utilities
+  const q = id => document.getElementById(id);
+  function stripKg(s){ return String(s||'').replace(/\s*Kg\s*$/i,'').trim(); }
+  function S(n){ return n>0? ' '.repeat(n): '' }
 
-/* ==================== UI state & elements ==================== */
-const USERNAME = "FxMiNds";
-const PASSWORD = "Sk@#9136332836@";
-let isLoggedIn=false;
+  function buildText(){
+    const dotLen = Math.max(30, Number(q('dotLength').value||96));
+    const dots = '.'.repeat(dotLen);
+    const width = dotLen;
+    const center = txt => {
+      const t = String(txt||''); const left = Math.max(0, Math.floor((width - t.length)/2));
+      return S(left)+t;
+    };
+    // collect fields
+    const firmName = q('firmName').value||'';
+    const firmAddress = q('firmAddress').value||'';
+    const rstNo = q('rstNo').value||'';
+    const vehicleNo = q('vehicleNo').value||'';
+    const vehicleType = q('vehicleType').value||'';
+    const partyName = q('partyName').value||'';
+    const address = q('address').value||'';
+    const item = q('item').value||'';
+    const gross = stripKg(q('gross').value||'0');
+    const grossDate = q('grossDate').value||'';
+    const grossTime = q('grossTime').value||'';
+    const tare = stripKg(q('tare').value||'0');
+    const tareDate = q('tareDate').value||'';
+    const tareTime = q('tareTime').value||'';
+    const net = stripKg(q('net').value||'0');
+    const charges = q('charges').value||'0';
+    const phone = q('phone').value||'';
 
-const loginBtn = document.getElementById('loginBtn');
-const loginErr = document.getElementById('loginErr');
-const loginBox = document.getElementById('loginBox');
-const formCard = document.getElementById('formCard');
-
-const mainPrintBtn = document.getElementById('printBtn');
-const previewBtn = document.getElementById('previewBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-
-const slipOutput = document.getElementById('slipOutput');
-const slipContent = document.getElementById('slipContent');
-
-const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-/* Print controls */
-const printOrientation = document.getElementById('printOrientation');
-const printPaper = document.getElementById('printPaper');
-const printMargin = document.getElementById('printMargin');
-const printScale = document.getElementById('printScale');
-
-/* ====== login/logout ====== */
-loginBtn.addEventListener('click', async () => {
-  const u = document.getElementById('username').value;
-  const p = document.getElementById('password').value;
-  if(u === USERNAME && p === PASSWORD){
-    isLoggedIn = true;
-    loginBox.style.display = 'none';
-    formCard.style.display = 'block';
-  } else {
-    loginErr.style.display = 'block';
-    setTimeout(()=>loginErr.style.display='none',2000);
+    let out = '';
+    out += center(firmName) + '\n';
+    out += center(firmAddress) + '\n';
+    out += dots + '\n';
+    out += `RST No.     : ${rstNo}${S(8)}Vehicle No. : ${vehicleNo}\n`;
+    out += `Vh l typ.   : ${vehicleType}${S(6)}Party name  : ${partyName}\n`;
+    out += `Address     : ${address}${S(10)}Item        : ${item}\n`;
+    out += dots + '\n';
+    out += `Gross : ${S(8)}${gross}  Kg${S(6)}Date : ${grossDate}${S(6)}Time : ${grossTime}\n`;
+    out += `Tare  : ${S(8)}${tare}  Kg${S(6)}Date : ${tareDate}${S(6)}Time : ${tareTime}\n`;
+    out += `Net   : ${S(8)}${net}  Kg\n`;
+    out += dots + '\n';
+    out += `Charges : Rs ${charges}\n`;
+    out += dots + '\n\n';
+    out += S(10) + `Phone : ${phone}\n\n`;
+    out += S(6) + `Thanks for your visit\n`;
+    return out;
   }
-});
-logoutBtn.addEventListener('click', () => {
-  isLoggedIn = false;
-  loginBox.style.display = 'block';
-  formCard.style.display = 'none';
-  slipOutput.style.display = 'none';
-  document.getElementById('username').value='';
-  document.getElementById('password').value='';
-});
 
-/* ====== collect form ====== */
-function collectForm(){
-  return {
-    firmName: document.getElementById('firmName').value,
-    firmAddress: document.getElementById('firmAddress').value,
-    rstNo: document.getElementById('rstNo').value,
-    vehicleNo: document.getElementById('vehicleNo').value,
-    vehicleType: document.getElementById('vehicleType').value,
-    partyName: document.getElementById('partyName').value,
-    address: document.getElementById('address').value,
-    item: document.getElementById('item').value,
-    gross: document.getElementById('gross').value,
-    grossDate: document.getElementById('grossDate').value,
-    grossTime: document.getElementById('grossTime')?.value || '',
-    tare: document.getElementById('tare').value,
-    tareDate: document.getElementById('tareDate')?.value || '',
-    tareTime: document.getElementById('tareTime')?.value || '',
-    net: document.getElementById('net').value,
-    charges: document.getElementById('charges').value,
-    phone: document.getElementById('phone').value,
-    savedAt: new Date().toISOString()
-  };
-}
-
-/* ====== build slip HTML (includes styled firm + big values) ====== */
-function buildSlipHtml(data){
-  const width = 80;
-  function padCenterText(text){
-    const t = String(text || '');
-    const left = Math.floor((width - t.length)/2);
-    const right = width - t.length - left;
-    return ' '.repeat(Math.max(0,left)) + t + ' '.repeat(Math.max(0,right));
+  function render(){
+    const fontSize = Math.max(9, Number(q('fontSize').value||14));
+    q('slipContent').style.fontSize = fontSize + 'px';
+    q('slipContent').textContent = buildText();
   }
-  const grossVal = data.gross || '';
-  const tareVal = data.tare || '';
-  const netVal = data.net || '';
 
-  let lines = '';
-  lines += padCenterText(data.firmName || '') + '\n';
-  lines += padCenterText(data.firmAddress || '') + '\n';
-  lines += '.'.repeat(width) + '\n';
-  lines += (`RST No.     : ${data.rstNo || ''}`).padEnd(40) + (`Vehicle No.   : ${data.vehicleNo || ''}`) + '\n';
-  lines += (`Vehicle Type: ${data.vehicleType || ''}`).padEnd(40) + (`Party Name    : ${data.partyName || ''}`) + '\n';
-  lines += (`Address     : ${data.address || ''}`).padEnd(40) + (`Item          : ${data.item || ''}`) + '\n';
-  lines += '.'.repeat(width) + '\n';
-  lines += (`Gross :    <<GROSS>>`).padEnd(25) + (` Date: ${data.grossDate || ''}`).padEnd(20) + (`  Time: ${data.grossTime || ''}`) + '\n';
-  lines += (`Tare  :    <<TARE>>`).padEnd(25) + (` Date: ${data.tareDate || ''}`).padEnd(20) + (`  Time: ${data.tareTime || ''}`) + '\n';
-  lines += (`Net   :    <<NET>>`) + '\n';
-  lines += '.'.repeat(width) + '\n';
-  if(data.amount !== undefined && data.amount !== null && data.amount !== ''){
-    lines += (`Amount :    ₹ ${data.amount}`).padEnd(width) + '\n';
-    lines += '.'.repeat(width) + '\n';
-  }
-  lines += (`Charges    : Rs ${data.charges || ''}`) + '\n';
-  lines += '.'.repeat(width) + '\n';
-  lines += (`                                  Phone : ${data.phone || ''}`) + '\n';
-  lines += padCenterText('Thanks for your visit') + '\n';
+  // bind inputs to live render
+  ['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone','dotLength','fontSize']
+  .forEach(id => {
+    const el = q(id);
+    if(el) el.addEventListener('input', render);
+  });
 
-  const allLines = lines.split('\n');
-  const firmLine = allLines[0] || '';
-  const addressLine = allLines[1] || '';
-  const rest = allLines.slice(2).join('\n');
+  // preview / clear
+  q('previewBtn').addEventListener('click', render);
+  q('clearPreview').addEventListener('click', ()=> q('slipContent').textContent = '');
 
-  function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-  const restEsc = esc(rest);
-  const withGross = restEsc.replaceAll('&lt;&lt;GROSS&gt;&gt;', `<span class="big-val">${esc(grossVal)}</span>`);
-  const withTare = withGross.replaceAll('&lt;&lt;TARE&gt;&gt;', `<span class="big-val">${esc(tareVal)}</span>`);
-  const withNet = withTare.replaceAll('&lt;&lt;NET&gt;&gt;', `<span class="big-val">${esc(netVal)}</span>`);
+  // Open preview in new tab (SAFE: no inline scripts added)
+  q('openPreviewTab').addEventListener('click', ()=> {
+    render();
+    const safe = q('slipContent').textContent.replaceAll('&','&amp;').replaceAll('<','&lt;');
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>preview</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:12px}</style></head><body><pre>' + safe + '</pre></body></html>';
+    const w = window.open('about:blank','_blank');
+    w.document.open(); w.document.write(html); w.document.close();
+  });
 
-  const html = `
-    <div>
-      <div class="slip-firm">${esc(data.firmName || '')}</div>
-      <div class="slip-address">${esc(data.firmAddress || '')}</div>
-      <pre class="slip-wrapper">${withNet}</pre>
-    </div>
-  `;
-  return html;
-}
+  // Download template (SAFE: no injected script tags in the generated file)
+  q('downloadTpl').addEventListener('click', ()=> {
+    render();
+    const content = q('slipContent').textContent || '';
+    const safe = content.replaceAll('&','&amp;').replaceAll('<','&lt;');
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>slip-template</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:12px}</style></head><body><pre>' + safe + '</pre></body></html>';
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'slip-template.html'; a.click(); URL.revokeObjectURL(url);
+  });
 
-/* ====== render preview (use innerHTML since we now return HTML) ====== */
-function renderSlipPreview(rec){
-  document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
-  slipOutput.style.display = 'block';
-  slipOutput.scrollIntoView({behavior:'smooth'});
-}
+  // Create PDF (10in x 4in)
+  q('createPdfBtn').addEventListener('click', async ()=> {
+    try{
+      render();
+      const inner = q('slipInner');
+      inner.style.width = '10in'; inner.style.height = '4in';
+      await new Promise(r=>setTimeout(r,60));
+      const canvas = await html2canvas(inner, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
+      const img = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const widthMM = 10 * 25.4; const heightMM = 4 * 25.4;
+      const pdf = new jsPDF({unit:'mm', format:[widthMM, heightMM], orientation:'landscape'});
+      pdf.addImage(img, 'PNG', 0, 0, widthMM, heightMM);
+      const blob = pdf.output('blob'); const url = URL.createObjectURL(blob); window.open(url, '_blank');
+    }catch(err){
+      console.error('PDF error', err);
+      alert('PDF creation failed — check console for details');
+    }
+  });
 
-/* ====== preview close ====== */
-closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
-
-/* ====== PDF generation (as before) ====== */
-async function generatePdfAndOpen(rec){
-  document.getElementById('slipContent').innerHTML = buildSlipHtml(rec);
-  slipOutput.style.display = 'block';
-  const orientation = printOrientation?.value || 'portrait';
-  const paper = printPaper?.value || 'a4';
-  const marginMM = Number(printMargin?.value || 8);
-  const scaleFactor = Number(printScale?.value || 1);
-  const canvas = await html2canvas(document.getElementById('slipInner'), { scale: 2 * scaleFactor, useCORS:true, allowTaint:false });
-  const imgData = canvas.toDataURL('image/png');
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'mm', format: paper, orientation: orientation });
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = pdf.internal.pageSize.getHeight();
-  const usableW = pdfWidth - (marginMM*2);
-  const usableH = pdfHeight - (marginMM*2);
-  const img = new Image();
-  img.src = imgData;
-  await new Promise(res => img.onload = res);
-  const imgW = img.width;
-  const imgH = img.height;
-  const imgRatio = imgW / imgH;
-  let drawW = usableW;
-  let drawH = drawW / imgRatio;
-  if(drawH > usableH){
-    drawH = usableH;
-    drawW = drawH * imgRatio;
-  }
-  const x = (pdfWidth - drawW) / 2;
-  const y = (pdfHeight - drawH) / 2;
-  pdf.addImage(imgData, 'PNG', x, y, drawW, drawH);
-  const blob = pdf.output('blob');
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-}
-
-/* ====== Print button (only preview/PDF) ====== */
-document.getElementById('printBtn').addEventListener('click', async ()=>{
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  const rec = collectForm();
-
-  // Note: persistent save and sheet-sync removed per request.
-  await generatePdfAndOpen(rec);
-});
-
-/* preview only */
-previewBtn.addEventListener('click', ()=>{
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  const rec = collectForm();
-  renderSlipPreview(rec);
-});
-
-/* initial UI state */
-window.addEventListener('load', ()=>{
-  formCard.style.display='none';
-  slipOutput.style.display='none';
-});
+  // initial render
+  render();
+})();
 </script>
 
 </body>
