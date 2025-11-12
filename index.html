@@ -1,277 +1,848 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Slip Editor — Live (Fixed)</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
-  :root{--mono:"Courier New", monospace}
-  body{font-family:Inter,system-ui,Arial;margin:12px;background:#f5f7f8;color:#072033}
-  .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:380px 1fr;gap:12px;align-items:start}
-  .panel{background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.06)}
-  label{display:block;font-family:var(--mono);margin-top:8px;font-size:13px;color:#0b2330}
-  input[type=text], input[type=number], textarea, select{width:100%;padding:8px;box-sizing:border-box;font-family:var(--mono);font-size:13px}
-  .btn{padding:8px 10px;border-radius:6px;border:none;cursor:pointer;font-weight:700}
-  .btn-blue{background:#0b63b3;color:#fff}
-  #slipInner{background:#fff;padding:12px;border-radius:6px;font-family:var(--mono);width:10in;height:4in;box-sizing:border-box;overflow:hidden}
-  pre{white-space:pre;font-family:var(--mono);line-height:1.05;margin:0}
-  .controls-row{display:flex;gap:8px;align-items:center;margin-top:10px}
-  .hint{font-size:12px;color:#666;margin-top:6px}
-  textarea#templateEditor{height:220px; font-family:var(--mono); font-size:13px}
-  @media(max-width:920px){.wrap{grid-template-columns:1fr} #slipInner{width:100%;height:48vh}}
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Secure Slip — Create Slip (Updated alignment)</title>
+    <!-- External libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* ===== Base & background ===== */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: transparent;
+            color: #0d2433;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            background-image: url("truck.avif");
+            background-size: cover;
+            background-position: center;
+            filter: blur(6px) brightness(.95);
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 22px auto;
+            padding-bottom: 60px;
+        }
+
+        .card {
+            background: linear-gradient(180deg, #fff, #fbfdff);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(22, 40, 60, 0.06);
+            border: 1px solid rgba(10, 18, 30, 0.04);
+            margin-bottom: 18px;
+        }
+
+        /* Login */
+        .loginBox h2 {
+            margin: 0 0 12px 0;
+            color: #0b2330;
+            font-size: 20px;
+        }
+
+        .loginBox input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(20, 30, 40, 0.06);
+            font-family: "Courier New", monospace;
+        }
+
+        .loginBox button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #0b63b3;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        label {
+            display: block;
+            color: #0b2330;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(20, 30, 40, .06);
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+        }
+
+        .time-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-row > div {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-blue {
+            background: linear-gradient(180deg, #1976d2, #0b63b3);
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(10, 18, 30, 0.06);
+            color: #07304b;
+        }
+
+        /* Slip preview overlay */
+        #slipOutput {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 6%;
+            transform: translateX(-50%);
+            width: min(1200px, 96%);
+            max-height: 88vh;
+            overflow: auto;
+            z-index: 9999;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            background: transparent;
+        }
+
+        #previewToolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            justify-content: flex-end;
+            background: rgba(12, 20, 30, 0.03);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        #slipInner {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            color: #000;
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+        }
+
+        /* slip styling (affects preview rendering) */
+        .slip-wrapper {
+            white-space: pre;
+            font-family: "Courier New", monospace;
+            color: #000;
+        }
+
+        .slip-firm {
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .slip-address {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        .big-val {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            #slipOutput,
+            #slipOutput * {
+                visibility: visible !important;
+            }
+
+            #slipOutput {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #fff !important;
+                box-shadow: none !important;
+            }
+
+            #previewToolbar {
+                display: none !important;
+            }
+        }
+
+        .amount-input {
+            width: 100px;
+            padding: 6px;
+            font-family: monospace;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .table th,
+        .table td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(10, 18, 30, 0.04);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .table th {
+            color: #07304b;
+            font-weight: 700;
+        }
+
+        .err {
+            border-color: #d33 !important;
+            box-shadow: 0 0 0 3px rgba(211, 51, 51, 0.08);
+        }
+
+        .errMsg {
+            color: #d33;
+            font-weight: 700;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .groupRow {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .smallNote {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        #serverError {
+            margin-top: 10px;
+            color: #b33;
+            font-weight: 700;
+            display: none;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <!-- LOGIN -->
+        <div class="card loginBox" id="loginBox">
+            <h2>Login</h2>
+            <input id="username" placeholder="User ID" autocomplete="off" />
+            <input id="password" placeholder="Password" type="password" autocomplete="off" />
+            <button id="loginBtn" class="btn btn-blue">Login</button>
+            <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
+        </div>
 
-<div style="max-width:1200px;margin:0 auto 12px">
-  <h2 style="font-family:var(--mono);margin:0">Slip Editor — Live (Fixed)</h2>
-  <p class="hint">Fields editable on left → Preview updates live. Use numeric nudges to align columns. When correct, click Create PDF or Download Template.</p>
-</div>
+        <!-- FORM -->
+        <div class="card" id="formCard" style="display:none;">
+            <form id="slipForm" onsubmit="return false;">
+                <!-- Firm -->
+                <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
+                <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
+                <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
+                <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <div class="form-grid">
+                    <label>RST No: <input type="text" id="rstNo" value="101" required></label>
+                    <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
+                </div>
+                <div class="form-grid">
+                    <label>Item: <input type="text" id="item" value="20MM" required></label>
+                    <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+                    <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
+                </div>
+                <div class="form-grid">
+                    <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
+                    <label>Gross Date: <input type="text" id="grossDate" value="2025-11-08"></label>
+                </div>
+                <div class="time-row" style="margin-top:6px;">
+                    <div style="flex:1">
+                        <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
+                    </div>
+                    <div style="flex:1">
+                        <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
+                    <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
+                </div>
+                <label>Net: <input type="text" id="net" value="54980 Kg"></label>
+                <label>Charges: Rs <input type="text" id="charges" value="0"></label>
+                <label>Phone: <input type="text" id="phone" value="123456"></label>
+                <div class="controls">
+                    <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
+                    <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
+                </div>
+                <div id="serverError"></div>
+            </form>
+        </div>
 
-<div class="wrap">
-
-  <!-- LEFT: controls -->
-  <div class="panel" id="controls">
-    <label>Firm name (editable)</label>
-    <input id="firmName" type="text" value="MODI AGGREGATE SOLUTION">
-
-    <label>Firm address (editable)</label>
-    <input id="firmAddress" type="text" value="NEAR RAIPUR MOD  TEH  NEEMKATHANA">
-
-    <label style="margin-top:10px">Header shift: add spaces before header (chars)</label>
-    <div style="display:flex;gap:8px">
-      <input id="firmLeftPad" type="number" value="0" min="0" style="width:80px">
-      <input id="firmRightPad" type="number" value="0" min="0" style="width:80px">
+        <!-- SAVED SLIPS -->
+        <div class="card" id="dashboardCard" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div>
+                    <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
+                    <div style="font-size:13px; color:#235">Server-stored slips (PDFs)</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <label style="font-size:13px; color:#07304b;">From</label>
+                    <input type="date" id="filterFrom">
+                    <label style="font-size:13px; color:#07304b;">To</label>
+                    <input type="date" id="filterTo">
+                    <button id="applyFilter" class="btn btn-ghost">Apply</button>
+                    <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
+                </div>
+            </div>
+            <div id="recordsWrap" style="margin-top:12px;">
+                <table class="table" id="recordsTable" aria-live="polite">
+                    <thead>
+                        <tr>
+                            <th>Sr</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Saved PDF</th>
+                            <th>Amount (₹)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <hr style="margin-top:12px"/>
+    <!-- Slip preview overlay (used for rendering to create PDF only) -->
+    <div id="slipOutput" role="dialog" aria-modal="true">
+        <div id="previewToolbar">
+            <button id="closePreviewBtn" class="btn btn-blue">Close</button>
+        </div>
+        <div id="slipInner">
+            <div id="slipContent" style="color:#000;"></div>
+        </div>
+    </div>
 
-    <label>RST No</label><input id="rstNo" type="text" value="101">
-    <label>Vehicle No</label><input id="vehicleNo" type="text" value="RJ32GE0903">
-    <label>Vehicle Type</label><input id="vehicleType" type="text" value="Vh l   typ.">
-    <label>Party name</label><input id="partyName" type="text" value="Cash">
-    <label>Address</label><input id="address" type="text" value="">
-    <label>Item</label><input id="item" type="text" value="20MM">
+    <script>
+        /* Combined inline template + create logic (PDF 10in x 4in) */
+        /* TABLE-BASED TEMPLATE: deterministic alignment, adjusted left-shift for Gross/Tare/Net and 2-space before Kg */
+        /* INLINE EXACT TEMPLATE (replace previous TEMPLATE_HTML contents with this) */
+        // REPLACE your old TEMPLATE_HTML with exactly this (place inside your existing <script> tag)
+const TEMPLATE_HTML = `
+<div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
 
-    <hr style="margin-top:12px"/>
-
-    <label>Gross (number)</label><input id="gross" type="text" value="76190">
-    <label>Gross Date</label><input id="grossDate" type="text" value="02/11/2025">
-    <label>Gross Time</label><input id="grossTime" type="text" value="13:45">
-
-    <label>Tare</label><input id="tare" type="text" value="16600">
-    <label>Tare Date</label><input id="tareDate" type="text" value="02/11/2025">
-    <label>Tare Time</label><input id="tareTime" type="text" value="13:45">
-
-    <label>Net</label><input id="net" type="text" value="59590">
-
-    <label>Charges</label><input id="charges" type="text" value="0">
-    <label>Phone</label><input id="phone" type="text" value="123456">
-
-    <hr style="margin-top:12px"/>
-
-    <label>Dots (line length)</label><input id="dotLength" type="number" value="120" min="40" max="300">
-
-    <label>Font size (px)</label><input id="fontSize" type="number" value="14" min="9" max="24">
-
-    <div class="hint">Alignment nudges — change then Preview (or live preview if input changes)</div>
-
-    <label>Vehicle column start (chars)</label><input id="vehicleCol" type="number" min="20" max="160" value="56">
-    <label>Party column start (chars)</label><input id="partyCol" type="number" min="30" max="200" value="56">
-    <label>Item column start (chars)</label><input id="itemCol" type="number" min="40" max="220" value="80">
-    <label>Kg spaces (between number and "Kg")</label><input id="kgSpaces" type="number" min="1" max="6" value="2">
-    <label>Date shift (chars)</label><input id="dateShift" type="number" min="0" max="40" value="6">
-    <label>Time shift (chars)</label><input id="timeShift" type="number" min="0" max="40" value="6">
-
-    <div style="margin-top:12px" class="controls-row">
-      <button id="previewBtn" class="btn btn-blue">Preview</button>
-      <button id="downloadTpl" class="btn" style="margin-left:8px">Download Template</button>
-      <button id="createPdfBtn" class="btn btn-blue" style="margin-left:8px">Create PDF</button>
+  <!-- === Centered Header (always stays perfectly centered) === -->
+  <div style="width:100%; box-sizing:border-box; padding:4px 0 8px 0; display:flex; justify-content:center; align-items:flex-start; font-family:'Courier New',monospace;">
+    <div style="display:inline-block; text-align:center; max-width:90%; box-sizing:border-box; word-break:break-word;">
+      <div style="font-size:70px; font-weight:bold; line-height:1; white-space:normal;">{{firmName}}</div>
+      <div style="font-size:45px; line-height:1; margin-top:6px; white-space:normal;">{{firmAddress}}</div>
+      <div style="font-size:45px; line-height:1; margin-top:6px; white-space:normal;">{{firmPhone}}</div>
     </div>
   </div>
 
-  <!-- RIGHT: preview + editor -->
-  <div class="panel">
-    <h3 style="margin:6px 0;font-family:var(--mono)">Preview (10in × 4in)</h3>
-    <div id="slipInner" aria-label="Slip preview"><pre id="slipContent" style="font-size:14px"></pre></div>
+  <!-- === Main Slip Content (unchanged) === -->
+  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
 
-    <div style="margin-top:10px; display:flex; gap:8px;">
-      <button id="openPreviewTab" class="btn">Open Preview Tab</button>
-      <button id="clearPreview" class="btn">Clear</button>
-    </div>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
+<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-    <hr style="margin:14px 0"/>
+<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
+<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
+<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">Charges : Rs {{charges}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-    <h4 style="margin:6px 0;font-family:var(--mono)">Template editor (editable)</h4>
-    <div class="hint">Edit the template text directly and click Apply Template to preview exact spacing.</div>
-    <textarea id="templateEditor"></textarea>
+                                            <span style="font-size:45px;">Phone : {{phone}}</span>
 
-    <div style="margin-top:8px; display:flex; gap:8px;">
-      <button id="applyTemplate" class="btn btn-blue">Apply Template</button>
-      <button id="downloadHtml" class="btn">Download HTML</button>
-    </div>
-  </div>
-
+                                         <span style="font-size:45px;">Thanks for your visit</span>
+  </pre>
 </div>
+`;
+        /* helper to build server URLs */
+        const SERVER_BASE = '/slip-server';
+        function buildServerUrl(path) {
+            const base = SERVER_BASE || '';
+            if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
+            return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
+        }
 
-<script>
-/* All bindings in DOMContentLoaded to avoid partial execution */
-document.addEventListener('DOMContentLoaded', ()=>{
+        const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
+        const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
+        const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
-  const $ = id=>document.getElementById(id);
-  const placeholders = ['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone'];
+        const USERNAME = "FxMiNds";
+        const PASSWORD = "Sk@#9136332836@";
+        let isLoggedIn = false;
 
-  function pad(n){ return n>0 ? ' '.repeat(n) : '' }
-  function esc(s){ return String(s||'') }
+        /* DOM refs */
+        const createBtn = document.getElementById('createBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginBox = document.getElementById('loginBox');
+        const formCard = document.getElementById('formCard');
+        const dashboardCard = document.getElementById('dashboardCard');
+        const recordsBody = document.getElementById('recordsBody');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const serverError = document.getElementById('serverError');
+        const grossEl = document.getElementById('gross');
+        const tareEl = document.getElementById('tare');
+        const netEl = document.getElementById('net');
 
-  function buildTemplateFromControls(){
-    const D = Math.max(40, Number($('dotLength').value||120));
-    const dots = '.'.repeat(D);
-    const vehicleCol = Number($('vehicleCol').value||56);
-    const partyCol = Number($('partyCol').value||56);
-    const itemCol = Number($('itemCol').value||80);
-    const kgSpaces = Number($('kgSpaces').value||2);
-    const dateShift = Number($('dateShift').value||6);
-    const timeShift = Number($('timeShift').value||6);
-    const firmLeftPad = Math.max(0, Number($('firmLeftPad').value||0));
-    const firmRightPad = Math.max(0, Number($('firmRightPad').value||0));
+        const requiredMap = [
+            { id: 'firmName', err: 'firmNameErr' },
+            { id: 'firmAddress', err: 'firmAddressErr' },
+            { id: 'rstNo', err: 'rstErr' },
+            { id: 'vehicleNo', err: 'vehErr' },
+            { id: 'item', err: 'itemErr' },
+            { id: 'gross', err: 'grossErr' },
+            { id: 'grossDate', err: 'grossDateErr' },
+            { id: 'grossTime', err: 'grossTimeErr' },
+            { id: 'tareTime', err: 'tareTimeErr' },
+            { id: 'tare', err: 'tareErr' },
+            { id: 'tareDate', err: 'tareDateErr' },
+            { id: 'net', err: 'netErr' }
+        ];
 
-    function rightAt(startIndex, leftText, rightText){
-      leftText = esc(leftText||''); rightText = esc(rightText||'');
-      const leftLen = leftText.length;
-      const needed = Math.max(1, startIndex - leftLen);
-      return leftText + pad(needed) + rightText;
-    }
+        /* login/logout */
+        loginBtn.addEventListener('click', () => {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if (u === USERNAME && p === PASSWORD) {
+                isLoggedIn = true;
+                loginBox.style.display = 'none';
+                formCard.style.display = 'block';
+                dashboardCard.style.display = 'block';
+                refreshList();
+            } else {
+                const loginErr = document.getElementById('loginErr');
+                loginErr.style.display = 'block';
+                setTimeout(() => loginErr.style.display = 'none', 2000);
+            }
+        });
 
-    function centerText(t){
-      const s = esc(t||'');
-      const left = Math.max(0, Math.floor((D - s.length)/2));
-      return pad(firmLeftPad + left) + s + pad(firmRightPad);
-    }
+        logoutBtn.addEventListener('click', () => {
+            isLoggedIn = false;
+            loginBox.style.display = 'block';
+            formCard.style.display = 'none';
+            dashboardCard.style.display = 'none';
+        });
 
-    const lines = [];
-    lines.push(centerText('{{firmName}}'));
-    lines.push(centerText('{{firmAddress}}'));
-    lines.push(dots);
+        /* recompute gross */
+        function recomputeGross() {
+            const tare = Number(tareEl ? tareEl.value : 0) || 0;
+            const net = Number(netEl ? netEl.value : 0) || 0;
+            const gross = tare + net;
+            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
+        }
 
-    lines.push( rightAt(vehicleCol, 'RST No.     : {{rstNo}}', 'Vehicle No. : {{vehicleNo}}') );
-    lines.push( rightAt(partyCol, 'Vh l typ.   : {{vehicleType}}', 'Party name  : {{partyName}}') );
-    lines.push( rightAt(itemCol, 'Address     : {{address}}', 'Item        : {{item}}') );
+        if (tareEl) tareEl.addEventListener('input', recomputeGross);
+        if (netEl) netEl.addEventListener('input', recomputeGross);
+        window.addEventListener('load', recomputeGross);
 
-    lines.push(dots);
+        function getVal(id) {
+            const el = document.getElementById(id);
+            if (!el) return '';
+            return el.value;
+        }
 
-    const kgPad = pad(kgSpaces);
-    const datePad = pad(dateShift);
-    const timePad = pad(timeShift);
+        /* createPdfBlob with 10in x 4in output */
+        async function createPdfBlob(data){
+  // escape helper (same behavior as before)
+  function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-    lines.push(`Gross : ${pad(8)}{{gross}}${kgPad}Kg${pad(6)}Date : {{grossDate}}${datePad}Time : {{grossTime}}`);
-    lines.push(`Tare  : ${pad(8)}{{tare}}${kgPad}Kg${pad(6)}Date : {{tareDate}}${datePad}Time : {{tareTime}}`);
-    lines.push(`Net   : ${pad(8)}{{net}}${kgPad}Kg`);
-    lines.push(dots);
-    lines.push(`Charges : Rs {{charges}}`);
-    lines.push(dots);
-    lines.push('');
-    lines.push(pad(10)+`Phone : {{phone}}`);
-    lines.push('');
-    lines.push(pad(6)+`Thanks for your visit`);
+  const replacements = {
+    '{{firmName}}': esc(data.firmName || ''),
+    '{{firmAddress}}': esc(data.firmAddress || ''),
+    '{{firmPhone}}': esc(data.firmPhone || ''),
+    '{{rstNo}}': esc(data.rstNo || ''),
+    '{{vehicleNo}}': esc(data.vehicleNo || ''),
+    '{{vehicleType}}': esc(data.vehicleType || ''),
+    '{{partyName}}': esc(data.partyName || ''),
+    '{{address}}': esc(data.address || ''),
+    '{{item}}': esc(data.item || ''),
+    '{{gross}}': esc(data.gross || '').replace(/\s*Kg$/i,''),
+    '{{grossDate}}': esc(data.grossDate || ''),
+    '{{grossTime}}': esc(data.grossTime || ''),
+    '{{tare}}': esc(data.tare || '').replace(/\s*Kg$/i,''),
+    '{{tareDate}}': esc(data.tareDate || ''),
+    '{{tareTime}}': esc(data.tareTime || ''),
+    '{{net}}': esc(data.net || '').replace(/\s*Kg$/i,''),
+    '{{amount}}': esc(data.amount || ''),
+    '{{charges}}': esc(data.charges || ''),
+    '{{phone}}': esc(data.phone || '')
+  };
 
-    return lines.join('\n');
-  }
+  // render template (unchanged)
+  let rendered = TEMPLATE_HTML;
+  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
 
-  function setEditorFromControls(){
-    const tpl = buildTemplateFromControls();
-    $('templateEditor').value = tpl;
-  }
+  document.getElementById('slipContent').innerHTML = rendered;
+  slipOutput.style.display = 'block';
 
-  function collectData(){
-    const data = {};
-    placeholders.forEach(k => { const el = $(k); data[k] = el ? esc(el.value) : '' });
-    // ensure numbers only for gross/tare/net if user typed units
-    ['gross','tare','net'].forEach(k=>{
-      if(data[k] && data[k].match(/\d/)){
-        data[k] = data[k].replace(/[^\d\-]/g,'');
-      }
-    });
-    return data;
-  }
+  // Ensure slipInner has the desired physical width (10in) but allow height to size automatically
+  const slipInner = document.getElementById('slipInner');
+  slipInner.style.width = '20in';
+  slipInner.style.height = '10in';           // let content determine height
+  slipInner.style.background = '#fff';
+  slipInner.style.boxSizing = 'border-box';
+  slipInner.style.padding = '12px';
 
-  function renderPreviewFromTemplate(templateText){
-    const d = collectData();
-    let out = String(templateText || '');
-    placeholders.forEach(p=>{
-      const re = new RegExp('\\{\\{\\s*' + p + '\\s*\\}\\}', 'g');
-      out = out.replace(re, String(d[p]||''));
-    });
-    $('slipContent').style.fontSize = Math.max(9, Number($('fontSize').value||14)) + 'px';
-    $('slipContent').textContent = out;
-  }
+  // Render to canvas with a scale factor for crispness
+  const scaleFactor = 2;
+  const canvas = await html2canvas(slipInner, { scale: scaleFactor, useCORS:true, allowTaint:false, backgroundColor: null });
 
-  function applyEditor(){
-    const tpl = $('templateEditor').value || '';
-    renderPreviewFromTemplate(tpl);
-  }
+  // Convert canvas to image
+  const imgData = canvas.toDataURL('image/png');
 
-  function downloadTemplateHtml(){
-    const tpl = $('templateEditor').value || '';
-    const safe = tpl.replaceAll('&','&amp;').replaceAll('<','&lt;');
-    const html = '<!doctype html><html><head><meta charset="utf-8"><title>pdf_template</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:10px}</style></head><body><pre>' + safe + '</pre></body></html>';
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'pdf_template.html'; a.click(); URL.revokeObjectURL(url);
-  }
+  // Compute PDF physical size based on canvas aspect ratio so nothing is cropped
+  // Desired PDF width in mm (10 in)
+  const widthMM = 10 * 25.4; // 254 mm
 
-  async function createPdf(){
-    try{
-      applyEditor();
-      const inner = $('slipInner');
-      inner.style.width = '10in';
-      inner.style.height = '4in';
-      await new Promise(r=>setTimeout(r,80));
-      const canvas = await html2canvas(inner, {scale:2, useCORS:true, backgroundColor:'#ffffff'});
-      const img = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      const widthMM = 10 * 25.4;
-      const heightMM = 4 * 25.4;
-      const pdf = new jsPDF({unit:'mm', format:[widthMM, heightMM], orientation:'landscape'});
-      pdf.addImage(img, 'PNG', 0, 0, widthMM, heightMM);
-      const blob = pdf.output('blob'); const url = URL.createObjectURL(blob); window.open(url, '_blank');
-    }catch(err){
-      console.error('PDF error', err);
-      alert('PDF creation failed — check console for details');
-    }
-  }
+  // canvas.width/height are in pixels at the chosen scale
+  const canvasWidthPx = canvas.width;
+  const canvasHeightPx = canvas.height;
 
-  function openPreviewTab(){
-    applyEditor();
-    const safe = $('slipContent').textContent.replaceAll('&','&amp;').replaceAll('<','&lt;');
-    const html = '<!doctype html><html><head><meta charset="utf-8"><title>preview</title><style>body{font-family:"Courier New",monospace;white-space:pre;padding:12px}</style></head><body><pre>' + safe + '</pre></body></html>';
-    const w = window.open('about:blank','_blank'); w.document.open(); w.document.write(html); w.document.close();
-  }
+  // Compute height in mm preserving aspect ratio
+  const heightMM = (canvasHeightPx / canvasWidthPx) * widthMM;
 
-  // Bind events
-  const autoUpdateIds = ['firmName','firmAddress','firmLeftPad','firmRightPad','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone','fontSize'];
-  autoUpdateIds.forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', ()=> renderPreviewFromTemplate($('templateEditor').value || '') ) });
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'mm', format:[widthMM, heightMM], orientation:'landscape' });
 
-  ['dotLength','vehicleCol','partyCol','itemCol','kgSpaces','dateShift','timeShift'].forEach(id=>{
-    const el=$(id); if(el) el.addEventListener('input', ()=> { setEditorFromControls(); applyEditor(); } );
-  });
+  // Add the image to fill the page exactly
+  pdf.addImage(imgData, 'PNG', 0, 0, widthMM, heightMM);
 
-  $('previewBtn').addEventListener('click', ()=> applyEditor());
-  $('applyTemplate').addEventListener('click', ()=> applyEditor());
-  $('downloadTpl').addEventListener('click', ()=> downloadTemplateHtml());
-  $('downloadHtml').addEventListener('click', ()=> downloadTemplateHtml());
-  $('createPdfBtn').addEventListener('click', ()=> createPdf());
-  $('openPreviewTab').addEventListener('click', ()=> openPreviewTab());
-  $('clearPreview').addEventListener('click', ()=> { $('slipContent').textContent = ''; });
+  // hide preview
+  slipOutput.style.display = 'none';
 
-  // init
-  setEditorFromControls();
-  applyEditor();
+  // return blob as before
+  return pdf.output('blob');
+}
 
-}); // DOMContentLoaded
-</script>
 
+        /* validation + creation flow */
+        function clearValidation() {
+            requiredMap.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) el.classList.remove('err');
+                const errNode = document.getElementById(item.err);
+                if (errNode) errNode.style.display = 'none';
+            });
+            serverError.style.display = 'none';
+            serverError.textContent = '';
+        }
+
+        function validateAll() {
+            clearValidation();
+            let ok = true;
+            for (const item of requiredMap) {
+                const el = document.getElementById(item.id);
+                const errNode = document.getElementById(item.err);
+                if (!el) {
+                    if (errNode) errNode.style.display = 'block';
+                    ok = false;
+                    continue;
+                }
+                const val = String(el.value || '').trim();
+                if (item.id === 'gross') {
+                    if (!val || !val.match(/[0-9]/)) {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                } else {
+                    if (val === '') {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                }
+            }
+            return ok;
+        }
+
+        createBtn.addEventListener('click', async () => {
+            serverError.style.display = 'none';
+            serverError.textContent = '';
+            if (!isLoggedIn) {
+                alert('Please login first');
+                return;
+            }
+            if (!validateAll()) {
+                const firstErr = requiredMap.find(i => {
+                    const el = document.getElementById(i.id);
+                    return el && el.classList.contains('err');
+                });
+                if (firstErr) {
+                    document.getElementById(firstErr.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+            const rec = collectForm();
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                const pdfBlob = await createPdfBlob(rec);
+                const fd = new FormData();
+                const filename = `slip_${Date.now()}.pdf`;
+                fd.append('pdf', pdfBlob, filename);
+                fd.append('vehicleNo', rec.vehicleNo || '');
+                fd.append('rstNo', rec.rstNo || '');
+                fd.append('createdAt', new Date().toISOString());
+                fd.append('amount', rec.amount || '');
+                const resp = await fetch(CREATE_ENDPOINT, {
+                    method: 'POST',
+                    body: fd
+                });
+                let json;
+                try {
+                    json = await resp.json();
+                } catch (e) {
+                    const txt = await resp.text();
+                    console.error('Server returned non-JSON:', txt);
+                    serverError.style.display = 'block';
+                    serverError.textContent = 'Server returned non-JSON response. See console.';
+                    alert('Server error: check console.');
+                    createBtn.disabled = false;
+                    createBtn.textContent = 'Create Slip';
+                    return;
+                }
+                if (resp.ok && json && json.ok) {
+                    alert('Slip created on server (ID: ' + json.id + '). PDF saved.');
+                    clearForm();
+                    await refreshList();
+                } else {
+                    const message = (json && (json.error || json.message)) ? String(json.error || json.message) : 'Unknown server error';
+                    serverError.style.display = 'block';
+                    serverError.textContent = 'Server error: ' + message;
+                    alert('Server error: ' + message + '. See console.');
+                }
+            } catch (err) {
+                console.error('Create exception:', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'Client error: ' + (err.message || err);
+                alert('Error creating slip: ' + (err.message || err) + '. Check console.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Slip';
+            }
+        });
+
+        function collectForm() {
+            const tareNum = Number(getVal('tare')) || 0;
+            const netNum = Number(getVal('net')) || 0;
+            const grossNum = tareNum + netNum;
+            return {
+                firmName: getVal('firmName'),
+                firmAddress: getVal('firmAddress'),
+                firmPhone: getVal('firmPhone'),
+                rstNo: getVal('rstNo'),
+                vehicleNo: getVal('vehicleNo'),
+                vehicleType: getVal('vehicleType'),
+                partyName: getVal('partyName'),
+                address: getVal('address'),
+                item: getVal('item'),
+                gross: `${Number(grossNum).toFixed(0)} Kg`,
+                grossDate: getVal('grossDate'),
+                grossTime: getVal('grossTime'),
+                tare: `${Number(tareNum).toFixed(0)} Kg`,
+                tareDate: getVal('tareDate'),
+                tareTime: getVal('tareTime'),
+                net: `${Number(netNum).toFixed(0)} Kg`,
+                amount: '',
+                charges: getVal('charges'),
+                phone: getVal('phone'),
+                savedAt: new Date().toISOString()
+            };
+        }
+
+        function clearForm() {
+            const ids = ['firmName', 'firmAddress', 'rstNo', 'vehicleNo', 'vehicleType', 'partyName', 'address', 'item', 'gross', 'grossDate', 'grossTime', 'tare', 'tareDate', 'tareTime', 'net', 'charges', 'phone'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            clearValidation();
+        }
+
+        /* refreshList/renderSlipsTable unchanged */
+        async function refreshList() {
+            try {
+                const from = getVal('filterFrom') || '';
+                const to = getVal('filterTo') || '';
+                const q = new URLSearchParams({ from, to });
+                const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+                const json = await resp.json();
+                if (!json || !Array.isArray(json.slips)) {
+                    console.error('Invalid slips response', json);
+                    return;
+                }
+                const slips = json.slips.slice();
+                slips.sort((a, b) => {
+                    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+                });
+                renderSlipsTable(slips);
+            } catch (err) {
+                console.error('refreshList', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'List load error: ' + (err.message || err);
+            }
+        }
+
+        function renderSlipsTable(slips) {
+            recordsBody.innerHTML = '';
+            let totalAmt = 0;
+            slips.sort((a, b) => {
+                if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+            });
+            slips.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="width:60px">${s.id}</td>
+                    <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
+                    <td style="width:140px">${s.vehicleNo || '-'}</td>
+                    <td style="width:200px">${s.filename ? `<a href="${s.filepath}" target="_blank">View PDF</a>` : '-'}</td>
+                    <td style="width:150px" id="amountCell_${s.id}">
+                        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
+                            `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
+                            `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+                             <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+                        }
+                    </td>
+                    <td style="width:160px">
+                        <button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button>
+                    </td>
+                `;
+                recordsBody.appendChild(tr);
+                totalAmt += Number(s.amount || 0);
+            });
+            totalAmountEl.textContent = totalAmt.toFixed(2);
+            window._slips = slips;
+
+            recordsBody.querySelectorAll('button[data-action="download"]').forEach(b => {
+                b.onclick = (e) => {
+                    const id = Number(e.currentTarget.dataset.id);
+                    const row = (window._slips || []).find(x => x.id === id);
+                    if (row && row.filepath) {
+                        window.open(row.filepath, '_blank');
+                    }
+                };
+            });
+
+            (window._slips || []).forEach(s => {
+                const btn = document.getElementById(`amt_btn_${s.id}`);
+                if (btn) {
+                    btn.addEventListener('click', async (ev) => {
+                        const id = Number(ev.currentTarget.dataset.id);
+                        const input = document.getElementById(`amt_in_${id}`);
+                        const val = input.value;
+                        if (val === '' || isNaN(Number(val))) {
+                            alert('Enter valid amount');
+                            return;
+                        }
+                        try {
+                            const resp = await fetch(AMOUNT_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id, amount: Number(val) })
+                            });
+                            const j = await resp.json();
+                            if (j && j.ok) {
+                                alert('Amount saved.');
+                                await refreshList();
+                            } else {
+                                alert('Could not save amount (server).');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error saving amount.');
+                        }
+                    });
+                }
+            });
+        }
+
+        document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+        document.getElementById('closePreviewBtn').addEventListener('click', () => {
+            const slipOutput = document.getElementById('slipOutput');
+            slipOutput.style.display = 'none';
+        });
+
+        window.addEventListener('load', () => {
+            formCard.style.display = 'none';
+            dashboardCard.style.display = 'none';
+            const slipOutput = document.getElementById('slipOutput');
+            slipOutput.style.display = 'none';
+            recomputeGross();
+        });
+    </script>
 </body>
 </html>
