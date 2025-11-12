@@ -516,27 +516,39 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         async function createPdfBlob(data){
   // escape helper (same behavior as before)
   function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  // helper: make numeric zeros slashed (inside-circle style)
+  function prettyZero(val) {
+    const s = String(val || '').trim();
+    // remove "Kg" ya "Rs" temporarily for check
+    const core = s.replace(/[^0-9.]/g, '');
+    // agar empty ya zero hai
+    if (core !== '' && Number(core) === 0) {
+      // special slashed zero character — looks like 0 with slash INSIDE
+      return s.replace(/0/g, '⌀'); // Unicode U+2300 diameter symbol (inside slash)
+    }
+    return s;
+  }
 
   const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
     '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(data.firmPhone || ''),
-    '{{rstNo}}': esc(data.rstNo || ''),
-    '{{vehicleNo}}': esc(data.vehicleNo || ''),
-    '{{vehicleType}}': esc(data.vehicleType || ''),
+    '{{firmPhone}}': esc(prettyZero(data.firmPhone || '')),
+    '{{rstNo}}': esc(prettyZero(data.rstNo || '')),
+    '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
+    '{{vehicleType}}': esc(prettyZero(data.vehicleType || '')),
     '{{partyName}}': esc(data.partyName || ''),
     '{{address}}': esc(data.address || ''),
-    '{{item}}': esc(data.item || ''),
-    '{{gross}}': esc(data.gross || '').replace(/\s*Kg$/i,''),
-    '{{grossDate}}': esc(data.grossDate || ''),
-    '{{grossTime}}': esc(data.grossTime || ''),
-    '{{tare}}': esc(data.tare || '').replace(/\s*Kg$/i,''),
-    '{{tareDate}}': esc(data.tareDate || ''),
-    '{{tareTime}}': esc(data.tareTime || ''),
-    '{{net}}': esc(data.net || '').replace(/\s*Kg$/i,''),
-    '{{amount}}': esc(data.amount || ''),
-    '{{charges}}': esc(data.charges || ''),
-    '{{phone}}': esc(data.phone || '')
+    '{{item}}': esc(prettyZero(data.item || '')),
+    '{{gross}}': esc(prettyZero(data.gross || '').replace(/\s*Kg$/i,'')),
+    '{{grossDate}}': esc(prettyZero(data.grossDate || '')),
+    '{{grossTime}}': esc(prettyZero(data.grossTime || '')),
+    '{{tare}}': esc(prettyZero(data.tare || '').replace(/\s*Kg$/i,'')),
+    '{{tareDate}}': esc(prettyZero(data.tareDate || '')),
+    '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
+    '{{net}}': esc(prettyZero(data.net || '').replace(/\s*Kg$/i,'')),
+    '{{amount}}': esc(prettyZero(data.amount || '')),
+    '{{charges}}': esc(prettyZero(data.charges || '')),
+    '{{phone}}': esc(prettyZero(data.phone || ''))
   };
 
   // render template (unchanged)
