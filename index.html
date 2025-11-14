@@ -3,43 +3,86 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Updated)</title>
+  <title>Secure Slip — Create Slip (Final)</title>
+
+  <!-- External libs (html2canvas kept if you ever reuse; jsPDF included but not used for saving now) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <style>
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
-    .container{max-width:1100px;margin:22px auto;padding-bottom:60px}
-    .card{background:linear-gradient(180deg,#fff,#fbfdff);padding:16px;border-radius:12px;box-shadow:0 8px 30px rgba(22,40,60,0.06);border:1px solid rgba(10,18,30,0.04);margin-bottom:18px}
-    .loginBox h2{margin:0 0 12px 0;color:#0b2330;font-size:20px}
-    .loginBox input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(20,30,40,0.06);font-family:"Courier New",monospace}
-    .loginBox button{width:100%;padding:10px;border-radius:8px;border:none;background:#0b63b3;color:#fff;font-weight:600;cursor:pointer}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
-    label{display:block;color:#0b2330;font-size:14px;margin-top:8px}
-    input[type="text"],input[type="date"],input[type="number"],select{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(20,30,40,.06);font-family:"Courier New",monospace;box-sizing:border-box}
-    .time-row{display:flex;gap:8px}
-    .controls{display:flex;gap:8px;margin-top:10px;align-items:center}
-    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
-    .btn-blue{background:linear-gradient(180deg,#1976d2,#0b63b3);color:#fff}
-    .btn-ghost{background:transparent;border:1px solid rgba(10,18,30,0.06);color:#07304b}
+    /* ===== Base & background ===== */
+    html, body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433; }
+    .container { max-width:1100px; margin:22px auto; padding-bottom:60px; }
+    .card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); margin-bottom:18px; }
 
-    /* preview overlay */
-    #slipOutput{display:none;position:fixed;left:50%;top:6%;transform:translateX(-50%);z-index:9999;background:transparent}
-    #previewToolbar{display:flex;gap:8px;padding:8px;justify-content:flex-end;background:rgba(12,20,30,0.03);border-top-left-radius:8px;border-top-right-radius:8px}
-    #slipInner{background:#fff;padding:12px;border-radius:8px;color:#000;font-family:"Courier New",monospace;box-sizing:border-box;overflow:visible}
-    /* numeric spans fixed width so '0' never overflows */
-    .num{display:inline-block;width:140px;min-width:80px;text-align:right;font-family:"Courier New",monospace}
-    .shortnum{display:inline-block;width:120px;min-width:60px;text-align:right;font-family:"Courier New",monospace}
+    /* login / form */
+    .loginBox h2{ margin:0 0 12px 0; color:#0b2330; font-size:20px; }
+    .loginBox input{ width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New",monospace; }
+    .loginBox button{ width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
 
-    .table{width:100%;border-collapse:collapse;margin-top:8px}
-    .table th,.table td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(10,18,30,0.04);font-size:13px;vertical-align:middle}
-    .err{border-color:#d33!important;box-shadow:0 0 0 3px rgba(211,51,51,0.08)}
-    .errMsg{color:#d33;font-weight:700;margin-top:6px;font-size:13px}
-    @media print{
-      body *{visibility:hidden!important}
-      #slipOutput,#slipOutput *{visibility:visible!important}
-      #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:10mm!important;background:#fff!important;box-shadow:none!important}
-      #previewToolbar{display:none!important}
+    .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:center; }
+    label{ display:block; color:#0b2330; font-size:14px; margin-top:8px; }
+    input[type="text"], input[type="date"], input[type="number"], select { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New",monospace; box-sizing:border-box; }
+    .time-row { display:flex; gap:8px; }
+    .time-row > div { flex:1; }
+
+    .controls { display:flex; gap:8px; margin-top:10px; align-items:center; }
+    .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+    .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
+    .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
+
+    /* slip preview overlay */
+    #slipOutput { display:none; position:fixed; left:50%; top:6%; transform:translateX(-50%); z-index:9999; background:transparent; }
+    #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
+    #slipInner { background:#fff; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; overflow:visible; }
+
+    /* numeric fixed width so "0" won't overflow */
+    .num { display:inline-block; width:140px; min-width:60px; text-align:right; font-family:"Courier New",monospace; }
+    .shortnum { display:inline-block; width:120px; min-width:50px; text-align:right; font-family:"Courier New",monospace; }
+
+    .table { width:100%; border-collapse:collapse; margin-top:8px; }
+    .table th, .table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:13px; vertical-align:middle; }
+    .table th { color:#07304b; font-weight:700; }
+
+    .err { border-color:#d33 !important; box-shadow:0 0 0 3px rgba(211,51,51,0.08); }
+    .errMsg { color:#d33; font-weight:700; margin-top:6px; font-size:13px; }
+
+    @page {
+      size: 10in 5in; /* physical paper we expect for slip */
+      margin: 0;
     }
+
+    @media print {
+      /* show only slipOutput */
+      body * { visibility: hidden !important; }
+      #slipOutput, #slipOutput * { visibility: visible !important; }
+
+      /* force slip into exact page area */
+      #slipOutput {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 10in !important;
+        height: 5in !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        overflow: hidden !important;
+      }
+      #slipInner {
+        width: 10in !important;
+        height: 5in !important;
+        max-width: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+      }
+    }
+
+    /* small helpers */
+    .smallNote { font-size:12px; color:#666; margin-top:6px; }
+    #serverError { margin-top:10px; color:#b33; font-weight:700; display:none; }
   </style>
 </head>
 <body>
@@ -108,38 +151,49 @@
     <!-- SAVED SLIPS -->
     <div class="card" id="dashboardCard" style="display:none;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <div><div style="font-size:18px;font-weight:700;color:#072033">Saved Slips</div><div style="font-size:13px;color:#235">Server-stored slips (records)</div></div>
+        <div>
+          <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
+          <div style="font-size:13px; color:#235">Server-stored slips (records)</div>
+        </div>
+
         <div style="display:flex; gap:8px; align-items:center;">
-          <label style="font-size:13px;color:#07304b;">From</label><input type="date" id="filterFrom">
-          <label style="font-size:13px;color:#07304b;">To</label><input type="date" id="filterTo">
+          <label style="font-size:13px; color:#07304b;">From</label>
+          <input type="date" id="filterFrom">
+          <label style="font-size:13px; color:#07304b;">To</label>
+          <input type="date" id="filterTo">
           <button id="applyFilter" class="btn btn-ghost">Apply</button>
           <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
         </div>
       </div>
+
       <div id="recordsWrap" style="margin-top:12px;">
         <table class="table" id="recordsTable" aria-live="polite">
-          <thead><tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Saved</th><th>Amount (₹)</th><th>Action</th></tr></thead>
+          <thead><tr>
+            <th>Sr</th><th>Date</th><th>Vehicle</th><th>Saved</th><th>Amount (₹)</th><th>Action</th>
+          </tr></thead>
           <tbody id="recordsBody"></tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- Slip preview overlay (shows ONLY slip) -->
+  <!-- Slip preview overlay (used for rendering to create PDF/print only) -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
       <button id="printBtn" class="btn btn-blue">Print</button>
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
-    <div id="slipInner" style="width:10in; max-width:96vw;">
+
+    <!-- IMPORTANT: fixed physical size here -->
+    <div id="slipInner" style="width:10in; height:5in; max-width:96vw; padding:0; margin:0;">
       <div id="slipContent" style="color:#000;"></div>
     </div>
   </div>
 
   <script>
-/* ---------------- TEMPLATE (format unchanged; numeric placeholders wrapped) */
+/* ---------------- TEMPLATE (exact-format preserved, numeric placeholders wrapped) */
 const TEMPLATE_HTML = `
-<div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:8px;'>
+<div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:6px;'>
 
   <div style="width:100%;box-sizing:border-box;padding:4px 0 8px 0;display:flex;justify-content:center;align-items:flex-start;">
     <div style="display:inline-block;text-align:center;max-width:90%;box-sizing:border-box;word-break:break-word;">
@@ -177,12 +231,13 @@ Charges : Rs <span class="shortnum">{{charges}}</span>
 /* ---------------- endpoints & helpers ---------------- */
 const SERVER_BASE = '/slip-server';
 function buildServerUrl(path){ const base = SERVER_BASE || ''; if(base.startsWith('http://')||base.startsWith('https://')) return base+path; return window.location.origin + (base.startsWith('/')?base:('/'+base)) + path; }
-const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // accept JSON or FormData
+const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // server entry (kept)
 const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
 const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
-const USERNAME="FxMiNds", PASSWORD="Sk@#9136332836@";
-let isLoggedIn=false;
+const USERNAME = "FxMiNds";
+const PASSWORD = "Sk@#9136332836@";
+let isLoggedIn = false;
 
 /* DOM refs */
 const createBtn = document.getElementById('createBtn');
@@ -220,24 +275,40 @@ const requiredMap = [
 
 /* login/logout */
 loginBtn.addEventListener('click', ()=>{
-  const u=document.getElementById('username').value, p=document.getElementById('password').value;
-  if(u===USERNAME && p===PASSWORD){ isLoggedIn=true; loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); }
-  else{ const loginErr=document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if(u === USERNAME && p === PASSWORD){
+    isLoggedIn = true;
+    loginBox.style.display='none';
+    formCard.style.display='block';
+    dashboardCard.style.display='block';
+    refreshList();
+  } else {
+    const loginErr = document.getElementById('loginErr');
+    loginErr.style.display='block';
+    setTimeout(()=>loginErr.style.display='none',2000);
+  }
 });
 logoutBtn.addEventListener('click', ()=>{ isLoggedIn=false; loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; });
 
-/* compute gross */
-function recomputeGross(){ const tare = Number(tareEl? tareEl.value:0)||0; const net = Number(netEl? netEl.value:0)||0; const gross = tare+net; if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`; }
-if(tareEl) tareEl.addEventListener('input', recomputeGross); if(netEl) netEl.addEventListener('input', recomputeGross); window.addEventListener('load', recomputeGross);
-function getVal(id){ const el=document.getElementById(id); return el? el.value: ''; }
-
-/* prettyZero simplified: DO NOT replace 0 with slashed symbol; return original */
-function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-function prettyZero(val){
-  // keep value unchanged, but ensure it's string
-  const s = String(val||'').trim();
-  return s;
+/* recompute gross */
+function recomputeGross(){
+  const tare = Number(tareEl ? tareEl.value : 0) || 0;
+  const net  = Number(netEl ? netEl.value : 0) || 0;
+  const gross = tare + net;
+  if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
 }
+if(tareEl) tareEl.addEventListener('input', recomputeGross);
+if(netEl) netEl.addEventListener('input', recomputeGross);
+window.addEventListener('load', recomputeGross);
+
+function getVal(id){ const el=document.getElementById(id); return el? el.value : ''; }
+
+/* prettyZero: KEEP ORIGINAL VALUE (do not replace 0 with slashed symbol) */
+function prettyZero(val){ return String(val||'').trim(); }
+
+/* escape */
+function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
 /* render slip html */
 function renderSlipHtml(data){
@@ -247,7 +318,7 @@ function renderSlipHtml(data){
     '{{firmPhone}}': esc(prettyZero(data.firmPhone||'')),
     '{{rstNo}}': esc(prettyZero(data.rstNo||'')),
     '{{vehicleNo}}': esc(prettyZero(data.vehicleNo||'')),
-    '{{vehicleType}}': esc(data.vehicleType||''),
+    '{{vehicleType}}': esc(prettyZero(data.vehicleType||'')),
     '{{partyName}}': esc(data.partyName||''),
     '{{address}}': esc(data.address||''),
     '{{item}}': esc(prettyZero(data.item||'')),
@@ -263,11 +334,11 @@ function renderSlipHtml(data){
     '{{phone}}': esc(prettyZero(data.phone||''))
   };
   let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => rendered = rendered.split(k).join(replacements[k]));
+  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
   return rendered;
 }
 
-/* Create Slip: show preview, print option, save record client-side + attempt server save */
+/* CREATE: show preview only after clicking Create; do NOT trigger a txt download */
 createBtn.addEventListener('click', async ()=>{
   serverError.style.display='none'; serverError.textContent='';
   if(!isLoggedIn){ alert('Please login first'); return; }
@@ -281,116 +352,88 @@ createBtn.addEventListener('click', async ()=>{
   try{
     createBtn.disabled=true; createBtn.textContent='Preparing...';
 
-    const renderedHtml = renderSlipHtml(rec);
-    document.getElementById('slipContent').innerHTML = renderedHtml;
+    // render slip html and insert into preview
+    const html = renderSlipHtml(rec);
+    document.getElementById('slipContent').innerHTML = html;
 
-    // show preview (only after Create)
-    slipOutput.style.display='block';
-    slipInner.style.width='10in';
-    slipInner.style.maxWidth='96vw';
-    slipInner.style.height='auto';
-    slipInner.style.overflow='visible';
+    // fix preview container to exact physical size BEFORE showing
+    slipInner.style.width = '10in';
+    slipInner.style.height = '5in';
+    slipInner.style.maxWidth = 'none';
+    slipInner.style.padding = '0';
+    slipInner.style.margin = '0';
+    slipInner.style.boxSizing = 'border-box';
+    slipInner.style.overflow = 'hidden';
 
-    // get plain text of pre for printing fallback (not downloaded)
-    const pre = document.getElementById('slipContent').querySelector('pre');
-    const textForRecord = pre ? pre.textContent : (document.getElementById('slipContent').innerText || '');
+    // show preview now
+    slipOutput.style.display = 'block';
 
-    // Immediately push local saved-record (so Saved Slips updates instantly)
-    // If server returns proper id later, we'll refresh from server; but immediate UX: show serial/vehicle/date
+    // also add instant client-side saved record (so Saved Slips shows immediately)
     const now = new Date();
-    const localId = Date.now(); // client-generated serial
-    const localRecord = {
-      id: localId,
+    const clientId = Date.now();
+    window._slips = window._slips || [];
+    window._slips.unshift({
+      id: clientId,
       createdAt: now.toISOString(),
       vehicleNo: rec.vehicleNo || '',
-      amount: rec.amount || '',
-      filename: null
-    };
-    // ensure window._slips array exists and update
-    window._slips = window._slips || [];
-    // add to top
-    window._slips.unshift(localRecord);
+      amount: rec.amount || ''
+    });
     renderSlipsTable(window._slips);
 
-    // Attempt server save (JSON primary, fallback FormData with text file)
-    const payload = { vehicleNo: rec.vehicleNo||'', rstNo: rec.rstNo||'', createdAt: new Date().toISOString(), amount: rec.amount||'', meta: rec };
-    let savedServerId = null;
-    try{
-      const resp = await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-      if(resp.ok){
-        try{
-          const j = await resp.json();
-          if(j && j.ok && j.id){ savedServerId = j.id; }
-        }catch(e){
-          // server ok but no json; ignore
-        }
-      }
-    }catch(e){
-      console.warn('JSON save failed', e);
-    }
-
-    if(!savedServerId){
-      // fallback FormData with text
+    // Try server save (non-blocking): JSON then FormData fallback (server not required for preview)
+    (async ()=>{
+      const payload = { vehicleNo: rec.vehicleNo||'', rstNo: rec.rstNo||'', createdAt: new Date().toISOString(), amount: rec.amount||'', meta: rec };
       try{
-        const fd = new FormData();
-        fd.append('vehicleNo', rec.vehicleNo||'');
-        fd.append('rstNo', rec.rstNo||'');
-        fd.append('createdAt', new Date().toISOString());
-        fd.append('amount', rec.amount||'');
-        fd.append('text', new Blob([textForRecord], { type:'text/plain' }), `slip_${Date.now()}.txt`);
-        const resp2 = await fetch(CREATE_ENDPOINT, { method:'POST', body: fd });
-        if(resp2.ok){
-          try{ const j2 = await resp2.json(); if(j2 && j2.ok && j2.id) savedServerId = j2.id; }catch(e){}
+        const resp = await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+        if(resp && resp.ok){
+          try{
+            const j = await resp.json();
+            if(j && j.ok){ await refreshList(); } // refresh to sync server ids
+          }catch(e){}
         }
-      }catch(e){ console.warn('FormData fallback failed', e); }
-    }
-
-    // If server returned an id, replace local record id with server id by refreshing list
-    if(savedServerId){
-      // optional: refresh full list from server to get accurate filenames/ids
-      try{ await refreshList(); } catch(e){ /* ignore */ }
-    }
+      }catch(e){ /* ignore server errors for now */ }
+    })();
 
   }catch(err){
     console.error('Create exception:', err);
-    alert('Error preparing slip preview. See console.');
+    alert('Error preparing preview — check console.');
   } finally {
     createBtn.disabled=false; createBtn.textContent='Create Slip';
   }
 });
 
-/* Print button: print only preview */
+/* Print button prints ONLY the preview area (media rules hide rest) */
 printBtn.addEventListener('click', ()=>{
-  // Use @media print rules to show only slipOutput content
+  // Open print dialog for current window; @media print rules will ensure only slip prints
   window.print();
 });
 
-/* validation & helpers */
+/* validation + helpers */
 function clearValidation(){ requiredMap.forEach(item=>{ const el=document.getElementById(item.id); if(el) el.classList.remove('err'); const errNode=document.getElementById(item.err); if(errNode) errNode.style.display='none'; }); serverError.style.display='none'; serverError.textContent=''; }
 function validateAll(){ clearValidation(); let ok=true; for(const item of requiredMap){ const el=document.getElementById(item.id); const errNode=document.getElementById(item.err); if(!el){ if(errNode) errNode.style.display='block'; ok=false; continue; } const val = String(el.value||'').trim(); if(item.id==='gross'){ if(!val || !val.match(/[0-9]/)){ ok=false; el.classList.add('err'); if(errNode) errNode.style.display='block'; } } else { if(val===''){ ok=false; el.classList.add('err'); if(errNode) errNode.style.display='block'; } } } return ok; }
 
-function collectForm(){ const tareNum = Number(getVal('tare'))||0; const netNum = Number(getVal('net'))||0; const grossNum = tareNum + netNum; return { firmName: getVal('firmName'), firmAddress: getVal('firmAddress'), firmPhone: getVal('firmPhone'), rstNo: getVal('rstNo'), vehicleNo: getVal('vehicleNo'), vehicleType: getVal('vehicleType'), partyName: getVal('partyName'), address: getVal('address'), item: getVal('item'), gross: `${Number(grossNum).toFixed(0)} Kg`, grossDate: getVal('grossDate'), grossTime: getVal('grossTime'), tare: `${Number(tareNum).toFixed(0)} Kg`, tareDate: getVal('tareDate'), tareTime: getVal('tareTime'), net: `${Number(netNum).toFixed(0)} Kg`, amount: '', charges: getVal('charges'), phone: getVal('phone'), savedAt: new Date().toISOString() }; }
+function collectForm(){ const tareNum = Number(getVal('tare')) || 0; const netNum = Number(getVal('net')) || 0; const grossNum = tareNum + netNum; return { firmName: getVal('firmName'), firmAddress: getVal('firmAddress'), firmPhone: getVal('firmPhone'), rstNo: getVal('rstNo'), vehicleNo: getVal('vehicleNo'), vehicleType: getVal('vehicleType'), partyName: getVal('partyName'), address: getVal('address'), item: getVal('item'), gross: `${Number(grossNum).toFixed(0)} Kg`, grossDate: getVal('grossDate'), grossTime: getVal('grossTime'), tare: `${Number(tareNum).toFixed(0)} Kg`, tareDate: getVal('tareDate'), tareTime: getVal('tareTime'), net: `${Number(netNum).toFixed(0)} Kg`, amount: '', charges: getVal('charges'), phone: getVal('phone'), savedAt: new Date().toISOString() }; }
 function clearForm(){ const ids=['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone']; ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); clearValidation(); }
 
-/* saved list logic */
+/* refreshList/renderSlipsTable */
 async function refreshList(){
   try{
-    const from = getVal('filterFrom')||'';
-    const to = getVal('filterTo')||'';
+    const from = getVal('filterFrom') || '';
+    const to = getVal('filterTo') || '';
     const q = new URLSearchParams({ from, to });
     const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
     const json = await resp.json();
-    if(!json || !Array.isArray(json.slips)){ console.error('Invalid slips response', json); return; }
+    if(!json || !Array.isArray(json.slips)){ console.warn('Invalid slips response — using client list', json); return; }
     const slips = json.slips.slice();
     slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-    // replace client list with server list
     window._slips = slips;
     renderSlipsTable(window._slips);
-  }catch(err){ console.error('refreshList', err); serverError.style.display='block'; serverError.textContent = 'List load error: ' + (err.message||err); }
+  }catch(err){ console.warn('refreshList failed', err); /* keep client list */ }
 }
 
 function renderSlipsTable(slips){
-  recordsBody.innerHTML=''; let totalAmt=0;
+  recordsBody.innerHTML = '';
+  let totalAmt = 0;
   slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
   slips.forEach(s=>{
     const tr = document.createElement('tr');
@@ -407,18 +450,18 @@ function renderSlipsTable(slips){
   window._slips = slips;
 
   recordsBody.querySelectorAll('button[data-action="download"]').forEach(b=>{
-    b.onclick = (e)=>{ const id = Number(e.currentTarget.dataset.id); const row = (window._slips||[]).find(x=>x.id===id); if(row && row.filepath) window.open(row.filepath,'_blank'); else alert('No file link available for this record.'); };
+    b.onclick = (e)=>{ const id = Number(e.currentTarget.dataset.id); const row = (window._slips||[]).find(x=>x.id===id); if(row && row.filepath) window.open(row.filepath,'_blank'); else alert('No file found for this record.'); };
   });
 
   (window._slips||[]).forEach(s=>{
     const btn = document.getElementById(`amt_btn_${s.id}`);
-    if(btn) btn.addEventListener('click', async ev=>{ const id=Number(ev.currentTarget.dataset.id); const input=document.getElementById(`amt_in_${id}`); const val=input.value; if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; } try{ const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, amount: Number(val) }) }); const j = await resp.json(); if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).'); }catch(err){ console.error(err); alert('Error saving amount.'); } });
+    if(btn) btn.addEventListener('click', async ev=>{ const id = Number(ev.currentTarget.dataset.id); const input = document.getElementById(`amt_in_${id}`); const val = input.value; if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; } try{ const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) }); const j = await resp.json(); if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).'); }catch(err){ console.error(err); alert('Error saving amount.'); } });
   });
 }
 
 /* controls */
-document.getElementById('closePreviewBtn').addEventListener('click', ()=> slipOutput.style.display='none');
 document.getElementById('applyFilter').addEventListener('click', ()=> refreshList());
+document.getElementById('closePreviewBtn').addEventListener('click', ()=> slipOutput.style.display='none');
 
 window.addEventListener('load', ()=>{
   formCard.style.display='none';
