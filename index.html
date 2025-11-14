@@ -223,6 +223,21 @@ const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn = false;
+    // ---- Sequential 5-digit serial helper (persisted) ----
+function getNextSerialNumber() {
+  // stored as integer in localStorage under key 'slip_serial_counter'
+  const key = 'slip_serial_counter';
+  let n = Number(localStorage.getItem(key) || 0);
+  n = n + 1;
+  localStorage.setItem(key, String(n));
+  return n; // numeric counter (1,2,3...)
+}
+function formatSerial5(n) {
+  // return zero-padded 5-digit string
+  return String(n).padStart(5, '0');
+}
+// --------------------------------------------------------
+
 
 /* DOM refs */
 const createBtn = document.getElementById('createBtn');
@@ -376,16 +391,23 @@ document.getElementById('createBtn').addEventListener('click', async ()=>{
     showPreviewWithScaling();
 
     // add a quick client-side saved record (so Saved Slips shows immediately)
-    const now = new Date();
-    const clientId = Date.now();
-    window._slips = window._slips || [];
-    window._slips.unshift({
-      id: clientId,
-      createdAt: now.toISOString(),
-      vehicleNo: rec.vehicleNo || '',
-      amount: rec.amount || ''
-    });
-    renderSlipsTable(window._slips);
+    // Use sequential serial number (persisted)
+const now = new Date();
+const seq = getNextSerialNumber();          // 1,2,3...
+const clientId = seq;                       // use numeric seq as id
+const displaySerial = formatSerial5(seq);  // "00001"
+
+// push into client-side list and show immediately
+window._slips = window._slips || [];
+window._slips.unshift({
+  id: clientId,
+  serial: displaySerial,        // human-readable 5-digit serial
+  createdAt: now.toISOString(),
+  vehicleNo: rec.vehicleNo || '',
+  amount: rec.amount || ''
+});
+renderSlipsTable(window._slips);
+
 
     // server save attempt (non-blocking)
     (async ()=>{
@@ -464,16 +486,13 @@ function renderSlipsTable(slips){
   let totalAmt = 0;
   slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
   slips.forEach(s=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="width:60px">${s.id}</td>
-      <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
-      <td style="width:140px">${s.vehicleNo||'-'}</td>
-      <td style="width:200px">Saved</td>
-      <td style="width:150px" id="amountCell_${s.id}">${ s.amount !== undefined && s.amount !== null && s.amount !== '' ? `<span>₹ ${Number(s.amount).toFixed(2)}</span>` : `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>` }</td>
-      <td style="width:160px"><button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button></td>`;
-    recordsBody.appendChild(tr);
-    totalAmt += Number(s.amount || 0);
-  });
+    const displaySr = s.serial ? s.serial : String(Number(s.id||0)).padStart(13,'0');
+tr.innerHTML = `<td style="width:120px">${displaySr}</td>
+  <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
+  <td style="width:140px">${s.vehicleNo||'-'}</td>
+  ...
+`;
+
   totalAmountEl.textContent = totalAmt.toFixed(2);
   window._slips = slips;
 
