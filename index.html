@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Final)</title>
+  <title>Secure Slip — Create Slip (Final - preview/print fix)</title>
 
-  <!-- External libs (html2canvas kept if you ever reuse; jsPDF included but not used for saving now) -->
+  <!-- External libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -31,10 +31,20 @@
     .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
     .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-    /* slip preview overlay */
-    #slipOutput { display:none; position:fixed; left:50%; top:6%; transform:translateX(-50%); z-index:9999; background:transparent; }
+    /* slip preview overlay - default view (on-screen) */
+    #slipOutput {
+      display:none;
+      position:fixed;
+      left:50%;
+      top:6%;
+      transform:translateX(-50%);
+      z-index:9999;
+      background:transparent;
+      padding:6px;
+      box-sizing:border-box;
+    }
     #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
-    #slipInner { background:#fff; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; overflow:visible; }
+    #slipInner { background:#fff; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; overflow:visible; transform-origin: top left; }
 
     /* numeric fixed width so "0" won't overflow */
     .num { display:inline-block; width:140px; min-width:60px; text-align:right; font-family:"Courier New",monospace; }
@@ -47,40 +57,18 @@
     .err { border-color:#d33 !important; box-shadow:0 0 0 3px rgba(211,51,51,0.08); }
     .errMsg { color:#d33; font-weight:700; margin-top:6px; font-size:13px; }
 
-    @page {
-      size: 10in 5in; /* physical paper we expect for slip */
-      margin: 0;
-    }
+    @page { size: 10in 5in; margin: 0; }
 
     @media print {
       /* show only slipOutput */
       body * { visibility: hidden !important; }
       #slipOutput, #slipOutput * { visibility: visible !important; }
 
-      /* force slip into exact page area */
-      #slipOutput {
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 10in !important;
-        height: 5in !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        overflow: hidden !important;
-      }
-      #slipInner {
-        width: 10in !important;
-        height: 5in !important;
-        max-width: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-      }
+      /* ensure exact physical size in print */
+      #slipOutput { position: fixed !important; left: 0 !important; top: 0 !important; width: 10in !important; height: 5in !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; overflow: hidden !important; transform:none !important; }
+      #slipInner { width: 10in !important; height: 5in !important; max-width: none !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important; overflow: hidden !important; transform:none !important; }
     }
 
-    /* small helpers */
     .smallNote { font-size:12px; color:#666; margin-top:6px; }
     #serverError { margin-top:10px; color:#b33; font-weight:700; display:none; }
   </style>
@@ -177,62 +165,61 @@
     </div>
   </div>
 
-  <!-- Slip preview overlay (used for rendering to create PDF/print only) -->
+  <!-- Slip preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
       <button id="printBtn" class="btn btn-blue">Print</button>
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
 
-    <!-- IMPORTANT: fixed physical size here -->
-    <div id="slipInner" style="width:10in; height:5in; max-width:96vw; padding:0; margin:0;">
+    <!-- fixed physical size inside -->
+    <div id="slipInner" style="width:10in; height:5in; padding:0; margin:0;">
       <div id="slipContent" style="color:#000;"></div>
     </div>
   </div>
 
   <script>
-/* ---------------- TEMPLATE (exact-format preserved, numeric placeholders wrapped) */
+/* ===== TEMPLATE (kept exact format; numeric spans used) ===== */
 const TEMPLATE_HTML = `
 <div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:6px;'>
 
   <div style="width:100%;box-sizing:border-box;padding:4px 0 8px 0;display:flex;justify-content:center;align-items:flex-start;">
     <div style="display:inline-block;text-align:center;max-width:90%;box-sizing:border-box;word-break:break-word;">
-      <div style="font-size:36px;font-weight:;line-height:1;white-space:normal;">{{firmName}}</div>
-      <div style="font-size:25px;line-height:1;margin-top:6px;white-space:normal;">{{firmAddress}}</div>
-      <div style="font-size:25px;line-height:1;margin-top:6px;white-space:normal;">{{firmPhone}}</div>
+      <div style="font-size:36px;font-weight:700;line-height:1;white-space:normal;">{{firmName}}</div>
+      <div style="font-size:14px;line-height:1;margin-top:6px;white-space:normal;">{{firmAddress}}</div>
+      <div style="font-size:14px;line-height:1;margin-top:6px;white-space:normal;">{{firmPhone}}</div>
     </div>
   </div>
 
   <pre style='margin:0;padding:6px;white-space:pre;font-family:"Courier New",monospace;line-height:1.15;font-size:13px;'>
 
-<span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
-                            <span style="font-size:45px;">{{firmAddress}}</span>
-                                 <span style="font-size:45px;">{{firmPhone}}</span>
-                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
-<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
-<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+................................................................................................
 
-<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
-<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
-<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+RST No.     : <span class="shortnum">{{rstNo}}</span>                                                Vehicle No. : <span class="shortnum">{{vehicleNo}}</span>
+Vh l typ.   : <span class="shortnum">{{vehicleType}}</span>                                         Party name  : {{partyName}}
+Address     : {{address}}                                               Item        : <span class="shortnum">{{item}}</span>
 
-                                            <span style="font-size:45px;">Phone : {{phone}}</span>
+.................................................................................................
 
-                                         <span style="font-size:45px;">Thanks for your visit</span>
+Gross   :      <span class="num">{{gross}}</span>  Kg        Date : {{grossDate}}                      Time :    {{grossTime}}
+Tare    :      <span class="num">{{tare}}</span>  Kg        Date : {{tareDate}}                      Time :    {{tareTime}}
+Net     :      <span class="num">{{net}}</span>  Kg
+
+..................................................................................................
+Charges : Rs <span class="shortnum">{{charges}}</span>
+..................................................................................................
+
+                                            Phone : <span class="shortnum">{{phone}}</span>
+
+                                           Thanks for your visit
   </pre>
 </div>
 `;
 
-/* ---------------- endpoints & helpers ---------------- */
+/* endpoints & helpers */
 const SERVER_BASE = '/slip-server';
 function buildServerUrl(path){ const base = SERVER_BASE || ''; if(base.startsWith('http://')||base.startsWith('https://')) return base+path; return window.location.origin + (base.startsWith('/')?base:('/'+base)) + path; }
-const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // server entry (kept)
+const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
 const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
 const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
@@ -305,13 +292,10 @@ window.addEventListener('load', recomputeGross);
 
 function getVal(id){ const el=document.getElementById(id); return el? el.value : ''; }
 
-/* prettyZero: KEEP ORIGINAL VALUE (do not replace 0 with slashed symbol) */
+/* keep zero unchanged */
 function prettyZero(val){ return String(val||'').trim(); }
-
-/* escape */
 function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
-/* render slip html */
 function renderSlipHtml(data){
   const replacements = {
     '{{firmName}}': esc(data.firmName||''),
@@ -339,8 +323,37 @@ function renderSlipHtml(data){
   return rendered;
 }
 
-/* CREATE: show preview only after clicking Create; do NOT trigger a txt download */
-createBtn.addEventListener('click', async ()=>{
+/* Utility: scale preview to fit viewport without changing template content */
+function showPreviewWithScaling(){
+  // 1 CSS inch = 96px typically in browsers
+  const PAGE_W_PX = 10 * 96;
+  const PAGE_H_PX = 5 * 96;
+  const availW = Math.max(320, Math.min(window.innerWidth * 0.96, window.innerWidth)); // available width in px
+  const availH = Math.max(200, Math.min(window.innerHeight * 0.88, window.innerHeight)); // available height
+  // compute scale so both width and height fit
+  const scaleW = availW / PAGE_W_PX;
+  const scaleH = availH / PAGE_H_PX;
+  const scale = Math.min(1, scaleW, scaleH);
+
+  // apply transform scale for on-screen preview
+  slipInner.style.transform = `scale(${scale})`;
+  slipInner.style.transformOrigin = 'top left';
+
+  // set wrapper size to the scaled px so it's visible (centered)
+  slipOutput.style.width = Math.ceil(PAGE_W_PX * scale) + 'px';
+  slipOutput.style.height = Math.ceil(PAGE_H_PX * scale) + 'px';
+
+  // ensure centered on viewport (translateX(-50%) already used)
+  slipOutput.style.left = '50%';
+  slipOutput.style.top = '6%';
+  slipOutput.style.transform = 'translateX(-50%)';
+
+  // show
+  slipOutput.style.display = 'block';
+}
+
+/* CREATE: show preview (no txt download), save client record immediately */
+document.getElementById('createBtn').addEventListener('click', async ()=>{
   serverError.style.display='none'; serverError.textContent='';
   if(!isLoggedIn){ alert('Please login first'); return; }
   if(!validateAll()){
@@ -351,25 +364,21 @@ createBtn.addEventListener('click', async ()=>{
 
   const rec = collectForm();
   try{
-    createBtn.disabled=true; createBtn.textContent='Preparing...';
-
-    // render slip html and insert into preview
     const html = renderSlipHtml(rec);
     document.getElementById('slipContent').innerHTML = html;
 
-    // fix preview container to exact physical size BEFORE showing
+    // ensure slipInner physical dimensions before scaling
     slipInner.style.width = '10in';
     slipInner.style.height = '5in';
-    slipInner.style.maxWidth = 'none';
     slipInner.style.padding = '0';
     slipInner.style.margin = '0';
     slipInner.style.boxSizing = 'border-box';
     slipInner.style.overflow = 'hidden';
 
-    // show preview now
-    slipOutput.style.display = 'block';
+    // show scaled preview
+    showPreviewWithScaling();
 
-    // also add instant client-side saved record (so Saved Slips shows immediately)
+    // add a quick client-side saved record (so Saved Slips shows immediately)
     const now = new Date();
     const clientId = Date.now();
     window._slips = window._slips || [];
@@ -381,35 +390,56 @@ createBtn.addEventListener('click', async ()=>{
     });
     renderSlipsTable(window._slips);
 
-    // Try server save (non-blocking): JSON then FormData fallback (server not required for preview)
+    // server save attempt (non-blocking)
     (async ()=>{
-      const payload = { vehicleNo: rec.vehicleNo||'', rstNo: rec.rstNo||'', createdAt: new Date().toISOString(), amount: rec.amount||'', meta: rec };
       try{
-        const resp = await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-        if(resp && resp.ok){
-          try{
-            const j = await resp.json();
-            if(j && j.ok){ await refreshList(); } // refresh to sync server ids
-          }catch(e){}
-        }
-      }catch(e){ /* ignore server errors for now */ }
+        const payload = { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), amount: rec.amount || '', meta: rec };
+        await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+        // best-effort: we'll refresh list next time or on load
+      }catch(e){}
     })();
 
   }catch(err){
     console.error('Create exception:', err);
     alert('Error preparing preview — check console.');
-  } finally {
-    createBtn.disabled=false; createBtn.textContent='Create Slip';
   }
 });
 
-/* Print button prints ONLY the preview area (media rules hide rest) */
+/* Print behavior: temporarily remove scale transform so actual size prints */
 printBtn.addEventListener('click', ()=>{
-  // Open print dialog for current window; @media print rules will ensure only slip prints
+  // Remove scaling for print
+  const oldTransform = slipInner.style.transform;
+  const oldWrapperWidth = slipOutput.style.width;
+  const oldWrapperHeight = slipOutput.style.height;
+  // set to physical sizes
+  slipInner.style.transform = 'none';
+  slipOutput.style.width = '10in';
+  slipOutput.style.height = '5in';
+  slipOutput.style.left = '0';
+  slipOutput.style.top = '0';
+  slipOutput.style.transform = 'none';
+
+  // print
   window.print();
+
+  // restore preview scaling after a short delay (after print dialog)
+  setTimeout(()=>{
+    slipInner.style.transform = oldTransform || '';
+    slipOutput.style.width = oldWrapperWidth || '';
+    slipOutput.style.height = oldWrapperHeight || '';
+    slipOutput.style.left = '50%';
+    slipOutput.style.top = '6%';
+    slipOutput.style.transform = 'translateX(-50%)';
+  }, 500);
 });
 
-/* validation + helpers */
+/* Close preview -> restore */
+document.getElementById('closePreviewBtn').addEventListener('click', ()=>{
+  slipOutput.style.display = 'none';
+  slipInner.style.transform = 'none';
+});
+
+/* validation + creation helpers */
 function clearValidation(){ requiredMap.forEach(item=>{ const el=document.getElementById(item.id); if(el) el.classList.remove('err'); const errNode=document.getElementById(item.err); if(errNode) errNode.style.display='none'; }); serverError.style.display='none'; serverError.textContent=''; }
 function validateAll(){ clearValidation(); let ok=true; for(const item of requiredMap){ const el=document.getElementById(item.id); const errNode=document.getElementById(item.err); if(!el){ if(errNode) errNode.style.display='block'; ok=false; continue; } const val = String(el.value||'').trim(); if(item.id==='gross'){ if(!val || !val.match(/[0-9]/)){ ok=false; el.classList.add('err'); if(errNode) errNode.style.display='block'; } } else { if(val===''){ ok=false; el.classList.add('err'); if(errNode) errNode.style.display='block'; } } } return ok; }
 
@@ -424,12 +454,12 @@ async function refreshList(){
     const q = new URLSearchParams({ from, to });
     const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
     const json = await resp.json();
-    if(!json || !Array.isArray(json.slips)){ console.warn('Invalid slips response — using client list', json); return; }
+    if(!json || !Array.isArray(json.slips)){ console.warn('Invalid slips response — using client list', json); if(window._slips) renderSlipsTable(window._slips); return; }
     const slips = json.slips.slice();
     slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
     window._slips = slips;
     renderSlipsTable(window._slips);
-  }catch(err){ console.warn('refreshList failed', err); /* keep client list */ }
+  }catch(err){ console.warn('refreshList failed', err); if(window._slips) renderSlipsTable(window._slips); }
 }
 
 function renderSlipsTable(slips){
@@ -460,9 +490,8 @@ function renderSlipsTable(slips){
   });
 }
 
-/* controls */
+/* misc controls */
 document.getElementById('applyFilter').addEventListener('click', ()=> refreshList());
-document.getElementById('closePreviewBtn').addEventListener('click', ()=> slipOutput.style.display='none');
 
 window.addEventListener('load', ()=>{
   formCard.style.display='none';
