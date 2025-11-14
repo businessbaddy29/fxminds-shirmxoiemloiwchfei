@@ -514,7 +514,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
                 '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
                 '{{amount}}': esc(prettyZero(data.amount || '')),
-                '{{charges}}': esc(prettyZero(data.charges || '')),
+                '{{charges}}': esc(prettyZero(data.charges === '' ? '0' : data.charges)), // use slashed zero correctly
                 '{{phone}}': esc(prettyZero(data.phone || ''))
             };
             let rendered = TEMPLATE_HTML;
