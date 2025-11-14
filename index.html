@@ -613,7 +613,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 tareTime: getVal('tareTime'),
                 net: `${Number(netNum).toFixed(0)} Kg`,
                 amount: '',
-                charges: getVal('charges'),
+                charges: (getVal('charges') || '0'),
                 phone: getVal('phone'),
                 savedAt: new Date().toISOString()
             };
