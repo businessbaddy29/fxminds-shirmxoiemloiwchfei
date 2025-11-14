@@ -219,36 +219,33 @@
   <div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:6px;'>
     <div class="header-wrap">
       <div class="header-inner">
-        <div style="font-size:42px; font-weight:700; line-height:1;">{{firmName}}</div>
-        <div style="font-size:22px; margin-top:6px;">{{firmAddress}}</div>
-        <div style="font-size:20px; margin-top:6px;">{{firmPhone}}</div>
+        <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
+                            <span style="font-size:45px;">{{firmAddress}}</span>
+                                 <span style="font-size:45px;">{{firmPhone}}</span>
       </div>
     </div>
 
     <pre style='margin:10px 0 0 0; padding:6px; white-space:pre; font-family:"Courier New",monospace; line-height:1.15; font-size:14px;'>
 
-................................................................................................
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
+<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-RST No.     : {{rstNo}}                                                Vehicle No. : {{vehicleNo}}
-Vh l typ.   : {{vehicleType}}                                         Party name  : {{partyName}}
-Address     : {{address}}                                               Item        : {{item}}
+<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
+<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
+<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">Charges : Rs {{charges}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-.................................................................................................
+                                            <span style="font-size:45px;">Phone : {{phone}}</span>
 
-Gross   :      {{gross}}  Kg        Date : {{grossDate}}                      Time :    {{grossTime}}
-Tare    :      {{tare}}  Kg        Date : {{tareDate}}                      Time :    {{tareTime}}
-Net     :      {{net}}  Kg
-
-..................................................................................................
-Charges : Rs {{charges}}
-..................................................................................................
-
-                                            Phone : {{phone}}
-
-                                           Thanks for your visit
-    </pre>
-  </div>
-  `;
+                                         <span style="font-size:45px;">Thanks for your visit</span>
+  </pre>
+</div>
+`;
 
   // State
   let isLoggedIn = false;
