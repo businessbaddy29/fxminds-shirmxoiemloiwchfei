@@ -16,7 +16,6 @@
             background: transparent;
             color: #0d2433;
         }
-
         body::before {
             content: "";
             position: fixed;
@@ -27,7 +26,6 @@
             background-position: center;
             filter: blur(6px) brightness(.95);
         }
-
         body::after {
             content: "";
             position: fixed;
@@ -35,13 +33,11 @@
             z-index: -2;
             background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
         }
-
         .container {
             max-width: 1100px;
             margin: 22px auto;
             padding-bottom: 60px;
         }
-
         .card {
             background: linear-gradient(180deg, #fff, #fbfdff);
             padding: 16px;
@@ -50,14 +46,12 @@
             border: 1px solid rgba(10, 18, 30, 0.04);
             margin-bottom: 18px;
         }
-
         /* Login */
         .loginBox h2 {
             margin: 0 0 12px 0;
             color: #0b2330;
             font-size: 20px;
         }
-
         .loginBox input {
             width: 100%;
             padding: 10px;
@@ -66,7 +60,6 @@
             border: 1px solid rgba(20, 30, 40, 0.06);
             font-family: "Courier New", monospace;
         }
-
         .loginBox button {
             width: 100%;
             padding: 10px;
@@ -77,7 +70,6 @@
             font-weight: 600;
             cursor: pointer;
         }
-
         /* Form */
         .form-grid {
             display: grid;
@@ -85,14 +77,12 @@
             gap: 8px;
             align-items: center;
         }
-
         label {
             display: block;
             color: #0b2330;
             font-size: 14px;
             margin-top: 8px;
         }
-
         input[type="text"],
         input[type="date"],
         input[type="number"],
@@ -104,16 +94,13 @@
             font-family: "Courier New", monospace;
             box-sizing: border-box;
         }
-
         .time-row {
             display: flex;
             gap: 8px;
         }
-
         .time-row > div {
             flex: 1;
         }
-
         /* Buttons */
         .controls {
             display: flex;
@@ -121,7 +108,6 @@
             margin-top: 10px;
             align-items: center;
         }
-
         .btn {
             padding: 8px 12px;
             border-radius: 8px;
@@ -129,18 +115,15 @@
             cursor: pointer;
             font-weight: 600;
         }
-
         .btn-blue {
             background: linear-gradient(180deg, #1976d2, #0b63b3);
             color: #fff;
         }
-
         .btn-ghost {
             background: transparent;
             border: 1px solid rgba(10, 18, 30, 0.06);
             color: #07304b;
         }
-
         /* Slip preview overlay */
         #slipOutput {
             display: none;
@@ -156,7 +139,6 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
             background: transparent;
         }
-
         #previewToolbar {
             display: flex;
             gap: 8px;
@@ -166,7 +148,6 @@
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
         }
-
         #slipInner {
             background: #fff;
             padding: 18px;
@@ -175,43 +156,36 @@
             font-family: "Courier New", monospace;
             box-sizing: border-box;
         }
-
         /* slip styling (affects preview rendering) */
         .slip-wrapper {
             white-space: pre;
             font-family: "Courier New", monospace;
             color: #000;
         }
-
         .slip-firm {
             text-align: center;
             font-weight: 700;
             font-size: 18px;
             margin-bottom: 6px;
         }
-
         .slip-address {
             text-align: center;
             font-size: 12px;
             margin-bottom: 6px;
             color: #333;
         }
-
         .big-val {
             font-weight: 700;
             font-size: 15px;
         }
-
         @media print {
             body * {
                 visibility: hidden !important;
             }
-
             #slipOutput,
             #slipOutput * {
                 visibility: visible !important;
             }
-
             #slipOutput {
                 position: absolute !important;
                 left: 0 !important;
@@ -222,24 +196,20 @@
                 background: #fff !important;
                 box-shadow: none !important;
             }
-
             #previewToolbar {
                 display: none !important;
             }
         }
-
         .amount-input {
             width: 100px;
             padding: 6px;
             font-family: monospace;
         }
-
         .table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 8px;
         }
-
         .table th,
         .table td {
             padding: 8px 6px;
@@ -248,36 +218,30 @@
             font-size: 13px;
             vertical-align: middle;
         }
-
         .table th {
             color: #07304b;
             font-weight: 700;
         }
-
         .err {
             border-color: #d33 !important;
             box-shadow: 0 0 0 3px rgba(211, 51, 51, 0.08);
         }
-
         .errMsg {
             color: #d33;
             font-weight: 700;
             margin-top: 6px;
             font-size: 13px;
         }
-
         .groupRow {
             display: flex;
             gap: 8px;
             align-items: center;
         }
-
         .smallNote {
             font-size: 12px;
             color: #666;
             margin-top: 6px;
         }
-
         #serverError {
             margin-top: 10px;
             color: #b33;
@@ -296,7 +260,6 @@
             <button id="loginBtn" class="btn btn-blue">Login</button>
             <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
         </div>
-
         <!-- FORM -->
         <div class="card" id="formCard" style="display:none;">
             <form id="slipForm" onsubmit="return false;">
@@ -341,7 +304,6 @@
                 <div id="serverError"></div>
             </form>
         </div>
-
         <!-- SAVED SLIPS -->
         <div class="card" id="dashboardCard" style="display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
@@ -375,7 +337,6 @@
             </div>
         </div>
     </div>
-
     <!-- Slip preview overlay (used for rendering to create PDF only) -->
     <div id="slipOutput" role="dialog" aria-modal="true">
         <div id="previewToolbar">
@@ -385,7 +346,6 @@
             <div id="slipContent" style="color:#000;"></div>
         </div>
     </div>
-
     <script>
         /* Combined inline template + create logic (PDF 10in x 4in) */
         /* TABLE-BASED TEMPLATE: deterministic alignment, adjusted left-shift for Gross/Tare/Net and 2-space before Kg */
@@ -394,25 +354,22 @@
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
-                <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
+                <span style="letter-spacing:2px; font-size:70px; font-weight: ;">{{firmName}}</span>
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
-                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
-<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
-<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
-<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
-<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+                                     
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<span style="font-size:45px;">RST No. : {{rstNo}}</span> <span style="font-size:45px;">Vehicle No. : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ. : {{vehicleType}}</span> <span style="font-size:45px;"> Party name : {{partyName}}</span>
+<span style="font-size:45px;">Address : {{address}}</span> <span style="font-size:45px;"> Item : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<span style="font-size:45px;">Gross :</span> <span style="font-size:55px; font-weight: ;">{{gross}}</span><span style="font-size:45px;"> Kg Date : {{grossDate}}</span> <span style="font-size:45px;"> Time : {{grossTime}}</span>
+<span style="font-size:45px;">Tare :</span> <span style="font-size:55px; font-weight: ;">{{tare}}</span><span style="font-size:45px;"> Kg Date : {{tareDate}}</span> <span style="font-size:45px;">Time : {{tareTime}}</span>
+<span style="font-size:45px;">Net :</span> <span style="font-size:55px; font-weight: ;">{{net}}</span> <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
-
                                          <span style="font-size:45px;">Thanks for your visit</span>
   </pre>
 </div>
@@ -424,15 +381,12 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
             return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
         }
-
         const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
         const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
         const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
-
         const USERNAME = "FxMiNds";
         const PASSWORD = "Sk@#9136332836@";
         let isLoggedIn = false;
-
         /* DOM refs */
         const createBtn = document.getElementById('createBtn');
         const loginBtn = document.getElementById('loginBtn');
@@ -446,7 +400,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         const grossEl = document.getElementById('gross');
         const tareEl = document.getElementById('tare');
         const netEl = document.getElementById('net');
-
         const requiredMap = [
             { id: 'firmName', err: 'firmNameErr' },
             { id: 'firmAddress', err: 'firmAddressErr' },
@@ -461,7 +414,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             { id: 'tareDate', err: 'tareDateErr' },
             { id: 'net', err: 'netErr' }
         ];
-
         /* login/logout */
         loginBtn.addEventListener('click', () => {
             const u = document.getElementById('username').value;
@@ -478,32 +430,42 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 setTimeout(() => loginErr.style.display = 'none', 2000);
             }
         });
-
         logoutBtn.addEventListener('click', () => {
             isLoggedIn = false;
             loginBox.style.display = 'block';
             formCard.style.display = 'none';
             dashboardCard.style.display = 'none';
         });
-
+        /* helper to parse weight values */
+        function parseWeight(v) {
+            return Number((v || '').replace(/\s*Kg\s*/i, '')) || 0;
+        }
         /* recompute gross */
         function recomputeGross() {
-            const tare = Number(tareEl ? tareEl.value : 0) || 0;
-            const net = Number(netEl ? netEl.value : 0) || 0;
+            const tare = parseWeight(tareEl ? tareEl.value : 0);
+            const net = parseWeight(netEl ? netEl.value : 0);
             const gross = tare + net;
             if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
         }
-
         if (tareEl) tareEl.addEventListener('input', recomputeGross);
         if (netEl) netEl.addEventListener('input', recomputeGross);
         window.addEventListener('load', recomputeGross);
-
         function getVal(id) {
             const el = document.getElementById(id);
             if (!el) return '';
             return el.value;
         }
-
+        /* HTML escape helper */
+        function esc(str) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return String(str).replace(/[&<>"']/g, m => map[m]);
+        }
         /* createPdfBlob with 10in x 4in output */
         async function createPdfBlob(data){
   // escape helper (same behavior as before)
@@ -515,12 +477,10 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     // agar empty ya zero hai
     if (core !== '' && Number(core) === 0) {
       // special slashed zero character — looks like 0 with slash INSIDE
-      return s.replace(/0/g, ‘0’); // Unicode U+2300 diameter symbol (inside slash)
+      return s.replace(/0/g, 'Ø'); // Using Ø as slashed zero (U+00D8)
     }
     return s;
   }
-
-
     const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
     '{{firmAddress}}': esc(data.firmAddress || ''),
@@ -529,14 +489,14 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
     '{{vehicleType}}': esc(data.vehicleType || ''),
     '{{partyName}}': esc(data.partyName || ''),
-    '{{address}}': esc(prettyZero(data.address || ‘’)),
+    '{{address}}': esc(prettyZero(data.address || '')),
     '{{item}}': esc(prettyZero(data.item || '')),
     '{{gross}}': esc(prettyZero(String(data.gross || '').replace(/\s*Kg$/i,''))),
-    '{{grossDate}}': esc(prettyZero(data.grossDate || ‘’)),
-    '{{grossTime}}': esc(prettyZero(data.grossTime || ‘’)),
+    '{{grossDate}}': esc(prettyZero(data.grossDate || '')),
+    '{{grossTime}}': esc(prettyZero(data.grossTime || '')),
     '{{tare}}': esc(prettyZero(String(data.tare || '').replace(/\s*Kg$/i,''))),
-    '{{tareDate}}': esc(prettyZero(data.tareDate || ‘’)),
-    '{{tareTime}}': esc(prettyZero(data.tareTime || ‘’)),
+    '{{tareDate}}': esc(prettyZero(data.tareDate || '')),
+    '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
     '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
     '{{amount}}': esc(prettyZero(data.amount || '')),
     '{{charges}}': esc(prettyZero(data.charges || '')),
@@ -545,50 +505,37 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
   // render template (unchanged)
   let rendered = TEMPLATE_HTML;
   Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-
   document.getElementById('slipContent').innerHTML = rendered;
   slipOutput.style.display = 'block';
-
   // Ensure slipInner has the desired physical width (10in) but allow height to size automatically
   const slipInner = document.getElementById('slipInner');
-  slipInner.style.width = '20in';
-  slipInner.style.height = '10in';           // let content determine height
+  slipInner.style.width = '10in';
+  slipInner.style.height = 'auto'; // let content determine height
   slipInner.style.background = '#fff';
   slipInner.style.boxSizing = 'border-box';
   slipInner.style.padding = '12px';
-
   // Render to canvas with a scale factor for crispness
   const scaleFactor = 2;
   const canvas = await html2canvas(slipInner, { scale: scaleFactor, useCORS:true, allowTaint:false, backgroundColor: null });
-
   // Convert canvas to image
   const imgData = canvas.toDataURL('image/png');
-
   // Compute PDF physical size based on canvas aspect ratio so nothing is cropped
   // Desired PDF width in mm (10 in)
   const widthMM = 10 * 25.4; // 254 mm
-
   // canvas.width/height are in pixels at the chosen scale
   const canvasWidthPx = canvas.width;
   const canvasHeightPx = canvas.height;
-
   // Compute height in mm preserving aspect ratio
   const heightMM = (canvasHeightPx / canvasWidthPx) * widthMM;
-
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit:'mm', format:[widthMM, heightMM], orientation:'landscape' });
-
   // Add the image to fill the page exactly
   pdf.addImage(imgData, 'PNG', 0, 0, widthMM, heightMM);
-
   // hide preview
   slipOutput.style.display = 'none';
-
   // return blob as before
   return pdf.output('blob');
 }
-
-
         /* validation + creation flow */
         function clearValidation() {
             requiredMap.forEach(item => {
@@ -600,7 +547,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             serverError.style.display = 'none';
             serverError.textContent = '';
         }
-
         function validateAll() {
             clearValidation();
             let ok = true;
@@ -613,8 +559,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                     continue;
                 }
                 const val = String(el.value || '').trim();
-                if (item.id === 'gross') {
-                    if (!val || !val.match(/[0-9]/)) {
+                if (item.id === 'gross' || item.id === 'tare' || item.id === 'net') {
+                    const num = parseWeight(val);
+                    if (!val || num === 0) {
                         ok = false;
                         el.classList.add('err');
                         if (errNode) errNode.style.display = 'block';
@@ -629,7 +576,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             }
             return ok;
         }
-
         createBtn.addEventListener('click', async () => {
             serverError.style.display = 'none';
             serverError.textContent = '';
@@ -696,10 +642,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 createBtn.textContent = 'Create Slip';
             }
         });
-
         function collectForm() {
-            const tareNum = Number(getVal('tare')) || 0;
-            const netNum = Number(getVal('net')) || 0;
+            const tareNum = parseWeight(getVal('tare'));
+            const netNum = parseWeight(getVal('net'));
             const grossNum = tareNum + netNum;
             return {
                 firmName: getVal('firmName'),
@@ -709,7 +654,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 vehicleNo: getVal('vehicleNo'),
                 vehicleType: getVal('vehicleType'),
                 partyName: getVal('partyName'),
-                address: getVal('address'),
+                address: getVal('partyName'), // Assuming address is party name, since no separate input
                 item: getVal('item'),
                 gross: `${Number(grossNum).toFixed(0)} Kg`,
                 grossDate: getVal('grossDate'),
@@ -724,16 +669,14 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 savedAt: new Date().toISOString()
             };
         }
-
         function clearForm() {
-            const ids = ['firmName', 'firmAddress', 'rstNo', 'vehicleNo', 'vehicleType', 'partyName', 'address', 'item', 'gross', 'grossDate', 'grossTime', 'tare', 'tareDate', 'tareTime', 'net', 'charges', 'phone'];
+            const ids = ['firmName', 'firmAddress', 'rstNo', 'vehicleNo', 'vehicleType', 'partyName', 'item', 'gross', 'grossDate', 'grossTime', 'tare', 'tareDate', 'tareTime', 'net', 'charges', 'phone'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
             clearValidation();
         }
-
         /* refreshList/renderSlipsTable unchanged */
         async function refreshList() {
             try {
@@ -758,7 +701,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 serverError.textContent = 'List load error: ' + (err.message || err);
             }
         }
-
         function renderSlipsTable(slips) {
             recordsBody.innerHTML = '';
             let totalAmt = 0;
@@ -789,7 +731,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             });
             totalAmountEl.textContent = totalAmt.toFixed(2);
             window._slips = slips;
-
             recordsBody.querySelectorAll('button[data-action="download"]').forEach(b => {
                 b.onclick = (e) => {
                     const id = Number(e.currentTarget.dataset.id);
@@ -799,7 +740,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                     }
                 };
             });
-
             (window._slips || []).forEach(s => {
                 const btn = document.getElementById(`amt_btn_${s.id}`);
                 if (btn) {
@@ -832,17 +772,15 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 }
             });
         }
-
         document.getElementById('applyFilter').addEventListener('click', () => refreshList());
         document.getElementById('closePreviewBtn').addEventListener('click', () => {
             const slipOutput = document.getElementById('slipOutput');
             slipOutput.style.display = 'none';
         });
-
+        const slipOutput = document.getElementById('slipOutput');
         window.addEventListener('load', () => {
             formCard.style.display = 'none';
             dashboardCard.style.display = 'none';
-            const slipOutput = document.getElementById('slipOutput');
             slipOutput.style.display = 'none';
             recomputeGross();
         });
