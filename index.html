@@ -197,14 +197,14 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -223,21 +223,16 @@ const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn = false;
-    // ---- Sequential 5-digit serial helper (persisted) ----
+// ---- Sequential 5-digit serial helper (persisted) ----
 function getNextSerialNumber() {
-  // stored as integer in localStorage under key 'slip_serial_counter'
   const key = 'slip_serial_counter';
   let n = Number(localStorage.getItem(key) || 0);
   n = n + 1;
   localStorage.setItem(key, String(n));
-  return n; // numeric counter (1,2,3...)
+  return n;
 }
-function formatSerial5(n) {
-  // return zero-padded 5-digit string
-  return String(n).padStart(5, '0');
-}
+function formatSerial5(n) { return String(n).padStart(5, '0'); }
 // --------------------------------------------------------
-
 
 /* DOM refs */
 const createBtn = document.getElementById('createBtn');
@@ -391,30 +386,26 @@ document.getElementById('createBtn').addEventListener('click', async ()=>{
     showPreviewWithScaling();
 
     // add a quick client-side saved record (so Saved Slips shows immediately)
-    // Use sequential serial number (persisted)
-const now = new Date();
-const seq = getNextSerialNumber();          // 1,2,3...
-const clientId = seq;                       // use numeric seq as id
-const displaySerial = formatSerial5(seq);  // "00001"
+    const now = new Date();
+    const seq = getNextSerialNumber();          // 1,2,3...
+    const clientId = seq;                       // use numeric seq as id
+    const displaySerial = formatSerial5(seq);  // "00001"
 
-// push into client-side list and show immediately
-window._slips = window._slips || [];
-window._slips.unshift({
-  id: clientId,
-  serial: displaySerial,        // human-readable 5-digit serial
-  createdAt: now.toISOString(),
-  vehicleNo: rec.vehicleNo || '',
-  amount: rec.amount || ''
-});
-renderSlipsTable(window._slips);
-
+    window._slips = window._slips || [];
+    window._slips.unshift({
+      id: clientId,
+      serial: displaySerial,
+      createdAt: now.toISOString(),
+      vehicleNo: rec.vehicleNo || '',
+      amount: rec.amount || ''
+    });
+    renderSlipsTable(window._slips);
 
     // server save attempt (non-blocking)
     (async ()=>{
       try{
         const payload = { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), amount: rec.amount || '', meta: rec };
         await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-        // best-effort: we'll refresh list next time or on load
       }catch(e){}
     })();
 
@@ -426,11 +417,9 @@ renderSlipsTable(window._slips);
 
 /* Print behavior: temporarily remove scale transform so actual size prints */
 printBtn.addEventListener('click', ()=>{
-  // Remove scaling for print
   const oldTransform = slipInner.style.transform;
   const oldWrapperWidth = slipOutput.style.width;
   const oldWrapperHeight = slipOutput.style.height;
-  // set to physical sizes
   slipInner.style.transform = 'none';
   slipOutput.style.width = '10in';
   slipOutput.style.height = '5in';
@@ -438,10 +427,8 @@ printBtn.addEventListener('click', ()=>{
   slipOutput.style.top = '0';
   slipOutput.style.transform = 'none';
 
-  // print
   window.print();
 
-  // restore preview scaling after a short delay (after print dialog)
   setTimeout(()=>{
     slipInner.style.transform = oldTransform || '';
     slipOutput.style.width = oldWrapperWidth || '';
@@ -484,25 +471,53 @@ async function refreshList(){
 function renderSlipsTable(slips){
   recordsBody.innerHTML = '';
   let totalAmt = 0;
+  // ensure we have an array
+  slips = Array.isArray(slips) ? slips.slice() : [];
   slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
+
   slips.forEach(s=>{
     const displaySr = s.serial ? s.serial : String(Number(s.id||0)).padStart(13,'0');
-tr.innerHTML = `<td style="width:120px">${displaySr}</td>
-  <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
-  <td style="width:140px">${s.vehicleNo||'-'}</td>
-  ...
-`;
+    const tr = document.createElement('tr');
+
+    const amountText = (s.amount !== undefined && s.amount !== null && s.amount !== '') ? `₹ ${Number(s.amount).toFixed(2)}` :
+      `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+       <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`;
+
+    tr.innerHTML = `
+      <td style="width:120px">${displaySr}</td>
+      <td style="width:120px">${ s.createdAt ? (new Date(s.createdAt)).toLocaleString() : '-' }</td>
+      <td style="width:140px">${s.vehicleNo || '-'}</td>
+      <td style="width:200px">${ s.filename ? `<a href="${s.filepath}" target="_blank">View</a>` : '-' }</td>
+      <td style="width:150px" id="amountCell_${s.id}">${ amountText }</td>
+      <td style="width:160px"><button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button></td>
+    `;
+    recordsBody.appendChild(tr);
+
+    totalAmt += Number(s.amount || 0);
+  });
 
   totalAmountEl.textContent = totalAmt.toFixed(2);
   window._slips = slips;
 
+  // wire download buttons (if any)
   recordsBody.querySelectorAll('button[data-action="download"]').forEach(b=>{
     b.onclick = (e)=>{ const id = Number(e.currentTarget.dataset.id); const row = (window._slips||[]).find(x=>x.id===id); if(row && row.filepath) window.open(row.filepath,'_blank'); else alert('No file found for this record.'); };
   });
 
+  // wire amount-save buttons
   (window._slips||[]).forEach(s=>{
     const btn = document.getElementById(`amt_btn_${s.id}`);
-    if(btn) btn.addEventListener('click', async ev=>{ const id = Number(ev.currentTarget.dataset.id); const input = document.getElementById(`amt_in_${id}`); const val = input.value; if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; } try{ const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) }); const j = await resp.json(); if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).'); }catch(err){ console.error(err); alert('Error saving amount.'); } });
+    if(btn) btn.addEventListener('click', async ev=>{
+      const id = Number(ev.currentTarget.dataset.id);
+      const input = document.getElementById(`amt_in_${id}`);
+      const val = input ? input.value : '';
+      if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; }
+      try{
+        const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) });
+        const j = await resp.json();
+        if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).');
+      }catch(err){ console.error(err); alert('Error saving amount.'); }
+    });
   });
 }
 
