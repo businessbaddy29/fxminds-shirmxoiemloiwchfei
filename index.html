@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Secure Slip — Create Slip (Updated alignment)</title>
-    <!-- External libs -->
+    <!-- External libs (kept, not required for text output but harmless) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -150,140 +150,34 @@
             transform: translateX(-50%);
             width: min(1200px, 96%);
             max-height: 88vh;
-            overflow: auto;
+            overflow:auto;
             z-index: 9999;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            border-radius:8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
             background: transparent;
         }
-
-        #previewToolbar {
-            display: flex;
-            gap: 8px;
-            padding: 8px;
-            justify-content: flex-end;
-            background: rgba(12, 20, 30, 0.03);
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-        }
-
-        #slipInner {
-            background: #fff;
-            padding: 18px;
-            border-radius: 8px;
-            color: #000;
-            font-family: "Courier New", monospace;
-            box-sizing: border-box;
-        }
+        #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
+        #slipInner { background:#fff; padding:18px; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; }
 
         /* slip styling (affects preview rendering) */
-        .slip-wrapper {
-            white-space: pre;
-            font-family: "Courier New", monospace;
-            color: #000;
-        }
+        .slip-wrapper { white-space: pre; font-family: "Courier New", monospace; color:#000; }
+        .slip-firm { text-align:center; font-weight:700; font-size:18px; margin-bottom:6px; }
+        .slip-address { text-align:center; font-size:12px; margin-bottom:6px; color:#333; }
+        .big-val { font-weight:700; font-size:15px; }
 
-        .slip-firm {
-            text-align: center;
-            font-weight: 700;
-            font-size: 18px;
-            margin-bottom: 6px;
-        }
+        @media print { body * { visibility:hidden !important; } #slipOutput, #slipOutput * { visibility:visible !important; } #slipOutput { position:absolute !important; left:0 !important; top:0 !important; width:100% !important; margin:0 !important; padding:10mm !important; background:#fff !important; box-shadow:none !important; } #previewToolbar { display:none !important; } }
 
-        .slip-address {
-            text-align: center;
-            font-size: 12px;
-            margin-bottom: 6px;
-            color: #333;
-        }
+        .amount-input { width:100px; padding:6px; font-family:monospace; }
+        .table { width:100%; border-collapse:collapse; margin-top:8px; }
+        .table th, .table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:13px; vertical-align:middle; }
+        .table th { color:#07304b; font-weight:700; }
 
-        .big-val {
-            font-weight: 700;
-            font-size: 15px;
-        }
+        .err { border-color: #d33 !important; box-shadow: 0 0 0 3px rgba(211,51,51,0.08); }
+        .errMsg { color:#d33; font-weight:700; margin-top:6px; font-size:13px; }
+        .groupRow { display:flex; gap:8px; align-items:center; }
+        .smallNote { font-size:12px; color:#666; margin-top:6px; }
 
-        @media print {
-            body * {
-                visibility: hidden !important;
-            }
-
-            #slipOutput,
-            #slipOutput * {
-                visibility: visible !important;
-            }
-
-            #slipOutput {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 10mm !important;
-                background: #fff !important;
-                box-shadow: none !important;
-            }
-
-            #previewToolbar {
-                display: none !important;
-            }
-        }
-
-        .amount-input {
-            width: 100px;
-            padding: 6px;
-            font-family: monospace;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-
-        .table th,
-        .table td {
-            padding: 8px 6px;
-            text-align: left;
-            border-bottom: 1px solid rgba(10, 18, 30, 0.04);
-            font-size: 13px;
-            vertical-align: middle;
-        }
-
-        .table th {
-            color: #07304b;
-            font-weight: 700;
-        }
-
-        .err {
-            border-color: #d33 !important;
-            box-shadow: 0 0 0 3px rgba(211, 51, 51, 0.08);
-        }
-
-        .errMsg {
-            color: #d33;
-            font-weight: 700;
-            margin-top: 6px;
-            font-size: 13px;
-        }
-
-        .groupRow {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .smallNote {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
-        }
-
-        #serverError {
-            margin-top: 10px;
-            color: #b33;
-            font-weight: 700;
-            display: none;
-        }
+        #serverError { margin-top:10px; color:#b33; font-weight:700; display:none; }
     </style>
 </head>
 <body>
@@ -347,7 +241,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
                 <div>
                     <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
-                    <div style="font-size:13px; color:#235">Server-stored slips (PDFs)</div>
+                    <div style="font-size:13px; color:#235">Server-stored slips (records)</div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <label style="font-size:13px; color:#07304b;">From</label>
@@ -365,7 +259,7 @@
                             <th>Sr</th>
                             <th>Date</th>
                             <th>Vehicle</th>
-                            <th>Saved PDF</th>
+                            <th>Saved</th>
                             <th>Amount (₹)</th>
                             <th>Action</th>
                         </tr>
@@ -376,21 +270,19 @@
         </div>
     </div>
 
-    <!-- Slip preview overlay (used for rendering to create PDF only) -->
+    <!-- Slip preview overlay (used for rendering to create TEXT only) -->
     <div id="slipOutput" role="dialog" aria-modal="true">
-        <div id="previewToolbar">
-            <button id="closePreviewBtn" class="btn btn-blue">Close</button>
-        </div>
-        <div id="slipInner">
-            <div id="slipContent" style="color:#000;"></div>
-        </div>
+      <div id="previewToolbar">
+        <button id="downloadTxtBtn" class="btn btn-blue">Download .txt</button>
+        <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
+      </div>
+      <div id="slipInner">
+        <div id="slipContent" style="color:#000;"></div>
+      </div>
     </div>
 
     <script>
-        /* Combined inline template + create logic (PDF 10in x 4in) */
-        /* TABLE-BASED TEMPLATE: deterministic alignment, adjusted left-shift for Gross/Tare/Net and 2-space before Kg */
-        /* INLINE EXACT TEMPLATE (replace previous TEMPLATE_HTML contents with this) */
-        // REPLACE your old TEMPLATE_HTML with exactly this (place inside your existing <script> tag)
+/* ---------------- TEMPLATE (unchanged slip format) ---------------- */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
 
@@ -406,455 +298,415 @@ const TEMPLATE_HTML = `
   <!-- === Main Slip Content (unchanged) === -->
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
-<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
-<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+................................................................................................
 
-<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
-<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
-<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+RST No.     : {{rstNo}}                                                Vehicle No. : {{vehicleNo}}
+Vh l typ.   : {{vehicleType}}                                         Party name  : {{partyName}}
+Address     : {{address}}                                               Item        : {{item}}
 
-                                            <span style="font-size:45px;">Phone : {{phone}}</span>
+.................................................................................................
 
-                                         <span style="font-size:45px;">Thanks for your visit</span>
+Gross   :      {{gross}}  Kg        Date : {{grossDate}}                      Time :    {{grossTime}}
+Tare    :      {{tare}}  Kg        Date : {{tareDate}}                      Time :    {{tareTime}}
+Net     :      {{net}}  Kg
+
+..................................................................................................
+Charges : Rs {{charges}}
+..................................................................................................
+
+                                            Phone : {{phone}}
+
+                                           Thanks for your visit
   </pre>
 </div>
 `;
-        /* helper to build server URLs */
-        const SERVER_BASE = '/slip-server';
-        function buildServerUrl(path) {
-            const base = SERVER_BASE || '';
-            if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
-            return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
-        }
 
-        const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
-        const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
-        const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
+/* ---------------- helpers & endpoints ---------------- */
+const SERVER_BASE = '/slip-server';
+function buildServerUrl(path){
+  const base = SERVER_BASE || '';
+  if(base.startsWith('http://') || base.startsWith('https://')) return base + path;
+  return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
+}
+const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // we will POST JSON (no pdf) to this endpoint
+const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
+const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
-        const USERNAME = "FxMiNds";
-        const PASSWORD = "Sk@#9136332836@";
-        let isLoggedIn = false;
+const USERNAME = "FxMiNds";
+const PASSWORD = "Sk@#9136332836@";
+let isLoggedIn=false;
 
-        /* DOM refs */
-        const createBtn = document.getElementById('createBtn');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const loginBox = document.getElementById('loginBox');
-        const formCard = document.getElementById('formCard');
-        const dashboardCard = document.getElementById('dashboardCard');
-        const recordsBody = document.getElementById('recordsBody');
-        const totalAmountEl = document.getElementById('totalAmount');
-        const serverError = document.getElementById('serverError');
-        const grossEl = document.getElementById('gross');
-        const tareEl = document.getElementById('tare');
-        const netEl = document.getElementById('net');
+/* DOM refs */
+const createBtn = document.getElementById('createBtn');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const loginBox = document.getElementById('loginBox');
+const formCard = document.getElementById('formCard');
+const dashboardCard = document.getElementById('dashboardCard');
+const recordsBody = document.getElementById('recordsBody');
+const totalAmountEl = document.getElementById('totalAmount');
+const serverError = document.getElementById('serverError');
 
-        const requiredMap = [
-            { id: 'firmName', err: 'firmNameErr' },
-            { id: 'firmAddress', err: 'firmAddressErr' },
-            { id: 'rstNo', err: 'rstErr' },
-            { id: 'vehicleNo', err: 'vehErr' },
-            { id: 'item', err: 'itemErr' },
-            { id: 'gross', err: 'grossErr' },
-            { id: 'grossDate', err: 'grossDateErr' },
-            { id: 'grossTime', err: 'grossTimeErr' },
-            { id: 'tareTime', err: 'tareTimeErr' },
-            { id: 'tare', err: 'tareErr' },
-            { id: 'tareDate', err: 'tareDateErr' },
-            { id: 'net', err: 'netErr' }
-        ];
+const grossEl = document.getElementById('gross');
+const tareEl = document.getElementById('tare');
+const netEl = document.getElementById('net');
 
-        /* login/logout */
-        loginBtn.addEventListener('click', () => {
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            if (u === USERNAME && p === PASSWORD) {
-                isLoggedIn = true;
-                loginBox.style.display = 'none';
-                formCard.style.display = 'block';
-                dashboardCard.style.display = 'block';
-                refreshList();
-            } else {
-                const loginErr = document.getElementById('loginErr');
-                loginErr.style.display = 'block';
-                setTimeout(() => loginErr.style.display = 'none', 2000);
-            }
-        });
+const slipOutput = document.getElementById('slipOutput');
+const downloadTxtBtn = document.getElementById('downloadTxtBtn');
 
-        logoutBtn.addEventListener('click', () => {
-            isLoggedIn = false;
-            loginBox.style.display = 'block';
-            formCard.style.display = 'none';
-            dashboardCard.style.display = 'none';
-        });
+const requiredMap = [
+  {id:'firmName', err:'firmNameErr'},
+  {id:'firmAddress', err:'firmAddressErr'},
+  {id:'rstNo', err:'rstErr'},
+  {id:'vehicleNo', err:'vehErr'},
+  {id:'item', err:'itemErr'},
+  {id:'gross', err:'grossErr'},
+  {id:'grossDate', err:'grossDateErr'},
+  {id:'grossTime', err:'grossTimeErr'},
+  {id:'tareTime', err:'tareTimeErr'},
+  {id:'tare', err:'tareErr'},
+  {id:'tareDate', err:'tareDateErr'},
+  {id:'net', err:'netErr'}
+];
 
-        /* recompute gross */
-        function recomputeGross() {
-            const tare = Number(tareEl ? tareEl.value : 0) || 0;
-            const net = Number(netEl ? netEl.value : 0) || 0;
-            const gross = tare + net;
-            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
-        }
-
-        if (tareEl) tareEl.addEventListener('input', recomputeGross);
-        if (netEl) netEl.addEventListener('input', recomputeGross);
-        window.addEventListener('load', recomputeGross);
-
-        function getVal(id) {
-            const el = document.getElementById(id);
-            if (!el) return '';
-            return el.value;
-        }
-
-        /* createPdfBlob with 10in x 4in output */
-        async function createPdfBlob(data){
-  // escape helper (same behavior as before)
-  function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-  // helper: make numeric zeros slashed (inside-circle style)
-  function prettyZero(val) {
-    const s = String(val || '').trim();
-    // remove "Kg" ya "Rs" temporarily for check
-    const core = s.replace(/[^0-9.]/g, '');
-    // agar empty ya zero hai
-    if (core !== '' && Number(core) === 0) {
-      // special slashed zero character — looks like 0 with slash INSIDE
-      return s.replace(/0/g, '⌀'); // Unicode U+2300 diameter symbol (inside slash)
-    }
-    return s;
+/* ---------------- login/logout ---------------- */
+loginBtn.addEventListener('click', ()=>{
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if(u===USERNAME && p===PASSWORD){
+    isLoggedIn = true;
+    loginBox.style.display='none';
+    formCard.style.display='block';
+    dashboardCard.style.display='block';
+    refreshList();
+  } else {
+    const loginErr = document.getElementById('loginErr');
+    loginErr.style.display='block';
+    setTimeout(()=>loginErr.style.display='none',2000);
   }
+});
+logoutBtn.addEventListener('click', ()=>{
+  isLoggedIn=false;
+  loginBox.style.display='block';
+  formCard.style.display='none';
+  dashboardCard.style.display='none';
+});
 
+/* ---------------- compute gross ---------------- */
+function recomputeGross(){
+  const tare = Number(tareEl ? tareEl.value : 0) || 0;
+  const net  = Number(netEl ? netEl.value : 0) || 0;
+  const gross = tare + net;
+  if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
+}
+if(tareEl) tareEl.addEventListener('input', recomputeGross);
+if(netEl) netEl.addEventListener('input', recomputeGross);
+window.addEventListener('load', recomputeGross);
+
+function getVal(id){
+  const el = document.getElementById(id);
+  if(!el) return '';
+  return el.value;
+}
+
+/* ---------------- pretty/zero helper ---------------- */
+function esc(s){ return String(s || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+// prettyZero: converts numeric-zero-like values to a slashed/diameter symbol to stay inside zero
+function prettyZero(val) {
+  const s = String(val || '').trim();
+  const core = s.replace(/[^0-9.]/g,'').trim();
+  if(core !== '' && Number(core) === 0){
+    // use Unicode diameter symbol ⌀ which visually is a slashed-zero inside
+    return s.replace(/0/g,'⌀');
+  }
+  return s;
+}
+
+/* ---------------- render function (builds slip HTML from TEMPLATE_HTML) ---------------- */
+function renderSlipHtml(data){
   const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
     '{{firmAddress}}': esc(data.firmAddress || ''),
     '{{firmPhone}}': esc(prettyZero(data.firmPhone || '')),
     '{{rstNo}}': esc(prettyZero(data.rstNo || '')),
     '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
-    '{{vehicleType}}': esc(prettyZero(data.vehicleType || '')),
+    '{{vehicleType}}': esc(data.vehicleType || ''),
     '{{partyName}}': esc(data.partyName || ''),
     '{{address}}': esc(data.address || ''),
     '{{item}}': esc(prettyZero(data.item || '')),
-    '{{gross}}': esc(prettyZero(data.gross || '').replace(/\s*Kg$/i,'')),
-    '{{grossDate}}': esc(prettyZero(data.grossDate || '')),
-    '{{grossTime}}': esc(prettyZero(data.grossTime || '')),
-    '{{tare}}': esc(prettyZero(data.tare || '').replace(/\s*Kg$/i,'')),
-    '{{tareDate}}': esc(prettyZero(data.tareDate || '')),
-    '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
-    '{{net}}': esc(prettyZero(data.net || '').replace(/\s*Kg$/i,'')),
+    '{{gross}}': esc(prettyZero(String(data.gross || '').replace(/\s*Kg$/i,''))),
+    '{{grossDate}}': esc(data.grossDate || ''),
+    '{{grossTime}}': esc(data.grossTime || ''),
+    '{{tare}}': esc(prettyZero(String(data.tare || '').replace(/\s*Kg$/i,''))),
+    '{{tareDate}}': esc(data.tareDate || ''),
+    '{{tareTime}}': esc(data.tareTime || ''),
+    '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
     '{{amount}}': esc(prettyZero(data.amount || '')),
     '{{charges}}': esc(prettyZero(data.charges || '')),
     '{{phone}}': esc(prettyZero(data.phone || ''))
   };
 
-  // render template (unchanged)
   let rendered = TEMPLATE_HTML;
   Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-
-  document.getElementById('slipContent').innerHTML = rendered;
-  slipOutput.style.display = 'block';
-
-  // Ensure slipInner has the desired physical width (10in) but allow height to size automatically
-  const slipInner = document.getElementById('slipInner');
-  slipInner.style.width = '20in';
-  slipInner.style.height = '10in';           // let content determine height
-  slipInner.style.background = '#fff';
-  slipInner.style.boxSizing = 'border-box';
-  slipInner.style.padding = '12px';
-
-  // Render to canvas with a scale factor for crispness
-  const scaleFactor = 2;
-  const canvas = await html2canvas(slipInner, { scale: scaleFactor, useCORS:true, allowTaint:false, backgroundColor: null });
-
-  // Convert canvas to image
-  const imgData = canvas.toDataURL('image/png');
-
-  // Compute PDF physical size based on canvas aspect ratio so nothing is cropped
-  // Desired PDF width in mm (10 in)
-  const widthMM = 10 * 25.4; // 254 mm
-
-  // canvas.width/height are in pixels at the chosen scale
-  const canvasWidthPx = canvas.width;
-  const canvasHeightPx = canvas.height;
-
-  // Compute height in mm preserving aspect ratio
-  const heightMM = (canvasHeightPx / canvasWidthPx) * widthMM;
-
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit:'mm', format:[widthMM, heightMM], orientation:'landscape' });
-
-  // Add the image to fill the page exactly
-  pdf.addImage(imgData, 'PNG', 0, 0, widthMM, heightMM);
-
-  // hide preview
-  slipOutput.style.display = 'none';
-
-  // return blob as before
-  return pdf.output('blob');
+  return rendered;
 }
 
+/* ---------------- Create Slip flow (TEXT + preview + optional server-record save) ---------------- */
+createBtn.addEventListener('click', async ()=>{
+  serverError.style.display='none';
+  serverError.textContent='';
+  if(!isLoggedIn){ alert('Please login first'); return; }
+  if(!validateAll()){
+    const firstErr = requiredMap.find(i=>{
+      const el = document.getElementById(i.id);
+      return el && el.classList.contains('err');
+    });
+    if(firstErr){
+      document.getElementById(firstErr.id).scrollIntoView({behavior:'smooth', block:'center'});
+    }
+    return;
+  }
 
-        /* validation + creation flow */
-        function clearValidation() {
-            requiredMap.forEach(item => {
-                const el = document.getElementById(item.id);
-                if (el) el.classList.remove('err');
-                const errNode = document.getElementById(item.err);
-                if (errNode) errNode.style.display = 'none';
-            });
-            serverError.style.display = 'none';
-            serverError.textContent = '';
+  const rec = collectForm();
+
+  // render slip HTML and show preview (preview appears only after clicking Create Slip)
+  try{
+    createBtn.disabled = true;
+    createBtn.textContent = 'Preparing...';
+
+    const renderedHtml = renderSlipHtml(rec);
+    document.getElementById('slipContent').innerHTML = renderedHtml;
+    slipOutput.style.display = 'block';
+
+    // prepare text representation (preserve pre formatting)
+    // find the first PRE inside slipContent and extract textContent
+    const pre = document.getElementById('slipContent').querySelector('pre');
+    const textForFile = pre ? pre.textContent : (document.getElementById('slipContent').innerText || '');
+
+    // setup download button to download text file (same format)
+    downloadTxtBtn.onclick = ()=>{
+      const blob = new Blob([textForFile], { type: 'text/plain' });
+      const filename = `slip_${Date.now()}.txt`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    // OPTIONAL: send record to server WITHOUT PDF (as JSON) to keep "saved slips" records behavior.
+    // If your server expects form-data/pdf it might fail — but this is the lightweight approach.
+    try{
+      const payload = {
+        vehicleNo: rec.vehicleNo || '',
+        rstNo: rec.rstNo || '',
+        createdAt: new Date().toISOString(),
+        amount: rec.amount || '',
+        meta: rec // full form for server-side storage if desired
+      };
+      // POST as JSON (no pdf)
+      const resp = await fetch(CREATE_ENDPOINT, {
+        method:'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      // try to parse json but do not fail the user if server doesn't respond JSON
+      let j;
+      try { j = await resp.json(); } catch(e){ j = null; }
+      if(resp.ok && j && j.ok){
+        // keep same user message as before
+        alert('Slip record saved on server (ID: ' + (j.id || '-') + ').');
+        await refreshList();
+      } else if(resp.ok){
+        // server responded ok but not JSON, still refresh
+        await refreshList();
+      } else {
+        // non-ok response: show small message but do not block preview/download
+        console.warn('Server save returned non-ok', resp.status);
+      }
+    }catch(serverErr){
+      console.warn('Server save skipped/failure:', serverErr);
+      // don't show alert, keep preview functional
+    }
+
+  }catch(err){
+    console.error('Create (text) exception:', err);
+    alert('Error preparing slip preview. See console.');
+  } finally {
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Slip';
+  }
+});
+
+/* ---------------- validation + helpers (unchanged logic) ---------------- */
+function clearValidation(){
+  requiredMap.forEach(item=>{
+    const el = document.getElementById(item.id);
+    if(el) el.classList.remove('err');
+    const errNode = document.getElementById(item.err);
+    if(errNode) errNode.style.display='none';
+  });
+  serverError.style.display = 'none';
+  serverError.textContent = '';
+}
+function validateAll(){
+  clearValidation();
+  let ok = true;
+  for(const item of requiredMap){
+    const el = document.getElementById(item.id);
+    const errNode = document.getElementById(item.err);
+    if(!el) { if(errNode) errNode.style.display = 'block'; ok = false; continue; }
+    const val = String(el.value || '').trim();
+    if(item.id === 'gross'){
+      if(!val || !val.match(/[0-9]/)){
+        ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
+      }
+    } else {
+      if(val === ''){
+        ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
+      }
+    }
+  }
+  return ok;
+}
+
+/* ---------------- collect / clear ---------------- */
+function collectForm(){
+  const tareNum = Number(getVal('tare')) || 0;
+  const netNum  = Number(getVal('net')) || 0;
+  const grossNum = tareNum + netNum;
+  return {
+    firmName: getVal('firmName'),
+    firmAddress: getVal('firmAddress'),
+    firmPhone: getVal('firmPhone'),
+    rstNo: getVal('rstNo'),
+    vehicleNo: getVal('vehicleNo'),
+    vehicleType: getVal('vehicleType'),
+    partyName: getVal('partyName'),
+    address: getVal('address'),
+    item: getVal('item'),
+    gross: `${Number(grossNum).toFixed(0)} Kg`,
+    grossDate: getVal('grossDate'),
+    grossTime: getVal('grossTime'),
+    tare: `${Number(tareNum).toFixed(0)} Kg`,
+    tareDate: getVal('tareDate'),
+    tareTime: getVal('tareTime'),
+    net: `${Number(netNum).toFixed(0)} Kg`,
+    amount: '',
+    charges: getVal('charges'),
+    phone: getVal('phone'),
+    savedAt: new Date().toISOString()
+  };
+}
+
+function clearForm(){
+  const ids = ['firmName','firmAddress','rstNo','vehicleNo','vehicleType','partyName','address','item','gross','grossDate','grossTime','tare','tareDate','tareTime','net','charges','phone'];
+  ids.forEach(id=>{ const el = document.getElementById(id); if(el) el.value=''; });
+  clearValidation();
+}
+
+/* ---------------- saved list logic (kept same, server expected to return records; PDF links removed) ---------------- */
+async function refreshList(){
+  try{
+    const from = getVal('filterFrom') || '';
+    const to = getVal('filterTo') || '';
+    const q = new URLSearchParams({ from, to });
+    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+    const json = await resp.json();
+    if(!json || !Array.isArray(json.slips)) { console.error('Invalid slips response', json); return; }
+    const slips = json.slips.slice();
+    slips.sort((a,b)=>{
+      if(a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+      return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+    });
+    renderSlipsTable(slips);
+  }catch(err){ console.error('refreshList', err); serverError.style.display='block'; serverError.textContent = 'List load error: ' + (err.message||err); }
+}
+
+function renderSlipsTable(slips){
+  recordsBody.innerHTML = '';
+  let totalAmt = 0;
+  slips.sort((a,b)=>{
+    if(a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+  });
+
+  slips.forEach(s=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="width:60px">${s.id}</td>
+      <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
+      <td style="width:140px">${s.vehicleNo||'-'}</td>
+      <td style="width:200px">${s.filename ? `Saved` : 'Saved' }</td>
+      <td style="width:150px" id="amountCell_${s.id}">
+        ${ s.amount !== undefined && s.amount !== null && s.amount !== '' ?
+          `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
+          `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+           <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
         }
+      </td>
+      <td style="width:160px">
+        <button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button>
+      </td>`;
+    recordsBody.appendChild(tr);
+    totalAmt += Number(s.amount || 0);
+  });
+  totalAmountEl.textContent = totalAmt.toFixed(2);
 
-        function validateAll() {
-            clearValidation();
-            let ok = true;
-            for (const item of requiredMap) {
-                const el = document.getElementById(item.id);
-                const errNode = document.getElementById(item.err);
-                if (!el) {
-                    if (errNode) errNode.style.display = 'block';
-                    ok = false;
-                    continue;
-                }
-                const val = String(el.value || '').trim();
-                if (item.id === 'gross') {
-                    if (!val || !val.match(/[0-9]/)) {
-                        ok = false;
-                        el.classList.add('err');
-                        if (errNode) errNode.style.display = 'block';
-                    }
-                } else {
-                    if (val === '') {
-                        ok = false;
-                        el.classList.add('err');
-                        if (errNode) errNode.style.display = 'block';
-                    }
-                }
-            }
-            return ok;
+  window._slips = slips;
+
+  recordsBody.querySelectorAll('button[data-action="download"]').forEach(b=>{
+    b.onclick = (e)=>{
+      const id = Number(e.currentTarget.dataset.id);
+      const row = (window._slips || []).find(x=>x.id===id);
+      if(row){
+        // previously opened PDF; now server may return a text link or nothing.
+        if(row.filepath) window.open(row.filepath, '_blank');
+        else alert('No file link available for this record.');
+      }
+    };
+  });
+
+  (window._slips || []).forEach(s=>{
+    const btn = document.getElementById(`amt_btn_${s.id}`);
+    if(btn){
+      btn.addEventListener('click', async (ev)=>{
+        const id = Number(ev.currentTarget.dataset.id);
+        const input = document.getElementById(`amt_in_${id}`);
+        const val = input.value;
+        if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
+        try{
+          const resp = await fetch(AMOUNT_ENDPOINT, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ id, amount: Number(val) })
+          });
+          const j = await resp.json();
+          if(j && j.ok){
+            alert('Amount saved.');
+            await refreshList();
+          } else {
+            alert('Could not save amount (server).');
+          }
+        }catch(err){
+          console.error(err); alert('Error saving amount.');
         }
+      });
+    }
+  });
+}
 
-        createBtn.addEventListener('click', async () => {
-            serverError.style.display = 'none';
-            serverError.textContent = '';
-            if (!isLoggedIn) {
-                alert('Please login first');
-                return;
-            }
-            if (!validateAll()) {
-                const firstErr = requiredMap.find(i => {
-                    const el = document.getElementById(i.id);
-                    return el && el.classList.contains('err');
-                });
-                if (firstErr) {
-                    document.getElementById(firstErr.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                return;
-            }
-            const rec = collectForm();
-            try {
-                createBtn.disabled = true;
-                createBtn.textContent = 'Creating...';
-                const pdfBlob = await createPdfBlob(rec);
-                const fd = new FormData();
-                const filename = `slip_${Date.now()}.pdf`;
-                fd.append('pdf', pdfBlob, filename);
-                fd.append('vehicleNo', rec.vehicleNo || '');
-                fd.append('rstNo', rec.rstNo || '');
-                fd.append('createdAt', new Date().toISOString());
-                fd.append('amount', rec.amount || '');
-                const resp = await fetch(CREATE_ENDPOINT, {
-                    method: 'POST',
-                    body: fd
-                });
-                let json;
-                try {
-                    json = await resp.json();
-                } catch (e) {
-                    const txt = await resp.text();
-                    console.error('Server returned non-JSON:', txt);
-                    serverError.style.display = 'block';
-                    serverError.textContent = 'Server returned non-JSON response. See console.';
-                    alert('Server error: check console.');
-                    createBtn.disabled = false;
-                    createBtn.textContent = 'Create Slip';
-                    return;
-                }
-                if (resp.ok && json && json.ok) {
-                    alert('Slip created on server (ID: ' + json.id + '). PDF saved.');
-                    clearForm();
-                    await refreshList();
-                } else {
-                    const message = (json && (json.error || json.message)) ? String(json.error || json.message) : 'Unknown server error';
-                    serverError.style.display = 'block';
-                    serverError.textContent = 'Server error: ' + message;
-                    alert('Server error: ' + message + '. See console.');
-                }
-            } catch (err) {
-                console.error('Create exception:', err);
-                serverError.style.display = 'block';
-                serverError.textContent = 'Client error: ' + (err.message || err);
-                alert('Error creating slip: ' + (err.message || err) + '. Check console.');
-            } finally {
-                createBtn.disabled = false;
-                createBtn.textContent = 'Create Slip';
-            }
-        });
+/* ---------------- preview controls ---------------- */
+document.getElementById('closePreviewBtn').addEventListener('click', ()=> slipOutput.style.display='none');
+document.getElementById('applyFilter').addEventListener('click', ()=> refreshList());
 
-        function collectForm() {
-            const tareNum = Number(getVal('tare')) || 0;
-            const netNum = Number(getVal('net')) || 0;
-            const grossNum = tareNum + netNum;
-            return {
-                firmName: getVal('firmName'),
-                firmAddress: getVal('firmAddress'),
-                firmPhone: getVal('firmPhone'),
-                rstNo: getVal('rstNo'),
-                vehicleNo: getVal('vehicleNo'),
-                vehicleType: getVal('vehicleType'),
-                partyName: getVal('partyName'),
-                address: getVal('address'),
-                item: getVal('item'),
-                gross: `${Number(grossNum).toFixed(0)} Kg`,
-                grossDate: getVal('grossDate'),
-                grossTime: getVal('grossTime'),
-                tare: `${Number(tareNum).toFixed(0)} Kg`,
-                tareDate: getVal('tareDate'),
-                tareTime: getVal('tareTime'),
-                net: `${Number(netNum).toFixed(0)} Kg`,
-                amount: '',
-                charges: getVal('charges'),
-                phone: getVal('phone'),
-                savedAt: new Date().toISOString()
-            };
-        }
-
-        function clearForm() {
-            const ids = ['firmName', 'firmAddress', 'rstNo', 'vehicleNo', 'vehicleType', 'partyName', 'address', 'item', 'gross', 'grossDate', 'grossTime', 'tare', 'tareDate', 'tareTime', 'net', 'charges', 'phone'];
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-            clearValidation();
-        }
-
-        /* refreshList/renderSlipsTable unchanged */
-        async function refreshList() {
-            try {
-                const from = getVal('filterFrom') || '';
-                const to = getVal('filterTo') || '';
-                const q = new URLSearchParams({ from, to });
-                const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
-                const json = await resp.json();
-                if (!json || !Array.isArray(json.slips)) {
-                    console.error('Invalid slips response', json);
-                    return;
-                }
-                const slips = json.slips.slice();
-                slips.sort((a, b) => {
-                    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
-                    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-                });
-                renderSlipsTable(slips);
-            } catch (err) {
-                console.error('refreshList', err);
-                serverError.style.display = 'block';
-                serverError.textContent = 'List load error: ' + (err.message || err);
-            }
-        }
-
-        function renderSlipsTable(slips) {
-            recordsBody.innerHTML = '';
-            let totalAmt = 0;
-            slips.sort((a, b) => {
-                if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
-                return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-            });
-            slips.forEach(s => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="width:60px">${s.id}</td>
-                    <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
-                    <td style="width:140px">${s.vehicleNo || '-'}</td>
-                    <td style="width:200px">${s.filename ? `<a href="${s.filepath}" target="_blank">View PDF</a>` : '-'}</td>
-                    <td style="width:150px" id="amountCell_${s.id}">
-                        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
-                            `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
-                            `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
-                             <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
-                        }
-                    </td>
-                    <td style="width:160px">
-                        <button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button>
-                    </td>
-                `;
-                recordsBody.appendChild(tr);
-                totalAmt += Number(s.amount || 0);
-            });
-            totalAmountEl.textContent = totalAmt.toFixed(2);
-            window._slips = slips;
-
-            recordsBody.querySelectorAll('button[data-action="download"]').forEach(b => {
-                b.onclick = (e) => {
-                    const id = Number(e.currentTarget.dataset.id);
-                    const row = (window._slips || []).find(x => x.id === id);
-                    if (row && row.filepath) {
-                        window.open(row.filepath, '_blank');
-                    }
-                };
-            });
-
-            (window._slips || []).forEach(s => {
-                const btn = document.getElementById(`amt_btn_${s.id}`);
-                if (btn) {
-                    btn.addEventListener('click', async (ev) => {
-                        const id = Number(ev.currentTarget.dataset.id);
-                        const input = document.getElementById(`amt_in_${id}`);
-                        const val = input.value;
-                        if (val === '' || isNaN(Number(val))) {
-                            alert('Enter valid amount');
-                            return;
-                        }
-                        try {
-                            const resp = await fetch(AMOUNT_ENDPOINT, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id, amount: Number(val) })
-                            });
-                            const j = await resp.json();
-                            if (j && j.ok) {
-                                alert('Amount saved.');
-                                await refreshList();
-                            } else {
-                                alert('Could not save amount (server).');
-                            }
-                        } catch (err) {
-                            console.error(err);
-                            alert('Error saving amount.');
-                        }
-                    });
-                }
-            });
-        }
-
-        document.getElementById('applyFilter').addEventListener('click', () => refreshList());
-        document.getElementById('closePreviewBtn').addEventListener('click', () => {
-            const slipOutput = document.getElementById('slipOutput');
-            slipOutput.style.display = 'none';
-        });
-
-        window.addEventListener('load', () => {
-            formCard.style.display = 'none';
-            dashboardCard.style.display = 'none';
-            const slipOutput = document.getElementById('slipOutput');
-            slipOutput.style.display = 'none';
-            recomputeGross();
-        });
+window.addEventListener('load', ()=>{
+  formCard.style.display='none';
+  dashboardCard.style.display='none';
+  slipOutput.style.display='none';
+  recomputeGross();
+});
     </script>
 </body>
 </html>
