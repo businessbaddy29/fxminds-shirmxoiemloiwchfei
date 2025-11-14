@@ -3,19 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (FINAL - updated)</title>
+  <title>Secure Slip — Create Slip (FINAL - preview/print fix)</title>
 
-  <!-- External libs (html2canvas/jspdf kept but not used for PDF output) -->
+  <!-- External libs (kept but PDF generation removed) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
-    /* ===== layout & base ===== */
     html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433; }
     .container { max-width:1100px; margin:22px auto; padding-bottom:60px; }
     .card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); margin-bottom:18px; }
 
-    /* login & form */
     .loginBox h2{ margin:0 0 12px 0; color:#0b2330; font-size:20px; }
     .loginBox input{ width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New",monospace; }
     .loginBox button{ width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
@@ -31,7 +29,7 @@
     .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
     .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
 
-    /* slip preview overlay (centered) */
+    /* preview overlay */
     #slipOutput {
       display:none;
       position:fixed;
@@ -46,12 +44,9 @@
     #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
     #slipInner { background:#fff; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; overflow:visible; transform-origin: top left; }
 
-    /* ensure header centers despite variable length */
+    /* header centering */
     .header-wrap { width:100%; box-sizing:border-box; padding:4px 0 8px 0; display:flex; justify-content:center; align-items:flex-start; }
     .header-inner { display:inline-block; text-align:center; max-width:90%; box-sizing:border-box; word-break:break-word; white-space:normal; }
-
-    /* numeric fixed width for values so "0" doesn't overflow layout */
-    .num { display:inline-block; min-width:40px; text-align:right; font-family:"Courier New",monospace; }
 
     .table { width:100%; border-collapse:collapse; margin-top:8px; }
     .table th, .table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:13px; vertical-align:middle; }
@@ -60,7 +55,7 @@
     .err { border-color:#d33 !important; box-shadow:0 0 0 3px rgba(211,51,51,0.08); }
     .errMsg { color:#d33; font-weight:700; margin-top:6px; font-size:13px; }
 
-    /* page printing rules: fixed physical size 10in x 5in */
+    /* printing: fixed physical size 10in x 5in, no margins */
     @page { size: 10in 5in; margin: 0; }
     @media print {
       body * { visibility: hidden !important; }
@@ -172,8 +167,8 @@
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
 
-    <!-- fixed physical size inside -->
-    <div id="slipInner" style="width:10in; height:5in; padding:0; margin:0;">
+    <!-- slipInner will be sized to real content then scaled -->
+    <div id="slipInner" style="width:10in; padding:0; margin:0;">
       <div id="slipContent" style="color:#000; box-sizing:border-box; padding:6px;"></div>
     </div>
   </div>
@@ -182,27 +177,26 @@
 (function(){
   'use strict';
 
-  // Constants
+  // Config / endpoints
   const USERNAME = "FxMiNds";
   const PASSWORD = "Sk@#9136332836@";
   const SERVER_BASE = '/slip-server';
+  function buildServerUrl(path){
+    const base = SERVER_BASE || '';
+    if(base.startsWith('http://') || base.startsWith('https://')) return base + path;
+    return window.location.origin + (base.startsWith('/')?base:('/'+base)) + path;
+  }
   const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
   const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
   const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
-  function buildServerUrl(path){
-    const base = SERVER_BASE || '';
-    if(base.startsWith('http://')||base.startsWith('https://')) return base + path;
-    return window.location.origin + (base.startsWith('/')?base:('/'+base)) + path;
-  }
-
-  // Utility
+  // Helpers
   const $ = id => document.getElementById(id);
   function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
   function getVal(id){ const el = $(id); return el ? el.value : ''; }
-  function safeNumString(s){ return String(s||''); } // keep zeros unchanged
+  function safeNumString(s){ return String(s||''); }
 
-  // Serial (13-digit sequential, persisted)
+  // Serial 13-digit
   function getNextSerial13(){
     const key = 'slip_serial_counter_v1';
     let n = Number(localStorage.getItem(key) || 0);
@@ -211,10 +205,10 @@
     return n;
   }
   function formatSerial13(n){
-    return String(n).padStart(13,'0'); // 0000000000001 ...
+    return String(n).padStart(13,'0');
   }
 
-  // Template (kept same visual layout; header centered)
+  // TEMPLATE - same visual format
   const TEMPLATE_HTML = `
   <div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:6px;'>
     <div class="header-wrap">
@@ -227,411 +221,439 @@
 
     <pre style='margin:10px 0 0 0; padding:6px; white-space:pre; font-family:"Courier New",monospace; line-height:1.15; font-size:14px;'>
 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                    <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
-<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
-<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+RST No.     : {{rstNo}}                                    Vehicle No.     : {{vehicleNo}}
+Vh l typ.   : {{vehicleType}}                                      Party name      : {{partyName}}
+Address     : {{address}}                                      Item            : {{item}}
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>     <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
-<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
-<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+Gross   :      {{gross}}  Kg      Date  : {{grossDate}}     Time :    {{grossTime}}
+Tare    :      {{tare}}  Kg      Date  : {{tareDate}}       Time :    {{tareTime}}
+Net     :      {{net}}  Kg
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+Charges : Rs {{charges}}
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-                                            <span style="font-size:45px;">Phone : {{phone}}</span>
+                                            Phone : {{phone}}
 
-                                         <span style="font-size:45px;">Thanks for your visit</span>
-  </pre>
-</div>
-`;
+                                         Thanks for your visit
+    </pre>
+  </div>
+  `;
 
   // State
   let isLoggedIn = false;
-  window._slips = window._slips || []; // runtime array
+  window._slips = window._slips || [];
 
-  // DOMContentLoaded init to avoid timing errors
+  // DOMContentLoaded to attach handlers safely
   window.addEventListener('DOMContentLoaded', () => {
-    try {
-      // Element refs
-      const loginBtn = $('loginBtn');
-      const logoutBtn = $('logoutBtn');
-      const loginBox = $('loginBox');
-      const formCard = $('formCard');
-      const dashboardCard = $('dashboardCard');
-      const createBtn = $('createBtn');
-      const closePreviewBtn = $('closePreviewBtn');
-      const printBtn = $('printBtn');
-      const downloadTxtBtn = $('downloadTxtBtn');
-      const slipOutput = $('slipOutput');
-      const slipInner = $('slipInner');
-      const slipContent = $('slipContent');
+    // Refs
+    const loginBtn = $('loginBtn');
+    const logoutBtn = $('logoutBtn');
+    const loginBox = $('loginBox');
+    const formCard = $('formCard');
+    const dashboardCard = $('dashboardCard');
+    const createBtn = $('createBtn');
+    const closePreviewBtn = $('closePreviewBtn');
+    const printBtn = $('printBtn');
+    const downloadTxtBtn = $('downloadTxtBtn');
+    const slipOutput = $('slipOutput');
+    const slipInner = $('slipInner');
+    const slipContent = $('slipContent');
 
-      // Attach login
-      if(loginBtn){
-        loginBtn.addEventListener('click', ()=>{
-          const u = String(getVal('username')).trim();
-          const p = String(getVal('password')).trim();
-          console.log('[login] attempt: user=', u, ' pwdlen=', p.length);
-          if(u === USERNAME && p === PASSWORD){
-            isLoggedIn = true;
-            if(loginBox) loginBox.style.display = 'none';
-            if(formCard) formCard.style.display = 'block';
-            if(dashboardCard) dashboardCard.style.display = 'block';
-            refreshList().catch(()=>{});
-            console.log('[login] success');
-          } else {
-            console.warn('[login] invalid credentials');
-            const loginErr = $('loginErr');
-            if(loginErr){ loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); }
-          }
-        });
+    // login
+    loginBtn.addEventListener('click', ()=>{
+      const u = String(getVal('username')).trim();
+      const p = String(getVal('password')).trim();
+      if(u === USERNAME && p === PASSWORD){
+        isLoggedIn = true;
+        loginBox.style.display = 'none';
+        formCard.style.display = 'block';
+        dashboardCard.style.display = 'block';
+        refreshList().catch(()=>{});
+      } else {
+        const loginErr = $('loginErr');
+        if(loginErr){ loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); }
       }
+    });
 
-      if(logoutBtn){
-        logoutBtn.addEventListener('click', ()=>{
-          isLoggedIn = false;
-          if(loginBox) loginBox.style.display = 'block';
-          if(formCard) formCard.style.display = 'none';
-          if(dashboardCard) dashboardCard.style.display = 'none';
-        });
-      }
+    logoutBtn.addEventListener('click', ()=>{
+      isLoggedIn = false;
+      loginBox.style.display = 'block';
+      formCard.style.display = 'none';
+      dashboardCard.style.display = 'none';
+    });
 
-      // recomputeGross
-      const grossEl = $('gross'), tareEl = $('tare'), netEl = $('net');
-      function recomputeGross(){
-        const tare = Number((tareEl && tareEl.value) ? tareEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
-        const net  = Number((netEl && netEl.value) ? netEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
-        const gross = tare + net;
-        if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
-      }
-      if(tareEl) tareEl.addEventListener('input', recomputeGross);
-      if(netEl) netEl.addEventListener('input', recomputeGross);
-      recomputeGross();
+    // recompute gross
+    const grossEl = $('gross'), tareEl = $('tare'), netEl = $('net');
+    function recomputeGross(){
+      const tare = Number((tareEl && tareEl.value) ? tareEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
+      const net  = Number((netEl && netEl.value) ? netEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
+      const gross = tare + net;
+      if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
+    }
+    if(tareEl) tareEl.addEventListener('input', recomputeGross);
+    if(netEl) netEl.addEventListener('input', recomputeGross);
+    recomputeGross();
 
-      // Create slip (render preview + save client record + optional server save)
-      if(createBtn){
-        createBtn.addEventListener('click', async ()=>{
-          try {
-            if(!isLoggedIn){ alert('Please login first'); return; }
-            if(!validateAll()){ const firstErr = requiredMap.find(i=>{ const el = $(i.id); return el && el.classList.contains('err'); }); if(firstErr) $(firstErr.id).scrollIntoView({behavior:'smooth',block:'center'}); return; }
+    // CREATE: render preview, save client record, server best-effort
+    createBtn.addEventListener('click', async ()=>{
+      try {
+        if(!isLoggedIn){ alert('Please login first'); return; }
+        if(!validateAll()){
+          const firstErr = requiredMap.find(i=>{ const el = $(i.id); return el && el.classList.contains('err'); });
+          if(firstErr) $(firstErr.id).scrollIntoView({behavior:'smooth',block:'center'});
+          return;
+        }
 
-            createBtn.disabled = true;
-            createBtn.textContent = 'Preparing...';
+        createBtn.disabled = true;
+        createBtn.textContent = 'Preparing...';
 
-            const rec = collectForm();
+        const rec = collectForm();
 
-            // build rendered HTML
-            let rendered = TEMPLATE_HTML;
-            const replacements = {
-              '{{firmName}}': esc(rec.firmName || ''),
-              '{{firmAddress}}': esc(rec.firmAddress || ''),
-              '{{firmPhone}}': esc(safeNumString(rec.firmPhone||'')),
-              '{{rstNo}}': esc(safeNumString(rec.rstNo||'')),
-              '{{vehicleNo}}': esc(safeNumString(rec.vehicleNo||'')),
-              '{{vehicleType}}': esc(rec.vehicleType||''),
-              '{{partyName}}': esc(rec.partyName||''),
-              '{{address}}': esc(rec.address||''),
-              '{{item}}': esc(safeNumString(rec.item||'')),
-              '{{gross}}': esc(String(rec.gross||'').replace(/\s*Kg$/i,'')),
-              '{{grossDate}}': esc(rec.grossDate||''),
-              '{{grossTime}}': esc(rec.grossTime||''),
-              '{{tare}}': esc(String(rec.tare||'').replace(/\s*Kg$/i,'')),
-              '{{tareDate}}': esc(rec.tareDate||''),
-              '{{tareTime}}': esc(rec.tareTime||''),
-              '{{net}}': esc(String(rec.net||'').replace(/\s*Kg$/i,'')),
-              '{{charges}}': esc(safeNumString(rec.charges||'')),
-              '{{phone}}': esc(safeNumString(rec.phone||''))
-            };
-            Object.keys(replacements).forEach(k=>{ rendered = rendered.split(k).join(replacements[k]); });
+        // build rendered HTML
+        let rendered = TEMPLATE_HTML;
+        const replacements = {
+          '{{firmName}}': esc(rec.firmName || ''),
+          '{{firmAddress}}': esc(rec.firmAddress || ''),
+          '{{firmPhone}}': esc(safeNumString(rec.firmPhone||'')),
+          '{{rstNo}}': esc(safeNumString(rec.rstNo||'')),
+          '{{vehicleNo}}': esc(safeNumString(rec.vehicleNo||'')),
+          '{{vehicleType}}': esc(rec.vehicleType||''),
+          '{{partyName}}': esc(rec.partyName||''),
+          '{{address}}': esc(rec.address||''),
+          '{{item}}': esc(safeNumString(rec.item||'')),
+          '{{gross}}': esc(String(rec.gross||'').replace(/\s*Kg$/i,'')),
+          '{{grossDate}}': esc(rec.grossDate||''),
+          '{{grossTime}}': esc(rec.grossTime||''),
+          '{{tare}}': esc(String(rec.tare||'').replace(/\s*Kg$/i,'')),
+          '{{tareDate}}': esc(rec.tareDate||''),
+          '{{tareTime}}': esc(rec.tareTime||''),
+          '{{net}}': esc(String(rec.net||'').replace(/\s*Kg$/i,'')),
+          '{{charges}}': esc(safeNumString(rec.charges||'')),
+          '{{phone}}': esc(safeNumString(rec.phone||''))
+        };
+        Object.keys(replacements).forEach(k=>{ rendered = rendered.split(k).join(replacements[k]); });
 
-            slipContent.innerHTML = rendered;
+        // insert into preview container
+        slipContent.innerHTML = rendered;
 
-            // ensure physical dimensions for preview container
-            slipInner.style.width = '10in';
-            slipInner.style.height = '5in';
-            slipInner.style.padding = '0';
-            slipInner.style.margin = '0';
-            slipInner.style.boxSizing = 'border-box';
-            slipInner.style.overflow = 'hidden';
+        // ensure slipInner width = 10in (so layout matches print)
+        slipInner.style.width = '10in';
+        slipInner.style.padding = '0';
+        slipInner.style.margin = '0';
+        slipInner.style.boxSizing = 'border-box';
+        slipInner.style.overflow = 'visible';
 
-            // scale preview to fit viewport
-            showPreviewScaled();
+        // IMPORTANT: measure rendered height (unscaled) so we can compute scale to fit viewport
+        // Temporarily reset transform and position to measure actual size in px.
+        slipInner.style.transform = 'none';
+        slipOutput.style.display = 'block'; // must be visible to measure
+        slipOutput.style.left = '50%';
+        slipOutput.style.top = '6%';
+        slipOutput.style.transform = 'translateX(-50%)';
 
-            // add saved record (client-side) with 13-digit serial
-            const seq = getNextSerial13();
-            const serial = formatSerial13(seq);
-            const now = new Date();
-            const recItem = {
-              id: seq,
-              serial: serial,
-              createdAt: now.toISOString(),
-              vehicleNo: rec.vehicleNo || '',
-              amount: rec.amount || ''
-            };
-            // push at top
-            window._slips = window._slips || [];
-            window._slips.unshift(recItem);
-            renderSlipsTable(window._slips);
+        // give browser a tick to render (if needed)
+        await new Promise(res => requestAnimationFrame(res));
 
-            // server save: non-blocking simple JSON POST (no pdf)
-            (async ()=>{
-              try {
-                const payload = { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), amount: rec.amount || '', meta: rec };
-                await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-              } catch(e){ /* ignore server errors */ }
-            })();
-          } catch(err){
-            console.error('create error', err);
-            alert('Error preparing preview — check console.');
-          } finally {
-            createBtn.disabled = false;
-            createBtn.textContent = 'Create Slip';
-          }
-        });
-      }
+        // compute actual content height in px
+        const contentRect = slipInner.getBoundingClientRect();
+        const contentHeightPx = contentRect.height || (5 * 96); // fallback 5in
+        const contentWidthPx = contentRect.width || (10 * 96);
 
-      // Print button: temporarily remove scaling so print uses real size
-      if(printBtn){
-        printBtn.addEventListener('click', ()=>{
-          // store transforms
-          const oldTransform = slipInner.style.transform;
-          const oldWrapper = slipOutput.style;
-          // set to physical position
-          slipInner.style.transform = 'none';
-          slipOutput.style.left = '0';
-          slipOutput.style.top = '0';
-          slipOutput.style.transform = 'none';
-          slipOutput.style.width = '10in';
-          slipOutput.style.height = '5in';
-          // call print
-          window.print();
-          // restore scaled preview (small timeout for print dialog)
-          setTimeout(()=>{ showPreviewScaled(); }, 400);
-        });
-      }
+        // compute scale to fit the available viewport area (both width and height)
+        const PAGE_W_PX = contentWidthPx; // should be ~10in in px
+        const PAGE_H_PX = contentHeightPx;
 
-      // Download .txt from preview (optional)
-      if(downloadTxtBtn){
-        downloadTxtBtn.addEventListener('click', ()=>{
-          try {
-            const pre = slipContent.querySelector('pre');
-            const text = pre ? pre.textContent : slipContent.innerText || '';
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `slip_${Date.now()}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-          } catch(e){ console.error('download txt', e); alert('Download failed'); }
-        });
-      }
-
-      if(closePreviewBtn){
-        closePreviewBtn.addEventListener('click', ()=> { slipOutput.style.display = 'none'; slipInner.style.transform = 'none'; });
-      }
-
-      // showPreviewScaled: scale slipInner so full single page fits viewport
-      function showPreviewScaled(){
-        const PAGE_W_PX = 10 * 96; // CSS inch -> px (approx)
-        const PAGE_H_PX = 5 * 96;
         const availW = Math.max(320, Math.min(window.innerWidth * 0.96, window.innerWidth));
         const availH = Math.max(200, Math.min(window.innerHeight * 0.88, window.innerHeight));
         const scaleW = availW / PAGE_W_PX;
         const scaleH = availH / PAGE_H_PX;
         const scale = Math.min(1, scaleW, scaleH);
 
+        // apply scale transform
         slipInner.style.transformOrigin = 'top left';
         slipInner.style.transform = `scale(${scale})`;
 
-        // wrapper size equals scaled page size so it centers well
+        // set wrapper size to scaled page size so it centers properly and no scrollbar inside
         slipOutput.style.width = Math.ceil(PAGE_W_PX * scale) + 'px';
         slipOutput.style.height = Math.ceil(PAGE_H_PX * scale) + 'px';
         slipOutput.style.left = '50%';
         slipOutput.style.top = '6%';
         slipOutput.style.transform = 'translateX(-50%)';
         slipOutput.style.display = 'block';
-      }
 
-      // Validation: same requiredMap as before
-      window.requiredMap = [
-        { id: 'firmName', err: 'firmNameErr' },
-        { id: 'firmAddress', err: 'firmAddressErr' },
-        { id: 'rstNo', err: 'rstErr' },
-        { id: 'vehicleNo', err: 'vehErr' },
-        { id: 'item', err: 'itemErr' },
-        { id: 'gross', err: 'grossErr' },
-        { id: 'grossDate', err: 'grossDateErr' },
-        { id: 'grossTime', err: 'grossTimeErr' },
-        { id: 'tareTime', err: 'tareTimeErr' },
-        { id: 'tare', err: 'tareErr' },
-        { id: 'tareDate', err: 'tareDateErr' },
-        { id: 'net', err: 'netErr' }
-      ];
+        // prepare full text for download using pre.innerText (preserves line breaks)
+        const pre = slipContent.querySelector('pre');
+        const textForFile = pre ? pre.innerText : slipContent.innerText || '';
 
-      function clearValidation(){
-        requiredMap.forEach(item => {
-          const el = $(item.id); if(el) el.classList.remove('err');
-          const en = $(item.err); if(en) en.style.display = 'none';
-        });
-        const se = $('serverError'); if(se) { se.style.display='none'; se.textContent=''; }
-      }
-
-      function validateAll(){
-        clearValidation();
-        let ok = true;
-        for(const item of requiredMap){
-          const el = $(item.id);
-          const errNode = $(item.err);
-          if(!el){
-            if(errNode) errNode.style.display = 'block';
-            ok = false;
-            continue;
+        // wire download button (always fresh)
+        downloadTxtBtn.onclick = ()=>{
+          try {
+            const blob = new Blob([textForFile], { type: 'text/plain;charset=utf-8' });
+            const filename = `slip_${Date.now()}.txt`;
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          } catch(e){
+            console.error('Download failed', e);
+            alert('Download failed — check console.');
           }
-          const val = String(el.value || '').trim();
-          if(item.id === 'gross'){
-            if(!val || !val.match(/[0-9]/)){
-              ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
-            }
-          } else {
-            if(val === ''){
-              ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
-            }
-          }
-        }
-        return ok;
-      }
-
-      // collect form
-      function collectForm(){
-        const tareNum = Number(getVal('tare') ? getVal('tare').replace(/[^0-9.-]/g,'') : 0) || 0;
-        const netNum  = Number(getVal('net') ? getVal('net').replace(/[^0-9.-]/g,'') : 0) || 0;
-        const grossNum = tareNum + netNum;
-        return {
-          firmName: getVal('firmName'),
-          firmAddress: getVal('firmAddress'),
-          firmPhone: getVal('firmPhone'),
-          rstNo: getVal('rstNo'),
-          vehicleNo: getVal('vehicleNo'),
-          vehicleType: getVal('vehicleType'),
-          partyName: getVal('partyName'),
-          address: getVal('address'),
-          item: getVal('item'),
-          gross: `${Number(grossNum).toFixed(0)} Kg`,
-          grossDate: getVal('grossDate'),
-          grossTime: getVal('grossTime'),
-          tare: `${Number(tareNum).toFixed(0)} Kg`,
-          tareDate: getVal('tareDate'),
-          tareTime: getVal('tareTime'),
-          net: `${Number(netNum).toFixed(0)} Kg`,
-          amount: '',
-          charges: getVal('charges'),
-          phone: getVal('phone'),
-          savedAt: new Date().toISOString()
         };
-      }
 
-      window.collectForm = collectForm;
-      window.validateAll = validateAll;
-      window.clearValidation = clearValidation;
+        // Add client-side saved record immediately (13-digit serial)
+        const seq = getNextSerial13();
+        const serial = formatSerial13(seq);
+        const now = new Date();
+        const recItem = {
+          id: seq,
+          serial: serial,
+          createdAt: now.toISOString(),
+          vehicleNo: rec.vehicleNo || '',
+          amount: rec.amount || ''
+        };
+        window._slips = window._slips || [];
+        window._slips.unshift(recItem);
+        renderSlipsTable(window._slips);
 
-      // Saved list rendering
-      async function refreshList(){
-        try {
-          // try server first
-          const from = getVal('filterFrom') || '';
-          const to = getVal('filterTo') || '';
-          const q = new URLSearchParams({ from, to });
-          const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
-          const json = await resp.json();
-          if(!json || !Array.isArray(json.slips)){
-            // fallback: use client list
-            if(window._slips && window._slips.length) renderSlipsTable(window._slips);
-            return;
+        // server save (non-blocking JSON POST)
+        (async ()=>{
+          try {
+            const payload = { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), amount: rec.amount || '', meta: rec };
+            await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+          } catch(e){
+            // ignore server errors (best-effort)
+            console.warn('server save failed', e);
           }
-          const slips = json.slips.slice();
-          slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-          window._slips = slips;
-          renderSlipsTable(slips);
-        } catch(err){
-          console.warn('refreshList failed', err);
-          if(window._slips && window._slips.length) renderSlipsTable(window._slips);
+        })();
+
+      } catch(err){
+        console.error('Create exception:', err);
+        alert('Error preparing preview — see console.');
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = 'Create Slip';
+      }
+    });
+
+    // Print: temporarily unscale and force 10in x 5in layout for print
+    printBtn.addEventListener('click', ()=>{
+      // store current transform/size
+      const oldTransform = slipInner.style.transform;
+      const oldWidth = slipOutput.style.width;
+      const oldHeight = slipOutput.style.height;
+      const oldLeft = slipOutput.style.left;
+      const oldTop = slipOutput.style.top;
+      const oldTransformWrapper = slipOutput.style.transform;
+
+      // prepare for print: ensure physical sizes and no transform
+      slipInner.style.transform = 'none';
+      slipInner.style.width = '10in';
+      slipInner.style.height = '5in';
+      slipInner.style.boxSizing = 'border-box';
+      slipOutput.style.left = '0';
+      slipOutput.style.top = '0';
+      slipOutput.style.transform = 'none';
+      slipOutput.style.width = '10in';
+      slipOutput.style.height = '5in';
+      slipOutput.style.display = 'block';
+
+      // call print
+      window.print();
+
+      // restore after short delay
+      setTimeout(()=>{
+        slipInner.style.transform = oldTransform || '';
+        slipOutput.style.width = oldWidth || '';
+        slipOutput.style.height = oldHeight || '';
+        slipOutput.style.left = oldLeft || '50%';
+        slipOutput.style.top = oldTop || '6%';
+        slipOutput.style.transform = oldTransformWrapper || 'translateX(-50%)';
+      }, 500);
+    });
+
+    // Close preview
+    closePreviewBtn.addEventListener('click', ()=>{
+      slipOutput.style.display = 'none';
+      slipInner.style.transform = 'none';
+    });
+
+    // Validation helpers (same as before)
+    window.requiredMap = [
+      { id: 'firmName', err: 'firmNameErr' },
+      { id: 'firmAddress', err: 'firmAddressErr' },
+      { id: 'rstNo', err: 'rstErr' },
+      { id: 'vehicleNo', err: 'vehErr' },
+      { id: 'item', err: 'itemErr' },
+      { id: 'gross', err: 'grossErr' },
+      { id: 'grossDate', err: 'grossDateErr' },
+      { id: 'grossTime', err: 'grossTimeErr' },
+      { id: 'tareTime', err: 'tareTimeErr' },
+      { id: 'tare', err: 'tareErr' },
+      { id: 'tareDate', err: 'tareDateErr' },
+      { id: 'net', err: 'netErr' }
+    ];
+
+    function clearValidation(){
+      requiredMap.forEach(item => {
+        const el = $(item.id); if(el) el.classList.remove('err');
+        const en = $(item.err); if(en) en.style.display = 'none';
+      });
+      const se = $('serverError'); if(se) { se.style.display='none'; se.textContent=''; }
+    }
+
+    function validateAll(){
+      clearValidation();
+      let ok = true;
+      for(const item of requiredMap){
+        const el = $(item.id);
+        const errNode = $(item.err);
+        if(!el){ if(errNode) errNode.style.display='block'; ok = false; continue; }
+        const val = String(el.value || '').trim();
+        if(item.id === 'gross'){
+          if(!val || !val.match(/[0-9]/)){
+            ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
+          }
+        } else {
+          if(val === ''){
+            ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
+          }
         }
       }
-      window.refreshList = refreshList;
-
-      function renderSlipsTable(slips){
-        const tbody = $('recordsBody');
-        tbody.innerHTML = '';
-        let totalAmt = 0;
-        slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-        slips.forEach(s=>{
-          const tr = document.createElement('tr');
-          const displaySr = s.serial ? s.serial : String(Number(s.id||0)).padStart(13,'0');
-          const date = s.createdAt ? (new Date(s.createdAt)).toLocaleString() : '-';
-          tr.innerHTML = `<td style="width:120px">${displaySr}</td>
-            <td style="width:120px">${date}</td>
-            <td style="width:140px">${esc(s.vehicleNo||'-')}</td>
-            <td style="width:200px">${'Saved'}</td>
-            <td style="width:150px" id="amountCell_${s.id}">${ s.amount !== undefined && s.amount !== null && s.amount !== '' ? `<span>₹ ${Number(s.amount).toFixed(2)}</span>` : `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>` }</td>
-            <td style="width:160px"><button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button></td>`;
-          tbody.appendChild(tr);
-          totalAmt += Number(s.amount || 0);
-        });
-        $('totalAmount').textContent = totalAmt.toFixed(2);
-        window._slips = slips;
-
-        // attach download handlers
-        tbody.querySelectorAll('button[data-action="download"]').forEach(b=>{
-          b.onclick = (e)=>{
-            const id = Number(e.currentTarget.dataset.id);
-            const row = (window._slips || []).find(x=>x.id === id);
-            if(row && row.filepath) window.open(row.filepath,'_blank');
-            else alert('No file link available for this record.');
-          };
-        });
-
-        // attach amount submit handlers
-        (window._slips || []).forEach(s=>{
-          const btn = document.getElementById(`amt_btn_${s.id}`);
-          if(btn){
-            btn.addEventListener('click', async (ev)=>{
-              const id = Number(ev.currentTarget.dataset.id);
-              const input = document.getElementById(`amt_in_${id}`);
-              const val = input.value;
-              if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
-              try{
-                const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) });
-                const j = await resp.json();
-                if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).');
-              }catch(err){ console.error(err); alert('Error saving amount.'); }
-            });
-          }
-        });
-      }
-      window.renderSlipsTable = renderSlipsTable;
-
-      // initial loading: restore client-side saved slips if any
-      try {
-        const clientList = JSON.parse(localStorage.getItem('client_slips_v1') || 'null');
-        if(Array.isArray(clientList) && clientList.length){ window._slips = clientList.concat(window._slips || []); renderSlipsTable(window._slips); }
-      } catch(e){ /* ignore */ }
-
-      // Persist saved slips to localStorage whenever window._slips changes (simple interval flush)
-      setInterval(()=> {
-        try { localStorage.setItem('client_slips_v1', JSON.stringify(window._slips || [])); } catch(e){}
-      }, 2000);
-
-      // helper: next serial functions in global scope
-      window.getNextSerial13 = getNextSerial13;
-      window.formatSerial13 = formatSerial13;
-
-      // small UI hint: on load hide form & dashboard
-      $('formCard').style.display = 'none';
-      $('dashboardCard').style.display = 'none';
-
-    } catch(initErr){
-      console.error('Init error', initErr);
-      alert('Initialization error — open console and paste the error here.');
+      return ok;
     }
+    window.validateAll = validateAll;
+
+    // collect form
+    function collectForm(){
+      const tareNum = Number(getVal('tare') ? getVal('tare').replace(/[^0-9.-]/g,'') : 0) || 0;
+      const netNum  = Number(getVal('net') ? getVal('net').replace(/[^0-9.-]/g,'') : 0) || 0;
+      const grossNum = tareNum + netNum;
+      return {
+        firmName: getVal('firmName'),
+        firmAddress: getVal('firmAddress'),
+        firmPhone: getVal('firmPhone'),
+        rstNo: getVal('rstNo'),
+        vehicleNo: getVal('vehicleNo'),
+        vehicleType: getVal('vehicleType'),
+        partyName: getVal('partyName'),
+        address: getVal('address'),
+        item: getVal('item'),
+        gross: `${Number(grossNum).toFixed(0)} Kg`,
+        grossDate: getVal('grossDate'),
+        grossTime: getVal('grossTime'),
+        tare: `${Number(tareNum).toFixed(0)} Kg`,
+        tareDate: getVal('tareDate'),
+        tareTime: getVal('tareTime'),
+        net: `${Number(netNum).toFixed(0)} Kg`,
+        amount: '',
+        charges: getVal('charges'),
+        phone: getVal('phone'),
+        savedAt: new Date().toISOString()
+      };
+    }
+    window.collectForm = collectForm;
+
+    // render saved slips table
+    async function refreshList(){
+      try {
+        const from = getVal('filterFrom') || '';
+        const to = getVal('filterTo') || '';
+        const q = new URLSearchParams({ from, to });
+        const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+        const json = await resp.json();
+        if(!json || !Array.isArray(json.slips)){
+          if(window._slips && window._slips.length) renderSlipsTable(window._slips);
+          return;
+        }
+        const slips = json.slips.slice();
+        slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
+        window._slips = slips;
+        renderSlipsTable(slips);
+      } catch(err){
+        console.warn('refreshList failed', err);
+        if(window._slips && window._slips.length) renderSlipsTable(window._slips);
+      }
+    }
+    window.refreshList = refreshList;
+
+    function renderSlipsTable(slips){
+      const tbody = $('recordsBody');
+      tbody.innerHTML = '';
+      let totalAmt = 0;
+      slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
+      slips.forEach(s=>{
+        const tr = document.createElement('tr');
+        const displaySr = s.serial ? s.serial : String(Number(s.id||0)).padStart(13,'0');
+        const date = s.createdAt ? (new Date(s.createdAt)).toLocaleString() : '-';
+        tr.innerHTML = `<td style="width:120px">${displaySr}</td>
+          <td style="width:120px">${date}</td>
+          <td style="width:140px">${esc(s.vehicleNo||'-')}</td>
+          <td style="width:200px">${'Saved'}</td>
+          <td style="width:150px" id="amountCell_${s.id}">${ s.amount !== undefined && s.amount !== null && s.amount !== '' ? `<span>₹ ${Number(s.amount).toFixed(2)}</span>` : `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>` }</td>
+          <td style="width:160px"><button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button></td>`;
+        tbody.appendChild(tr);
+        totalAmt += Number(s.amount || 0);
+      });
+      $('totalAmount').textContent = totalAmt.toFixed(2);
+      window._slips = slips;
+
+      // attach handlers
+      tbody.querySelectorAll('button[data-action="download"]').forEach(b=>{
+        b.onclick = (e)=>{
+          const id = Number(e.currentTarget.dataset.id);
+          const row = (window._slips || []).find(x=>x.id === id);
+          if(row && row.filepath) window.open(row.filepath,'_blank');
+          else alert('No file link available for this record.');
+        };
+      });
+
+      (window._slips || []).forEach(s=>{
+        const btn = document.getElementById(`amt_btn_${s.id}`);
+        if(btn){
+          btn.addEventListener('click', async (ev)=>{
+            const id = Number(ev.currentTarget.dataset.id);
+            const input = document.getElementById(`amt_in_${id}`);
+            const val = input.value;
+            if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
+            try{
+              const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) });
+              const j = await resp.json();
+              if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).');
+            }catch(err){ console.error(err); alert('Error saving amount.'); }
+          });
+        }
+      });
+    }
+    window.renderSlipsTable = renderSlipsTable;
+
+    // restore client-side slips (if any)
+    try {
+      const clientList = JSON.parse(localStorage.getItem('client_slips_v1') || 'null');
+      if(Array.isArray(clientList) && clientList.length){ window._slips = clientList.concat(window._slips || []); renderSlipsTable(window._slips); }
+    } catch(e){ /* ignore */ }
+
+    // persist client-side slips periodically
+    setInterval(()=> {
+      try { localStorage.setItem('client_slips_v1', JSON.stringify(window._slips || [])); } catch(e){}
+    }, 2000);
+
+    // expose serial helpers
+    window.getNextSerial13 = getNextSerial13;
+    window.formatSerial13 = formatSerial13;
+
+    // hide form/dashboard initially
+    if($('formCard')) $('formCard').style.display = 'none';
+    if($('dashboardCard')) $('dashboardCard').style.display = 'none';
+
+    // wire applyFilter button
+    const applyFilterBtn = $('applyFilter');
+    if(applyFilterBtn) applyFilterBtn.addEventListener('click', ()=> refreshList());
+
   }); // DOMContentLoaded
 
 })(); // IIFE
