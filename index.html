@@ -1,663 +1,851 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (FINAL - preview/print fix)</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Secure Slip — Create Slip (Updated alignment)</title>
+    <!-- External libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* ===== Base & background ===== */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: transparent;
+            color: #0d2433;
+        }
 
-  <!-- External libs (kept but PDF generation removed) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            background-image: url("truck.avif");
+            background-size: cover;
+            background-position: center;
+            filter: blur(6px) brightness(.95);
+        }
 
-  <style>
-    html,body { height:100%; margin:0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:transparent; color:#0d2433; }
-    .container { max-width:1100px; margin:22px auto; padding-bottom:60px; }
-    .card { background: linear-gradient(180deg,#fff,#fbfdff); padding:16px; border-radius:12px; box-shadow:0 8px 30px rgba(22,40,60,0.06); border:1px solid rgba(10,18,30,0.04); margin-bottom:18px; }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
+        }
 
-    .loginBox h2{ margin:0 0 12px 0; color:#0b2330; font-size:20px; }
-    .loginBox input{ width:100%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid rgba(20,30,40,0.06); font-family:"Courier New",monospace; }
-    .loginBox button{ width:100%; padding:10px; border-radius:8px; border:none; background:#0b63b3; color:#fff; font-weight:600; cursor:pointer; }
+        .container {
+            max-width: 1100px;
+            margin: 22px auto;
+            padding-bottom: 60px;
+        }
 
-    .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:center; }
-    label{ display:block; color:#0b2330; font-size:14px; margin-top:8px; }
-    input[type="text"], input[type="date"], input[type="number"], select { width:100%; padding:8px; border-radius:6px; border:1px solid rgba(20,30,40,.06); font-family:"Courier New",monospace; box-sizing:border-box; }
-    .time-row { display:flex; gap:8px; }
-    .time-row > div { flex:1; }
+        .card {
+            background: linear-gradient(180deg, #fff, #fbfdff);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(22, 40, 60, 0.06);
+            border: 1px solid rgba(10, 18, 30, 0.04);
+            margin-bottom: 18px;
+        }
 
-    .controls { display:flex; gap:8px; margin-top:10px; align-items:center; }
-    .btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
-    .btn-blue { background: linear-gradient(180deg,#1976d2,#0b63b3); color:#fff; }
-    .btn-ghost { background:transparent; border:1px solid rgba(10,18,30,0.06); color:#07304b; }
+        /* Login */
+        .loginBox h2 {
+            margin: 0 0 12px 0;
+            color: #0b2330;
+            font-size: 20px;
+        }
 
-    /* preview overlay */
-    #slipOutput {
-      display:none;
-      position:fixed;
-      left:50%;
-      top:6%;
-      transform:translateX(-50%);
-      z-index:9999;
-      background:transparent;
-      box-sizing:border-box;
-      padding:6px;
-    }
-    #previewToolbar { display:flex; gap:8px; padding:8px; justify-content:flex-end; background: rgba(12,20,30,0.03); border-top-left-radius:8px; border-top-right-radius:8px; }
-    #slipInner { background:#fff; border-radius:8px; color:#000; font-family:"Courier New",monospace; box-sizing:border-box; overflow:visible; transform-origin: top left; }
+        .loginBox input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(20, 30, 40, 0.06);
+            font-family: "Courier New", monospace;
+        }
 
-    /* header centering */
-    .header-wrap { width:100%; box-sizing:border-box; padding:4px 0 8px 0; display:flex; justify-content:center; align-items:flex-start; }
-    .header-inner { display:inline-block; text-align:center; max-width:90%; box-sizing:border-box; word-break:break-word; white-space:normal; }
+        .loginBox button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #0b63b3;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
 
-    .table { width:100%; border-collapse:collapse; margin-top:8px; }
-    .table th, .table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(10,18,30,0.04); font-size:13px; vertical-align:middle; }
-    .table th { color:#07304b; font-weight:700; }
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
 
-    .err { border-color:#d33 !important; box-shadow:0 0 0 3px rgba(211,51,51,0.08); }
-    .errMsg { color:#d33; font-weight:700; margin-top:6px; font-size:13px; }
+        label {
+            display: block;
+            color: #0b2330;
+            font-size: 14px;
+            margin-top: 8px;
+        }
 
-    /* printing: fixed physical size 10in x 5in, no margins */
-    @page { size: 10in 5in; margin: 0; }
-    @media print {
-      body * { visibility: hidden !important; }
-      #slipOutput, #slipOutput * { visibility: visible !important; }
-      #slipOutput { position: fixed !important; left:0 !important; top:0 !important; width:10in !important; height:5in !important; margin:0 !important; padding:0 !important; box-shadow:none !important; overflow:hidden !important; transform:none !important; }
-      #slipInner { width:10in !important; height:5in !important; padding:0 !important; margin:0 !important; box-sizing:border-box !important; overflow:hidden !important; transform:none !important; }
-    }
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(20, 30, 40, .06);
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+        }
 
-    .smallNote { font-size:12px; color:#666; margin-top:6px; }
-    #serverError { margin-top:10px; color:#b33; font-weight:700; display:none; }
-  </style>
+        .time-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .time-row > div {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-blue {
+            background: linear-gradient(180deg, #1976d2, #0b63b3);
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(10, 18, 30, 0.06);
+            color: #07304b;
+        }
+
+        /* Slip preview overlay */
+        #slipOutput {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 6%;
+            transform: translateX(-50%);
+            width: min(1200px, 96%);
+            max-height: 88vh;
+            overflow: auto;
+            z-index: 9999;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            background: transparent;
+        }
+
+        #previewToolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            justify-content: flex-end;
+            background: rgba(12, 20, 30, 0.03);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        #slipInner {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            color: #000;
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+        }
+
+        /* slip styling (affects preview rendering) */
+        .slip-wrapper {
+            white-space: pre;
+            font-family: "Courier New", monospace;
+            color: #000;
+        }
+
+        .slip-firm {
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .slip-address {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+
+        .big-val {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            #slipOutput,
+            #slipOutput * {
+                visibility: visible !important;
+            }
+
+            #slipOutput {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #fff !important;
+                box-shadow: none !important;
+            }
+
+            #previewToolbar {
+                display: none !important;
+            }
+        }
+
+        .amount-input {
+            width: 100px;
+            padding: 6px;
+            font-family: monospace;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .table th,
+        .table td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(10, 18, 30, 0.04);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .table th {
+            color: #07304b;
+            font-weight: 700;
+        }
+
+        .err {
+            border-color: #d33 !important;
+            box-shadow: 0 0 0 3px rgba(211, 51, 51, 0.08);
+        }
+
+        .errMsg {
+            color: #d33;
+            font-weight: 700;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .groupRow {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .smallNote {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        #serverError {
+            margin-top: 10px;
+            color: #b33;
+            font-weight: 700;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <!-- LOGIN -->
-    <div class="card loginBox" id="loginBox">
-      <h2>Login</h2>
-      <input id="username" placeholder="User ID" autocomplete="off" />
-      <input id="password" placeholder="Password" type="password" autocomplete="off" />
-      <button id="loginBtn" class="btn btn-blue">Login</button>
-      <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
+    <div class="container">
+        <!-- LOGIN -->
+        <div class="card loginBox" id="loginBox">
+            <h2>Login</h2>
+            <input id="username" placeholder="User ID" autocomplete="off" />
+            <input id="password" placeholder="Password" type="password" autocomplete="off" />
+            <button id="loginBtn" class="btn btn-blue">Login</button>
+            <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
+        </div>
+
+        <!-- FORM -->
+        <div class="card" id="formCard" style="display:none;">
+            <form id="slipForm" onsubmit="return false;">
+                <!-- Firm -->
+                <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
+                <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
+                <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
+                <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <div class="form-grid">
+                    <label>RST No: <input type="text" id="rstNo" value="101" required></label>
+                    <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
+                </div>
+                <div class="form-grid">
+                    <label>Item: <input type="text" id="item" value="20MM" required></label>
+                    <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+                    <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
+                </div>
+                <div class="form-grid">
+                    <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
+                    <label>Gross Date: <input type="text" id="grossDate" value="2025-11-08"></label>
+                </div>
+                <div class="time-row" style="margin-top:6px;">
+                    <div style="flex:1">
+                        <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
+                    </div>
+                    <div style="flex:1">
+                        <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
+                    <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
+                </div>
+                <label>Net: <input type="text" id="net" value="54980 Kg"></label>
+                <label>Charges: Rs <input type="text" id="charges" value="0"></label>
+                <label>Phone: <input type="text" id="phone" value="123456"></label>
+                <div class="controls">
+                    <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
+                    <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
+                </div>
+                <div id="serverError"></div>
+            </form>
+        </div>
+
+        <!-- SAVED SLIPS -->
+        <div class="card" id="dashboardCard" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div>
+                    <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
+                    <div style="font-size:13px; color:#235">Server-stored slips (PDFs)</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <label style="font-size:13px; color:#07304b;">From</label>
+                    <input type="date" id="filterFrom">
+                    <label style="font-size:13px; color:#07304b;">To</label>
+                    <input type="date" id="filterTo">
+                    <button id="applyFilter" class="btn btn-ghost">Apply</button>
+                    <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
+                </div>
+            </div>
+            <div id="recordsWrap" style="margin-top:12px;">
+                <table class="table" id="recordsTable" aria-live="polite">
+                    <thead>
+                        <tr>
+                            <th>Sr</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Saved PDF</th>
+                            <th>Amount (₹)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- FORM -->
-    <div class="card" id="formCard" style="display:none;">
-      <form id="slipForm" onsubmit="return false;">
-        <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
-        <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
-
-        <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
-        <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
-        <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
-
-        <div class="form-grid">
-          <label>RST No: <input type="text" id="rstNo" value="101" required></label>
-          <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
+    <!-- Slip preview overlay (used for rendering to create PDF only) -->
+    <div id="slipOutput" role="dialog" aria-modal="true">
+        <div id="previewToolbar">
+            <button id="closePreviewBtn" class="btn btn-blue">Close</button>
         </div>
-
-        <div class="form-grid">
-          <label>Item: <input type="text" id="item" value="20MM" required></label>
-          <label>Vehicle Type: <input type="text" id="vehicleType"></label>
-          <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
+        <div id="slipInner">
+            <div id="slipContent" style="color:#000;"></div>
         </div>
-
-        <div class="form-grid">
-          <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
-          <label>Gross Date: <input type="text" id="grossDate" value="2025-11-08"></label>
-        </div>
-
-        <div class="time-row" style="margin-top:6px;">
-          <div style="flex:1">
-            <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
-          </div>
-          <div style="flex:1">
-            <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
-          <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
-        </div>
-
-        <label>Net: <input type="text" id="net" value="54980 Kg"></label>
-        <label>Charges: Rs <input type="text" id="charges" value="0"></label>
-        <label>Phone: <input type="text" id="phone" value="123456"></label>
-
-        <div class="controls">
-          <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
-          <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
-        </div>
-        <div id="serverError"></div>
-      </form>
     </div>
 
-    <!-- SAVED SLIPS -->
-    <div class="card" id="dashboardCard" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <div>
-          <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
-          <div style="font-size:13px; color:#235">Client & server records</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <label style="font-size:13px; color:#07304b;">From</label>
-          <input type="date" id="filterFrom">
-          <label style="font-size:13px; color:#07304b;">To</label>
-          <input type="date" id="filterTo">
-          <button id="applyFilter" class="btn btn-ghost">Apply</button>
-          <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
-        </div>
-      </div>
-      <div id="recordsWrap" style="margin-top:12px;">
-        <table class="table" id="recordsTable" aria-live="polite">
-          <thead>
-            <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Saved</th><th>Amount (₹)</th><th>Action</th></tr>
-          </thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Slip preview overlay -->
-  <div id="slipOutput" role="dialog" aria-modal="true" style="display:none">
-    <div id="previewToolbar">
-      <button id="printBtn" class="btn btn-blue">Print</button>
-      <button id="downloadTxtBtn" class="btn btn-ghost">Download .txt</button>
-      <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
-    </div>
-
-    <!-- slipInner will be sized to real content then scaled -->
-    <div id="slipInner" style="width:10in; padding:0; margin:0;">
-      <div id="slipContent" style="color:#000; box-sizing:border-box; padding:6px;"></div>
-    </div>
-  </div>
-
-<script>
-(function(){
-  'use strict';
-
-  // Config / endpoints
-  const USERNAME = "FxMiNds";
-  const PASSWORD = "Sk@#9136332836@";
-  const SERVER_BASE = '/slip-server';
-  function buildServerUrl(path){
-    const base = SERVER_BASE || '';
-    if(base.startsWith('http://') || base.startsWith('https://')) return base + path;
-    return window.location.origin + (base.startsWith('/')?base:('/'+base)) + path;
-  }
-  const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
-  const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
-  const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
-
-  // Helpers
-  const $ = id => document.getElementById(id);
-  function esc(s){ return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-  function getVal(id){ const el = $(id); return el ? el.value : ''; }
-  function safeNumString(s){ return String(s||''); }
-
-  // Serial 13-digit
-  function getNextSerial13(){
-    const key = 'slip_serial_counter_v1';
-    let n = Number(localStorage.getItem(key) || 0);
-    n = n + 1;
-    localStorage.setItem(key, String(n));
-    return n;
-  }
-  function formatSerial13(n){
-    return String(n).padStart(13,'0');
-  }
-
-  // TEMPLATE - same visual format
-  const TEMPLATE_HTML = `
-  <div style='font-family:"Courier New",monospace;color:#000;width:10in;box-sizing:border-box;padding:6px;'>
-    <div class="header-wrap">
-      <div class="header-inner">
-        <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
+    <script>
+        /* Combined inline template + create logic (PDF 10in x 4in) */
+        /* TABLE-BASED TEMPLATE: deterministic alignment, adjusted left-shift for Gross/Tare/Net and 2-space before Kg */
+        /* INLINE EXACT TEMPLATE (replace previous TEMPLATE_HTML contents with this) */
+        // REPLACE your old TEMPLATE_HTML with exactly this (place inside your existing <script> tag)
+const TEMPLATE_HTML = `
+<div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
+  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
+                <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
-      </div>
-    </div>
+                                      
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
+<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-    <pre style='margin:10px 0 0 0; padding:6px; white-space:pre; font-family:"Courier New",monospace; line-height:1.15; font-size:14px;'>
+<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
+<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
+<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">Charges : Rs {{charges}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-RST No.     : {{rstNo}}                                    Vehicle No.     : {{vehicleNo}}
-Vh l typ.   : {{vehicleType}}                                      Party name      : {{partyName}}
-Address     : {{address}}                                      Item            : {{item}}
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+                                            <span style="font-size:45px;">Phone : {{phone}}</span>
 
-Gross   :      {{gross}}  Kg      Date  : {{grossDate}}     Time :    {{grossTime}}
-Tare    :      {{tare}}  Kg      Date  : {{tareDate}}       Time :    {{tareTime}}
-Net     :      {{net}}  Kg
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-Charges : Rs {{charges}}
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-                                            Phone : {{phone}}
-
-                                         Thanks for your visit
-    </pre>
-  </div>
-  `;
-
-  // State
-  let isLoggedIn = false;
-  window._slips = window._slips || [];
-
-  // DOMContentLoaded to attach handlers safely
-  window.addEventListener('DOMContentLoaded', () => {
-    // Refs
-    const loginBtn = $('loginBtn');
-    const logoutBtn = $('logoutBtn');
-    const loginBox = $('loginBox');
-    const formCard = $('formCard');
-    const dashboardCard = $('dashboardCard');
-    const createBtn = $('createBtn');
-    const closePreviewBtn = $('closePreviewBtn');
-    const printBtn = $('printBtn');
-    const downloadTxtBtn = $('downloadTxtBtn');
-    const slipOutput = $('slipOutput');
-    const slipInner = $('slipInner');
-    const slipContent = $('slipContent');
-
-    // login
-    loginBtn.addEventListener('click', ()=>{
-      const u = String(getVal('username')).trim();
-      const p = String(getVal('password')).trim();
-      if(u === USERNAME && p === PASSWORD){
-        isLoggedIn = true;
-        loginBox.style.display = 'none';
-        formCard.style.display = 'block';
-        dashboardCard.style.display = 'block';
-        refreshList().catch(()=>{});
-      } else {
-        const loginErr = $('loginErr');
-        if(loginErr){ loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); }
-      }
-    });
-
-    logoutBtn.addEventListener('click', ()=>{
-      isLoggedIn = false;
-      loginBox.style.display = 'block';
-      formCard.style.display = 'none';
-      dashboardCard.style.display = 'none';
-    });
-
-    // recompute gross
-    const grossEl = $('gross'), tareEl = $('tare'), netEl = $('net');
-    function recomputeGross(){
-      const tare = Number((tareEl && tareEl.value) ? tareEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
-      const net  = Number((netEl && netEl.value) ? netEl.value.replace(/[^0-9.-]/g,'') : 0) || 0;
-      const gross = tare + net;
-      if(grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
-    }
-    if(tareEl) tareEl.addEventListener('input', recomputeGross);
-    if(netEl) netEl.addEventListener('input', recomputeGross);
-    recomputeGross();
-
-    // CREATE: render preview, save client record, server best-effort
-    createBtn.addEventListener('click', async ()=>{
-      try {
-        if(!isLoggedIn){ alert('Please login first'); return; }
-        if(!validateAll()){
-          const firstErr = requiredMap.find(i=>{ const el = $(i.id); return el && el.classList.contains('err'); });
-          if(firstErr) $(firstErr.id).scrollIntoView({behavior:'smooth',block:'center'});
-          return;
+                                         <span style="font-size:45px;">Thanks for your visit</span>
+  </pre>
+</div>
+`;
+        /* helper to build server URLs */
+        const SERVER_BASE = '/slip-server';
+        function buildServerUrl(path) {
+            const base = SERVER_BASE || '';
+            if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
+            return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
         }
 
-        createBtn.disabled = true;
-        createBtn.textContent = 'Preparing...';
+        const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
+        const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
+        const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 
-        const rec = collectForm();
+        const USERNAME = "FxMiNds";
+        const PASSWORD = "Sk@#9136332836@";
+        let isLoggedIn = false;
 
-        // build rendered HTML
-        let rendered = TEMPLATE_HTML;
-        const replacements = {
-          '{{firmName}}': esc(rec.firmName || ''),
-          '{{firmAddress}}': esc(rec.firmAddress || ''),
-          '{{firmPhone}}': esc(safeNumString(rec.firmPhone||'')),
-          '{{rstNo}}': esc(safeNumString(rec.rstNo||'')),
-          '{{vehicleNo}}': esc(safeNumString(rec.vehicleNo||'')),
-          '{{vehicleType}}': esc(rec.vehicleType||''),
-          '{{partyName}}': esc(rec.partyName||''),
-          '{{address}}': esc(rec.address||''),
-          '{{item}}': esc(safeNumString(rec.item||'')),
-          '{{gross}}': esc(String(rec.gross||'').replace(/\s*Kg$/i,'')),
-          '{{grossDate}}': esc(rec.grossDate||''),
-          '{{grossTime}}': esc(rec.grossTime||''),
-          '{{tare}}': esc(String(rec.tare||'').replace(/\s*Kg$/i,'')),
-          '{{tareDate}}': esc(rec.tareDate||''),
-          '{{tareTime}}': esc(rec.tareTime||''),
-          '{{net}}': esc(String(rec.net||'').replace(/\s*Kg$/i,'')),
-          '{{charges}}': esc(safeNumString(rec.charges||'')),
-          '{{phone}}': esc(safeNumString(rec.phone||''))
-        };
-        Object.keys(replacements).forEach(k=>{ rendered = rendered.split(k).join(replacements[k]); });
+        /* DOM refs */
+        const createBtn = document.getElementById('createBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginBox = document.getElementById('loginBox');
+        const formCard = document.getElementById('formCard');
+        const dashboardCard = document.getElementById('dashboardCard');
+        const recordsBody = document.getElementById('recordsBody');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const serverError = document.getElementById('serverError');
+        const grossEl = document.getElementById('gross');
+        const tareEl = document.getElementById('tare');
+        const netEl = document.getElementById('net');
 
-        // insert into preview container
-        slipContent.innerHTML = rendered;
+        const requiredMap = [
+            { id: 'firmName', err: 'firmNameErr' },
+            { id: 'firmAddress', err: 'firmAddressErr' },
+            { id: 'rstNo', err: 'rstErr' },
+            { id: 'vehicleNo', err: 'vehErr' },
+            { id: 'item', err: 'itemErr' },
+            { id: 'gross', err: 'grossErr' },
+            { id: 'grossDate', err: 'grossDateErr' },
+            { id: 'grossTime', err: 'grossTimeErr' },
+            { id: 'tareTime', err: 'tareTimeErr' },
+            { id: 'tare', err: 'tareErr' },
+            { id: 'tareDate', err: 'tareDateErr' },
+            { id: 'net', err: 'netErr' }
+        ];
 
-        // ensure slipInner width = 10in (so layout matches print)
-        slipInner.style.width = '10in';
-        slipInner.style.padding = '0';
-        slipInner.style.margin = '0';
-        slipInner.style.boxSizing = 'border-box';
-        slipInner.style.overflow = 'visible';
+        /* login/logout */
+        loginBtn.addEventListener('click', () => {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if (u === USERNAME && p === PASSWORD) {
+                isLoggedIn = true;
+                loginBox.style.display = 'none';
+                formCard.style.display = 'block';
+                dashboardCard.style.display = 'block';
+                refreshList();
+            } else {
+                const loginErr = document.getElementById('loginErr');
+                loginErr.style.display = 'block';
+                setTimeout(() => loginErr.style.display = 'none', 2000);
+            }
+        });
 
-        // IMPORTANT: measure rendered height (unscaled) so we can compute scale to fit viewport
-        // Temporarily reset transform and position to measure actual size in px.
-        slipInner.style.transform = 'none';
-        slipOutput.style.display = 'block'; // must be visible to measure
-        slipOutput.style.left = '50%';
-        slipOutput.style.top = '6%';
-        slipOutput.style.transform = 'translateX(-50%)';
+        logoutBtn.addEventListener('click', () => {
+            isLoggedIn = false;
+            loginBox.style.display = 'block';
+            formCard.style.display = 'none';
+            dashboardCard.style.display = 'none';
+        });
 
-        // give browser a tick to render (if needed)
-        await new Promise(res => requestAnimationFrame(res));
-
-        // compute actual content height in px
-        const contentRect = slipInner.getBoundingClientRect();
-        const contentHeightPx = contentRect.height || (5 * 96); // fallback 5in
-        const contentWidthPx = contentRect.width || (10 * 96);
-
-        // compute scale to fit the available viewport area (both width and height)
-        const PAGE_W_PX = contentWidthPx; // should be ~10in in px
-        const PAGE_H_PX = contentHeightPx;
-
-        const availW = Math.max(320, Math.min(window.innerWidth * 0.96, window.innerWidth));
-        const availH = Math.max(200, Math.min(window.innerHeight * 0.88, window.innerHeight));
-        const scaleW = availW / PAGE_W_PX;
-        const scaleH = availH / PAGE_H_PX;
-        const scale = Math.min(1, scaleW, scaleH);
-
-        // apply scale transform
-        slipInner.style.transformOrigin = 'top left';
-        slipInner.style.transform = `scale(${scale})`;
-
-        // set wrapper size to scaled page size so it centers properly and no scrollbar inside
-        slipOutput.style.width = Math.ceil(PAGE_W_PX * scale) + 'px';
-        slipOutput.style.height = Math.ceil(PAGE_H_PX * scale) + 'px';
-        slipOutput.style.left = '50%';
-        slipOutput.style.top = '6%';
-        slipOutput.style.transform = 'translateX(-50%)';
-        slipOutput.style.display = 'block';
-
-        // prepare full text for download using pre.innerText (preserves line breaks)
-        const pre = slipContent.querySelector('pre');
-        const textForFile = pre ? pre.innerText : slipContent.innerText || '';
-
-        // wire download button (always fresh)
-        downloadTxtBtn.onclick = ()=>{
-          try {
-            const blob = new Blob([textForFile], { type: 'text/plain;charset=utf-8' });
-            const filename = `slip_${Date.now()}.txt`;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-          } catch(e){
-            console.error('Download failed', e);
-            alert('Download failed — check console.');
-          }
-        };
-
-        // Add client-side saved record immediately (13-digit serial)
-        const seq = getNextSerial13();
-        const serial = formatSerial13(seq);
-        const now = new Date();
-        const recItem = {
-          id: seq,
-          serial: serial,
-          createdAt: now.toISOString(),
-          vehicleNo: rec.vehicleNo || '',
-          amount: rec.amount || ''
-        };
-        window._slips = window._slips || [];
-        window._slips.unshift(recItem);
-        renderSlipsTable(window._slips);
-
-        // server save (non-blocking JSON POST)
-        (async ()=>{
-          try {
-            const payload = { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), amount: rec.amount || '', meta: rec };
-            await fetch(CREATE_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-          } catch(e){
-            // ignore server errors (best-effort)
-            console.warn('server save failed', e);
-          }
-        })();
-
-      } catch(err){
-        console.error('Create exception:', err);
-        alert('Error preparing preview — see console.');
-      } finally {
-        createBtn.disabled = false;
-        createBtn.textContent = 'Create Slip';
-      }
-    });
-
-    // Print: temporarily unscale and force 10in x 5in layout for print
-    printBtn.addEventListener('click', ()=>{
-      // store current transform/size
-      const oldTransform = slipInner.style.transform;
-      const oldWidth = slipOutput.style.width;
-      const oldHeight = slipOutput.style.height;
-      const oldLeft = slipOutput.style.left;
-      const oldTop = slipOutput.style.top;
-      const oldTransformWrapper = slipOutput.style.transform;
-
-      // prepare for print: ensure physical sizes and no transform
-      slipInner.style.transform = 'none';
-      slipInner.style.width = '10in';
-      slipInner.style.height = '5in';
-      slipInner.style.boxSizing = 'border-box';
-      slipOutput.style.left = '0';
-      slipOutput.style.top = '0';
-      slipOutput.style.transform = 'none';
-      slipOutput.style.width = '10in';
-      slipOutput.style.height = '5in';
-      slipOutput.style.display = 'block';
-
-      // call print
-      window.print();
-
-      // restore after short delay
-      setTimeout(()=>{
-        slipInner.style.transform = oldTransform || '';
-        slipOutput.style.width = oldWidth || '';
-        slipOutput.style.height = oldHeight || '';
-        slipOutput.style.left = oldLeft || '50%';
-        slipOutput.style.top = oldTop || '6%';
-        slipOutput.style.transform = oldTransformWrapper || 'translateX(-50%)';
-      }, 500);
-    });
-
-    // Close preview
-    closePreviewBtn.addEventListener('click', ()=>{
-      slipOutput.style.display = 'none';
-      slipInner.style.transform = 'none';
-    });
-
-    // Validation helpers (same as before)
-    window.requiredMap = [
-      { id: 'firmName', err: 'firmNameErr' },
-      { id: 'firmAddress', err: 'firmAddressErr' },
-      { id: 'rstNo', err: 'rstErr' },
-      { id: 'vehicleNo', err: 'vehErr' },
-      { id: 'item', err: 'itemErr' },
-      { id: 'gross', err: 'grossErr' },
-      { id: 'grossDate', err: 'grossDateErr' },
-      { id: 'grossTime', err: 'grossTimeErr' },
-      { id: 'tareTime', err: 'tareTimeErr' },
-      { id: 'tare', err: 'tareErr' },
-      { id: 'tareDate', err: 'tareDateErr' },
-      { id: 'net', err: 'netErr' }
-    ];
-
-    function clearValidation(){
-      requiredMap.forEach(item => {
-        const el = $(item.id); if(el) el.classList.remove('err');
-        const en = $(item.err); if(en) en.style.display = 'none';
-      });
-      const se = $('serverError'); if(se) { se.style.display='none'; se.textContent=''; }
-    }
-
-    function validateAll(){
-      clearValidation();
-      let ok = true;
-      for(const item of requiredMap){
-        const el = $(item.id);
-        const errNode = $(item.err);
-        if(!el){ if(errNode) errNode.style.display='block'; ok = false; continue; }
-        const val = String(el.value || '').trim();
-        if(item.id === 'gross'){
-          if(!val || !val.match(/[0-9]/)){
-            ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
-          }
-        } else {
-          if(val === ''){
-            ok = false; el.classList.add('err'); if(errNode) errNode.style.display = 'block';
-          }
+        /* recompute gross */
+        function recomputeGross() {
+            const tare = Number(tareEl ? tareEl.value : 0) || 0;
+            const net = Number(netEl ? netEl.value : 0) || 0;
+            const gross = tare + net;
+            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
         }
-      }
-      return ok;
-    }
-    window.validateAll = validateAll;
 
-    // collect form
-    function collectForm(){
-      const tareNum = Number(getVal('tare') ? getVal('tare').replace(/[^0-9.-]/g,'') : 0) || 0;
-      const netNum  = Number(getVal('net') ? getVal('net').replace(/[^0-9.-]/g,'') : 0) || 0;
-      const grossNum = tareNum + netNum;
-      return {
-        firmName: getVal('firmName'),
-        firmAddress: getVal('firmAddress'),
-        firmPhone: getVal('firmPhone'),
-        rstNo: getVal('rstNo'),
-        vehicleNo: getVal('vehicleNo'),
-        vehicleType: getVal('vehicleType'),
-        partyName: getVal('partyName'),
-        address: getVal('address'),
-        item: getVal('item'),
-        gross: `${Number(grossNum).toFixed(0)} Kg`,
-        grossDate: getVal('grossDate'),
-        grossTime: getVal('grossTime'),
-        tare: `${Number(tareNum).toFixed(0)} Kg`,
-        tareDate: getVal('tareDate'),
-        tareTime: getVal('tareTime'),
-        net: `${Number(netNum).toFixed(0)} Kg`,
-        amount: '',
-        charges: getVal('charges'),
-        phone: getVal('phone'),
-        savedAt: new Date().toISOString()
-      };
-    }
-    window.collectForm = collectForm;
+        if (tareEl) tareEl.addEventListener('input', recomputeGross);
+        if (netEl) netEl.addEventListener('input', recomputeGross);
+        window.addEventListener('load', recomputeGross);
 
-    // render saved slips table
-    async function refreshList(){
-      try {
-        const from = getVal('filterFrom') || '';
-        const to = getVal('filterTo') || '';
-        const q = new URLSearchParams({ from, to });
-        const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
-        const json = await resp.json();
-        if(!json || !Array.isArray(json.slips)){
-          if(window._slips && window._slips.length) renderSlipsTable(window._slips);
-          return;
+        function getVal(id) {
+            const el = document.getElementById(id);
+            if (!el) return '';
+            return el.value;
         }
-        const slips = json.slips.slice();
-        slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-        window._slips = slips;
-        renderSlipsTable(slips);
-      } catch(err){
-        console.warn('refreshList failed', err);
-        if(window._slips && window._slips.length) renderSlipsTable(window._slips);
-      }
+
+        /* createPdfBlob with 10in x 4in output */
+        async function createPdfBlob(data){
+  // escape helper (same behavior as before)
+    // helper: make numeric zeros slashed (inside-circle style)
+  function prettyZero(val) {
+    const s = String(val || '').trim();
+    // remove "Kg" ya "Rs" temporarily for check
+    const core = s.replace(/[^0-9.]/g, '');
+    // agar empty ya zero hai
+    if (core !== '' && Number(core) === 0) {
+      // special slashed zero character — looks like 0 with slash INSIDE
+      return s.replace(/0/g, ‘0’); // Unicode U+2300 diameter symbol (inside slash)
     }
-    window.refreshList = refreshList;
+    return s;
+  }
 
-    function renderSlipsTable(slips){
-      const tbody = $('recordsBody');
-      tbody.innerHTML = '';
-      let totalAmt = 0;
-      slips.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-      slips.forEach(s=>{
-        const tr = document.createElement('tr');
-        const displaySr = s.serial ? s.serial : String(Number(s.id||0)).padStart(13,'0');
-        const date = s.createdAt ? (new Date(s.createdAt)).toLocaleString() : '-';
-        tr.innerHTML = `<td style="width:120px">${displaySr}</td>
-          <td style="width:120px">${date}</td>
-          <td style="width:140px">${esc(s.vehicleNo||'-')}</td>
-          <td style="width:200px">${'Saved'}</td>
-          <td style="width:150px" id="amountCell_${s.id}">${ s.amount !== undefined && s.amount !== null && s.amount !== '' ? `<span>₹ ${Number(s.amount).toFixed(2)}</span>` : `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>` }</td>
-          <td style="width:160px"><button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button></td>`;
-        tbody.appendChild(tr);
-        totalAmt += Number(s.amount || 0);
-      });
-      $('totalAmount').textContent = totalAmt.toFixed(2);
-      window._slips = slips;
 
-      // attach handlers
-      tbody.querySelectorAll('button[data-action="download"]').forEach(b=>{
-        b.onclick = (e)=>{
-          const id = Number(e.currentTarget.dataset.id);
-          const row = (window._slips || []).find(x=>x.id === id);
-          if(row && row.filepath) window.open(row.filepath,'_blank');
-          else alert('No file link available for this record.');
-        };
-      });
+    const replacements = {
+    '{{firmName}}': esc(data.firmName || ''),
+    '{{firmAddress}}': esc(data.firmAddress || ''),
+    '{{firmPhone}}': esc(prettyZero(data.firmPhone || '')),
+    '{{rstNo}}': esc(prettyZero(data.rstNo || '')),
+    '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
+    '{{vehicleType}}': esc(data.vehicleType || ''),
+    '{{partyName}}': esc(data.partyName || ''),
+    '{{address}}': esc(prettyZero(data.address || ‘’)),
+    '{{item}}': esc(prettyZero(data.item || '')),
+    '{{gross}}': esc(prettyZero(String(data.gross || '').replace(/\s*Kg$/i,''))),
+    '{{grossDate}}': esc(prettyZero(data.grossDate || ‘’)),
+    '{{grossTime}}': esc(prettyZero(data.grossTime || ‘’)),
+    '{{tare}}': esc(prettyZero(String(data.tare || '').replace(/\s*Kg$/i,''))),
+    '{{tareDate}}': esc(prettyZero(data.tareDate || ‘’)),
+    '{{tareTime}}': esc(prettyZero(data.tareTime || ‘’)),
+    '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
+    '{{amount}}': esc(prettyZero(data.amount || '')),
+    '{{charges}}': esc(prettyZero(data.charges || '')),
+    '{{phone}}': esc(prettyZero(data.phone || ''))
+  };
+  // render template (unchanged)
+  let rendered = TEMPLATE_HTML;
+  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
 
-      (window._slips || []).forEach(s=>{
-        const btn = document.getElementById(`amt_btn_${s.id}`);
-        if(btn){
-          btn.addEventListener('click', async (ev)=>{
-            const id = Number(ev.currentTarget.dataset.id);
-            const input = document.getElementById(`amt_in_${id}`);
-            const val = input.value;
-            if(val === '' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
-            try{
-              const resp = await fetch(AMOUNT_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) });
-              const j = await resp.json();
-              if(j && j.ok){ alert('Amount saved.'); await refreshList(); } else alert('Could not save amount (server).');
-            }catch(err){ console.error(err); alert('Error saving amount.'); }
-          });
+  document.getElementById('slipContent').innerHTML = rendered;
+  slipOutput.style.display = 'block';
+
+  // Ensure slipInner has the desired physical width (10in) but allow height to size automatically
+  const slipInner = document.getElementById('slipInner');
+  slipInner.style.width = '20in';
+  slipInner.style.height = '10in';           // let content determine height
+  slipInner.style.background = '#fff';
+  slipInner.style.boxSizing = 'border-box';
+  slipInner.style.padding = '12px';
+
+  // Render to canvas with a scale factor for crispness
+  const scaleFactor = 2;
+  const canvas = await html2canvas(slipInner, { scale: scaleFactor, useCORS:true, allowTaint:false, backgroundColor: null });
+
+  // Convert canvas to image
+  const imgData = canvas.toDataURL('image/png');
+
+  // Compute PDF physical size based on canvas aspect ratio so nothing is cropped
+  // Desired PDF width in mm (10 in)
+  const widthMM = 10 * 25.4; // 254 mm
+
+  // canvas.width/height are in pixels at the chosen scale
+  const canvasWidthPx = canvas.width;
+  const canvasHeightPx = canvas.height;
+
+  // Compute height in mm preserving aspect ratio
+  const heightMM = (canvasHeightPx / canvasWidthPx) * widthMM;
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'mm', format:[widthMM, heightMM], orientation:'landscape' });
+
+  // Add the image to fill the page exactly
+  pdf.addImage(imgData, 'PNG', 0, 0, widthMM, heightMM);
+
+  // hide preview
+  slipOutput.style.display = 'none';
+
+  // return blob as before
+  return pdf.output('blob');
+}
+
+
+        /* validation + creation flow */
+        function clearValidation() {
+            requiredMap.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) el.classList.remove('err');
+                const errNode = document.getElementById(item.err);
+                if (errNode) errNode.style.display = 'none';
+            });
+            serverError.style.display = 'none';
+            serverError.textContent = '';
         }
-      });
-    }
-    window.renderSlipsTable = renderSlipsTable;
 
-    // restore client-side slips (if any)
-    try {
-      const clientList = JSON.parse(localStorage.getItem('client_slips_v1') || 'null');
-      if(Array.isArray(clientList) && clientList.length){ window._slips = clientList.concat(window._slips || []); renderSlipsTable(window._slips); }
-    } catch(e){ /* ignore */ }
+        function validateAll() {
+            clearValidation();
+            let ok = true;
+            for (const item of requiredMap) {
+                const el = document.getElementById(item.id);
+                const errNode = document.getElementById(item.err);
+                if (!el) {
+                    if (errNode) errNode.style.display = 'block';
+                    ok = false;
+                    continue;
+                }
+                const val = String(el.value || '').trim();
+                if (item.id === 'gross') {
+                    if (!val || !val.match(/[0-9]/)) {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                } else {
+                    if (val === '') {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                }
+            }
+            return ok;
+        }
 
-    // persist client-side slips periodically
-    setInterval(()=> {
-      try { localStorage.setItem('client_slips_v1', JSON.stringify(window._slips || [])); } catch(e){}
-    }, 2000);
+        createBtn.addEventListener('click', async () => {
+            serverError.style.display = 'none';
+            serverError.textContent = '';
+            if (!isLoggedIn) {
+                alert('Please login first');
+                return;
+            }
+            if (!validateAll()) {
+                const firstErr = requiredMap.find(i => {
+                    const el = document.getElementById(i.id);
+                    return el && el.classList.contains('err');
+                });
+                if (firstErr) {
+                    document.getElementById(firstErr.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+            const rec = collectForm();
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                const pdfBlob = await createPdfBlob(rec);
+                const fd = new FormData();
+                const filename = `slip_${Date.now()}.pdf`;
+                fd.append('pdf', pdfBlob, filename);
+                fd.append('vehicleNo', rec.vehicleNo || '');
+                fd.append('rstNo', rec.rstNo || '');
+                fd.append('createdAt', new Date().toISOString());
+                fd.append('amount', rec.amount || '');
+                const resp = await fetch(CREATE_ENDPOINT, {
+                    method: 'POST',
+                    body: fd
+                });
+                let json;
+                try {
+                    json = await resp.json();
+                } catch (e) {
+                    const txt = await resp.text();
+                    console.error('Server returned non-JSON:', txt);
+                    serverError.style.display = 'block';
+                    serverError.textContent = 'Server returned non-JSON response. See console.';
+                    alert('Server error: check console.');
+                    createBtn.disabled = false;
+                    createBtn.textContent = 'Create Slip';
+                    return;
+                }
+                if (resp.ok && json && json.ok) {
+                    alert('Slip created on server (ID: ' + json.id + '). PDF saved.');
+                    clearForm();
+                    await refreshList();
+                } else {
+                    const message = (json && (json.error || json.message)) ? String(json.error || json.message) : 'Unknown server error';
+                    serverError.style.display = 'block';
+                    serverError.textContent = 'Server error: ' + message;
+                    alert('Server error: ' + message + '. See console.');
+                }
+            } catch (err) {
+                console.error('Create exception:', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'Client error: ' + (err.message || err);
+                alert('Error creating slip: ' + (err.message || err) + '. Check console.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Slip';
+            }
+        });
 
-    // expose serial helpers
-    window.getNextSerial13 = getNextSerial13;
-    window.formatSerial13 = formatSerial13;
+        function collectForm() {
+            const tareNum = Number(getVal('tare')) || 0;
+            const netNum = Number(getVal('net')) || 0;
+            const grossNum = tareNum + netNum;
+            return {
+                firmName: getVal('firmName'),
+                firmAddress: getVal('firmAddress'),
+                firmPhone: getVal('firmPhone'),
+                rstNo: getVal('rstNo'),
+                vehicleNo: getVal('vehicleNo'),
+                vehicleType: getVal('vehicleType'),
+                partyName: getVal('partyName'),
+                address: getVal('address'),
+                item: getVal('item'),
+                gross: `${Number(grossNum).toFixed(0)} Kg`,
+                grossDate: getVal('grossDate'),
+                grossTime: getVal('grossTime'),
+                tare: `${Number(tareNum).toFixed(0)} Kg`,
+                tareDate: getVal('tareDate'),
+                tareTime: getVal('tareTime'),
+                net: `${Number(netNum).toFixed(0)} Kg`,
+                amount: '',
+                charges: getVal('charges'),
+                phone: getVal('phone'),
+                savedAt: new Date().toISOString()
+            };
+        }
 
-    // hide form/dashboard initially
-    if($('formCard')) $('formCard').style.display = 'none';
-    if($('dashboardCard')) $('dashboardCard').style.display = 'none';
+        function clearForm() {
+            const ids = ['firmName', 'firmAddress', 'rstNo', 'vehicleNo', 'vehicleType', 'partyName', 'address', 'item', 'gross', 'grossDate', 'grossTime', 'tare', 'tareDate', 'tareTime', 'net', 'charges', 'phone'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            clearValidation();
+        }
 
-    // wire applyFilter button
-    const applyFilterBtn = $('applyFilter');
-    if(applyFilterBtn) applyFilterBtn.addEventListener('click', ()=> refreshList());
+        /* refreshList/renderSlipsTable unchanged */
+        async function refreshList() {
+            try {
+                const from = getVal('filterFrom') || '';
+                const to = getVal('filterTo') || '';
+                const q = new URLSearchParams({ from, to });
+                const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+                const json = await resp.json();
+                if (!json || !Array.isArray(json.slips)) {
+                    console.error('Invalid slips response', json);
+                    return;
+                }
+                const slips = json.slips.slice();
+                slips.sort((a, b) => {
+                    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+                });
+                renderSlipsTable(slips);
+            } catch (err) {
+                console.error('refreshList', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'List load error: ' + (err.message || err);
+            }
+        }
 
-  }); // DOMContentLoaded
+        function renderSlipsTable(slips) {
+            recordsBody.innerHTML = '';
+            let totalAmt = 0;
+            slips.sort((a, b) => {
+                if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+            });
+            slips.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="width:60px">${s.id}</td>
+                    <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
+                    <td style="width:140px">${s.vehicleNo || '-'}</td>
+                    <td style="width:200px">${s.filename ? `<a href="${s.filepath}" target="_blank">View PDF</a>` : '-'}</td>
+                    <td style="width:150px" id="amountCell_${s.id}">
+                        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
+                            `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
+                            `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+                             <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+                        }
+                    </td>
+                    <td style="width:160px">
+                        <button class="btn btn-ghost" data-id="${s.id}" data-action="download">Download</button>
+                    </td>
+                `;
+                recordsBody.appendChild(tr);
+                totalAmt += Number(s.amount || 0);
+            });
+            totalAmountEl.textContent = totalAmt.toFixed(2);
+            window._slips = slips;
 
-})(); // IIFE
-</script>
+            recordsBody.querySelectorAll('button[data-action="download"]').forEach(b => {
+                b.onclick = (e) => {
+                    const id = Number(e.currentTarget.dataset.id);
+                    const row = (window._slips || []).find(x => x.id === id);
+                    if (row && row.filepath) {
+                        window.open(row.filepath, '_blank');
+                    }
+                };
+            });
 
+            (window._slips || []).forEach(s => {
+                const btn = document.getElementById(`amt_btn_${s.id}`);
+                if (btn) {
+                    btn.addEventListener('click', async (ev) => {
+                        const id = Number(ev.currentTarget.dataset.id);
+                        const input = document.getElementById(`amt_in_${id}`);
+                        const val = input.value;
+                        if (val === '' || isNaN(Number(val))) {
+                            alert('Enter valid amount');
+                            return;
+                        }
+                        try {
+                            const resp = await fetch(AMOUNT_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id, amount: Number(val) })
+                            });
+                            const j = await resp.json();
+                            if (j && j.ok) {
+                                alert('Amount saved.');
+                                await refreshList();
+                            } else {
+                                alert('Could not save amount (server).');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error saving amount.');
+                        }
+                    });
+                }
+            });
+        }
+
+        document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+        document.getElementById('closePreviewBtn').addEventListener('click', () => {
+            const slipOutput = document.getElementById('slipOutput');
+            slipOutput.style.display = 'none';
+        });
+
+        window.addEventListener('load', () => {
+            formCard.style.display = 'none';
+            dashboardCard.style.display = 'none';
+            const slipOutput = document.getElementById('slipOutput');
+            slipOutput.style.display = 'none';
+            recomputeGross();
+        });
+    </script>
 </body>
 </html>
