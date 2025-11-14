@@ -489,11 +489,17 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         }
         /* pretty zero helper (keeps previous behaviour for look) */
         function prettyZero(val) {
-            const s = String(val || '').trim();
-            const core = s.replace(/[^0-9.]/g, '');
-            if (core !== '' && Number(core) === 0) return s.replace(/0/g, 'Ø');
-            return s;
-        }
+    const s = String(val || '').trim();
+    const core = s.replace(/[^0-9.]/g, '');
+
+    if (core !== '' && Number(core) === 0) {
+        // Normal 0 ke width me hi slash aa jayega
+        return s.replace(/0/g, '0\u0338');
+    }
+
+    return s;
+}
+
         /* render template into slipContent (no pdf) */
         function renderSlipToDom(data) {
             const replacements = {
