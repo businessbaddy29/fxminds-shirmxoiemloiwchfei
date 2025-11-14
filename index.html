@@ -185,33 +185,30 @@ const TEMPLATE_HTML = `
 
   <div style="width:100%;box-sizing:border-box;padding:4px 0 8px 0;display:flex;justify-content:center;align-items:flex-start;">
     <div style="display:inline-block;text-align:center;max-width:90%;box-sizing:border-box;word-break:break-word;">
-      <div style="font-size:36px;font-weight:700;line-height:1;white-space:normal;">{{firmName}}</div>
-      <div style="font-size:14px;line-height:1;margin-top:6px;white-space:normal;">{{firmAddress}}</div>
-      <div style="font-size:14px;line-height:1;margin-top:6px;white-space:normal;">{{firmPhone}}</div>
+      <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
+                            <span style="font-size:45px;">{{firmAddress}}</span>
+                                 <span style="font-size:45px;">{{firmPhone}}</span>
     </div>
   </div>
 
   <pre style='margin:0;padding:6px;white-space:pre;font-family:"Courier New",monospace;line-height:1.15;font-size:13px;'>
 
-................................................................................................
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
+<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-RST No.     : <span class="shortnum">{{rstNo}}</span>                                                Vehicle No. : <span class="shortnum">{{vehicleNo}}</span>
-Vh l typ.   : <span class="shortnum">{{vehicleType}}</span>                                         Party name  : {{partyName}}
-Address     : {{address}}                                               Item        : <span class="shortnum">{{item}}</span>
+<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
+<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
+<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">Charges : Rs {{charges}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-.................................................................................................
+                                            <span style="font-size:45px;">Phone : {{phone}}</span>
 
-Gross   :      <span class="num">{{gross}}</span>  Kg        Date : {{grossDate}}                      Time :    {{grossTime}}
-Tare    :      <span class="num">{{tare}}</span>  Kg        Date : {{tareDate}}                      Time :    {{tareTime}}
-Net     :      <span class="num">{{net}}</span>  Kg
-
-..................................................................................................
-Charges : Rs <span class="shortnum">{{charges}}</span>
-..................................................................................................
-
-                                            Phone : <span class="shortnum">{{phone}}</span>
-
-                                           Thanks for your visit
+                                         <span style="font-size:45px;">Thanks for your visit</span>
   </pre>
 </div>
 `;
