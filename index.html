@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Final Fit) + Vehicle Filter</title>
+  <title>Secure Slip — Create Slip (Final Fit) + Vehicle Filter + Amt fix</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -205,11 +205,11 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
@@ -480,17 +480,18 @@ function renderSlipsTable(slips) {
   recordsBody.innerHTML = '';
   let totalAmt = 0;
   slips.forEach(s=>{
+    const safeId = String(s.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td style="width:60px">${s.id}</td>
+      <td style="width:60px">${safeId}</td>
       <td style="width:180px">${(new Date(s.createdAt)).toLocaleString()}</td>
       <td style="width:140px">${s.vehicleNo || '-'}</td>
       <td style="width:120px">${s.filename ? 'Saved' : '-'}</td>
-      <td style="width:150px" id="amountCell_${s.id}">
+      <td style="width:150px" id="amountCell_${safeId}">
         ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
           `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
-          `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
-           <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+          `<input type="number" step="0.01" min="0" id="amt_in_${safeId}" class="amount-input" placeholder="0.00">
+           <button class="btn btn-blue amount-submit" id="amt_btn_${safeId}" data-id="${safeId}">Submit</button>`
         }
       </td>
       <td style="width:160px">
@@ -504,13 +505,17 @@ function renderSlipsTable(slips) {
   totalCountEl.textContent = (slips || []).length;
   window._slips = slips;
   (window._slips || []).forEach(s => {
-    const btn = document.getElementById(`amt_btn_${s.id}`);
+    const safeId = String(s.id);
+    const btn = document.getElementById(`amt_btn_${safeId}`);
     if (btn) {
       btn.addEventListener('click', async (ev) => {
-        const id = Number(ev.currentTarget.dataset.id);
+        // FIX: preserve exact string id (don't coerce to Number) so element lookup matches
+        const id = ev.currentTarget.dataset.id;
         const input = document.getElementById(`amt_in_${id}`);
-        const val = input.value;
-        if (val === '' || isNaN(Number(val))) {
+        const val = input ? input.value : '';
+        // normalize (allow commas) then validate numeric
+        const norm = String(val || '').replace(/,/g,'').trim();
+        if (norm === '' || isNaN(Number(norm))) {
           alert('Enter valid amount');
           return;
         }
@@ -519,7 +524,7 @@ function renderSlipsTable(slips) {
           const resp = await fetch('/slip-server/update_amount.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, amount: Number(val) })
+            body: JSON.stringify({ id, amount: Number(norm) })
           }).catch(()=>null);
           if (resp) {
             const j = await resp.json().catch(()=>null);
@@ -529,9 +534,9 @@ function renderSlipsTable(slips) {
               return;
             }
           }
-          // fallback: update local storage
+          // fallback: update local storage (match by id string)
           for (let i=0;i<window._slips.length;i++){
-            if (String(window._slips[i].id) === String(id)) { window._slips[i].amount = Number(val).toFixed(2); break; }
+            if (String(window._slips[i].id) === String(id)) { window._slips[i].amount = Number(norm).toFixed(2); break; }
           }
           persistLocalSlips();
           await refreshList();
