@@ -359,26 +359,35 @@ function renderSlipToDom(data){
   const chargesRaw = prettyZero(String(data.charges || ''));
   const phoneRaw = prettyZero(String(data.phone || ''));
 
+  // Ensure '0/' stays exactly as '0/' (do not strip the slash later).
+  // For safety, explicitly set final display variables:
+  const grossDisp   = stripDuplicateKg(grossRaw);
+  const tareDisp    = stripDuplicateKg(tareRaw);
+  const netDisp     = stripDuplicateKg(netRaw);
+  // charges must show "0/" when zero-like, otherwise show original cleaned text
+  const chargesDisp = (chargesRaw === '0/') ? '0/' : chargesRaw;
+  const phoneDisp   = phoneRaw;
+
   const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
     '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(phoneRaw),
+    '{{firmPhone}}': esc(phoneDisp),
     '{{rstNo}}': esc(prettyZero(String(data.rstNo || ''))),
     '{{vehicleNo}}': esc(prettyZero(String(data.vehicleNo || ''))),
     '{{vehicleType}}': esc(prettyZero(String(data.vehicleType || ''))),
     '{{partyName}}': esc(data.partyName || ''),
     '{{address}}': esc(data.address || ''),
     '{{item}}': esc(prettyZero(String(data.item || ''))),
-    '{{gross}}': esc(stripDuplicateKg(grossRaw)),
+    '{{gross}}': esc(grossDisp),
     '{{grossDate}}': esc(data.grossDate || ''),
     '{{grossTime}}': esc(data.grossTime || ''),
-    '{{tare}}': esc(stripDuplicateKg(tareRaw)),
+    '{{tare}}': esc(tareDisp),
     '{{tareDate}}': esc(data.tareDate || ''),
     '{{tareTime}}': esc(data.tareTime || ''),
-    '{{net}}': esc(stripDuplicateKg(netRaw)),
+    '{{net}}': esc(netDisp),
     '{{amount}}': esc(prettyZero(String(data.amount || ''))),
-    '{{charges}}': esc(chargesRaw),
-    '{{phone}}': esc(phoneRaw)
+    '{{charges}}': esc(chargesDisp),
+    '{{phone}}': esc(phoneDisp)
   };
 
   let rendered = TEMPLATE_HTML;
