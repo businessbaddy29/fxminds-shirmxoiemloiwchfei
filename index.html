@@ -215,12 +215,12 @@ const TEMPLATE_HTML = `
   </div>
 
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
 
 <span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
@@ -228,7 +228,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -239,7 +239,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 /* ===== replace existing SERVER_BASE / buildServerUrl / CREATE_ENDPOINT etc. with this block ===== */
 /* Server base: change to your real domain (no trailing slash) */
-const SERVER_BASE = 'https://skyblue-rabbit-646143.hostingersite.com/'; // <-- REPLACE yourdomain.com with your domain
+const SERVER_BASE = 'https://yourdomain.com/slip-server'; // <-- REPLACE yourdomain.com with your domain
 
 /* Endpoints (do not change the filenames unless your server files use different names) */
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
@@ -530,39 +530,69 @@ function renderSlipsTable(slips) {
     const btn = document.getElementById(`amt_btn_${safeId}`);
     if (btn) {
       btn.addEventListener('click', async (ev) => {
-        // FIX: preserve exact string id (don't coerce to Number) so element lookup matches
+        // FIXED handler logic:
+        // 1) try server update
+        // 2) if server ok -> refreshList()
+        // 3) if server fail -> update local array + persistLocalSlips() + renderSlipsTable(window._slips)
         const id = ev.currentTarget.dataset.id;
         const input = document.getElementById(`amt_in_${id}`);
         const val = input ? input.value : '';
-        // normalize (allow commas) then validate numeric
         const norm = String(val || '').replace(/,/g,'').trim();
         if (norm === '' || isNaN(Number(norm))) {
           alert('Enter valid amount');
           return;
         }
         try {
-          // try server update (if backend supports), otherwise update local
-          const resp = await fetch(AMOUNT_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, amount: Number(norm) })
-          }).catch(()=>null);
-          if (resp) {
-            const j = await resp.json().catch(()=>null);
-            if (j && j.ok) {
-              alert('Amount saved.');
-              await refreshList();
-              return;
+          // try server update
+          let serverWorked = false;
+          try {
+            const resp = await fetch(AMOUNT_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id, amount: Number(norm) }),
+              keepalive: true
+            });
+            if (resp && resp.ok) {
+              const j = await resp.json().catch(()=>null);
+              if (j && j.ok) serverWorked = true;
+            }
+          } catch(e) {
+            // network error -> serverWorked stays false
+            console.warn('server update error', e);
+          }
+
+          if (serverWorked) {
+            alert('Amount saved (server).');
+            await refreshList();
+            return;
+          }
+
+          // Server didn't work -> update local array only and re-render (do NOT call refreshList)
+          let updated = false;
+          for (let i=0;i<window._slips.length;i++){
+            if (String(window._slips[i].id) === String(id)) {
+              window._slips[i].amount = Number(norm).toFixed(2);
+              updated = true;
+              break;
             }
           }
-          // fallback: update local storage (match by id string)
-          for (let i=0;i<window._slips.length;i++){
-            if (String(window._slips[i].id) === String(id)) { window._slips[i].amount = Number(norm).toFixed(2); break; }
+          if (!updated) {
+            // if not found in current list, try to load from storage and update there
+            loadLocalSlips();
+            for (let i=0;i<window._slips.length;i++){
+              if (String(window._slips[i].id) === String(id)) {
+                window._slips[i].amount = Number(norm).toFixed(2);
+                updated = true;
+                break;
+              }
+            }
           }
           persistLocalSlips();
-          await refreshList();
+          // re-render the currently displayed list using the updated local array
+          renderSlipsTable(window._slips);
+          alert('Amount saved locally (server not reachable).');
         } catch (err) {
-          console.error(err);
+          console.error('Amount submit error', err);
           alert('Error saving amount.');
         }
       });
