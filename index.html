@@ -332,15 +332,10 @@ if(typeof createBtn !== 'undefined' && createBtn){
 
   
 /* prettyZero: return '0/' for any zero-like value, else cleaned string */
-function prettyZero(raw) {
-  if (raw === null || raw === undefined) return '';
-  const s = String(raw).trim();
-  if (s === '') return '';
-  if (s === '0/') return '0/';
-  if (s === '0' || /^0+(\.0+)?$/.test(s)) return '0/';
-  if (/^0(?:\.0+)?\s*[a-zA-Z%°]*$/i.test(s)) return '0/';
-  return s;
+function prettyZero(raw){
+  return String(raw); // ZERO को बिल्कुल नहीं बदलना
 }
+
 
 function stripDuplicateKg(s){
   if(!s) return s;
