@@ -268,24 +268,24 @@
         <div class="card" id="formCard" style="display:none;">
             <form id="slipForm" onsubmit="return false;">
                 <!-- Firm -->
-                <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
+                <label>Firm Name: <input type="text" id="firmName" value="" required></label>
                 <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
-                <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
+                <label>Firm Address: <input type="text" id="firmAddress" value="" required></label>
                 <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
                 <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
                 <div class="form-grid">
-                    <label>RST No: <input type="text" id="rstNo" value="101" required></label>
-                    <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
+                    <label>RST No: <input type="text" id="rstNo" value="" required></label>
+                    <label>Vehicle No: <input type="text" id="vehicleNo" value="" required></label>
                 </div>
                 <div class="form-grid">
-                    <label>Item: <input type="text" id="item" value="20MM" required></label>
-                    <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+                    <label>Item: <input type="text" id="item" value="" required></label>
+                    <label>Vehicle Type: <input type="text" id="vehicleType" value=""></label>
                     <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
                     <label>Address: <input type="text" id="address" placeholder="Enter Address (optional)"></label>
                 </div>
                 <div class="form-grid">
-                    <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
-                    <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
+                    <label>Gross (weight): <input type="text" id="gross" value=""></label>
+                    <label>Gross Date: <input type="text" id="grossDate" value=""></label>
                 </div>
                 <div class="time-row" style="margin-top:6px;">
                     <div style="flex:1">
@@ -296,12 +296,12 @@
                     </div>
                 </div>
                 <div class="form-grid">
-                    <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
-                    <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
+                    <label>Tare (weight): <input type="text" id="tare" value=""></label>
+                    <label>Tare Date: <input type="text" id="tareDate" value=""></label>
                 </div>
-                <label>Net: <input type="text" id="net" value="54980 Kg"></label>
+                <label>Net: <input type="text" id="net" value=""></label>
                 <label>Charges: Rs <input type="text" id="charges" value="0"></label>
-                <label>Phone: <input type="text" id="phone" value="123456"></label>
+                <label>Phone: <input type="text" id="phone" value=""></label>
                 <div class="controls">
                     <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
                     <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
@@ -361,18 +361,18 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -450,6 +450,13 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                     isLoggedIn = true;
                 }
             } catch (e) { /* ignore */ }
+            // Clear client-side stored slips to remove old local test/example data
+            try {
+                localStorage.removeItem('client_slips_v1');
+                // keep serial counter (slip_serial_counter_v1) unless you want to reset it explicitly
+                window._slips = [];
+                renderSlipsTable([]);
+            } catch (e) { /* ignore */ }
             updateUiForAuth();
             recomputeGross();
         });
@@ -478,7 +485,8 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             const tare = parseWeight(tareEl ? tareEl.value : 0);
             const net = parseWeight(netEl ? netEl.value : 0);
             const gross = tare + net;
-            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
+            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`.trim();
+            if (!grossEl.value || grossEl.value === '0 Kg') grossEl.value = '';
         }
         if (tareEl) tareEl.addEventListener('input', recomputeGross);
         if (netEl) netEl.addEventListener('input', recomputeGross);
@@ -489,16 +497,13 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         }
         /* pretty zero helper (keeps previous behaviour for look) */
         function prettyZero(val) {
-    const s = String(val || '').trim();
-    const core = s.replace(/[^0-9.]/g, '');
-
-    if (core !== '' && Number(core) === 0) {
-        // Normal 0 ke width me hi slash aa jayega
-        return s.replace(/0/g, '0\u0338');
-    }
-
-    return s;
-}
+            const s = String(val || '').trim();
+            const core = s.replace(/[^0-9.]/g, '');
+            if (core !== '' && Number(core) === 0) {
+                return s.replace(/0/g, '0\u0338');
+            }
+            return s;
+        }
 
         /* render template into slipContent (no pdf) */
         function renderSlipToDom(data) {
@@ -520,7 +525,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
                 '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
                 '{{amount}}': esc(prettyZero(data.amount || '')),
-                '{{charges}}': esc(prettyZero(data.charges === '' ? '0' : data.charges)), // use slashed zero correctly
+                '{{charges}}': esc(prettyZero(data.charges === '' ? '0' : data.charges)),
                 '{{phone}}': esc(prettyZero(data.phone || ''))
             };
             let rendered = TEMPLATE_HTML;
@@ -531,27 +536,20 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         function fitSlipPreview() {
             // wait for DOM/render
             requestAnimationFrame(() => {
-                // the real printed slip area has width 10in; ensure slipContent (inner) has that width
                 const slipDom = slipContent.firstElementChild; // outer div from TEMPLATE_HTML
                 if (!slipDom) return;
                 slipDom.style.boxSizing = 'border-box';
-                // reset transform
                 slipContent.style.transform = 'none';
                 slipContent.style.width = 'auto';
-                // measure available space inside slipInner
                 const availableW = slipInner.clientWidth - 24; // padding margin
                 const availableH = slipOutput.clientHeight - document.getElementById('previewToolbar').clientHeight - 40;
-                // measure the slip natural size (10in width)
-                // temporarily ensure slipDom has the correct CSS width of 10in
                 slipDom.style.width = '10in';
-                // force reflow
                 const naturalW = slipDom.offsetWidth;
                 const naturalH = slipDom.offsetHeight;
                 const scaleW = availableW / naturalW;
                 const scaleH = availableH / naturalH;
                 const scale = Math.min(1, scaleW, scaleH);
                 slipContent.style.transform = `scale(${scale})`;
-                // center it
                 slipContent.style.width = `${naturalW}px`;
                 slipContent.style.height = `${naturalH}px`;
             });
@@ -690,7 +688,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             if (j && j.ok) {
               try { await refreshList(); } catch (e) { console.warn('refreshList failed after save', e); }
             } else {
-              // server returned non-ok — still attempt refreshList to see server state
               try { await refreshList(); } catch (e) { /* ignore */ }
             }
             return j;
