@@ -215,7 +215,7 @@ const TEMPLATE_HTML = `
   </div>
 
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
@@ -228,7 +228,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -236,6 +236,15 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
   </pre>
 </div>
 `;
+
+/* ===== replace existing SERVER_BASE / buildServerUrl / CREATE_ENDPOINT etc. with this block ===== */
+/* Server base: change to your real domain (no trailing slash) */
+const SERVER_BASE = 'https://skyblue-rabbit-646143.hostingersite.com/'; // <-- REPLACE yourdomain.com with your domain
+
+/* Endpoints (do not change the filenames unless your server files use different names) */
+const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
+const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
+const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php'; // optional: implement if needed
 
 /* settings & refs */
 const USERNAME = "FxMiNds";
@@ -427,7 +436,7 @@ async function refreshList() {
     if (vehicle) q.set('vehicle', vehicle);
 
     // attempt server fetch
-    const resp = await fetch('/slip-server/get_slips.php?' + q.toString());
+    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
     const json = await resp.json().catch(() => null);
 
     let slips = [];
@@ -533,7 +542,7 @@ function renderSlipsTable(slips) {
         }
         try {
           // try server update (if backend supports), otherwise update local
-          const resp = await fetch('/slip-server/update_amount.php', {
+          const resp = await fetch(AMOUNT_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, amount: Number(norm) })
@@ -562,9 +571,6 @@ function renderSlipsTable(slips) {
 }
 
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
-
-/* utility functions */
-function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
 
 /* local storage helpers (unchanged) */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
