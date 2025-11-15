@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Secure Slip — Create Slip (Preview center & fit)</title>
+  <title>Secure Slip — Create Slip (Final)</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -31,7 +31,7 @@
     #serverError{margin-top:10px;color:#b33;font-weight:700;display:none}
     .filterSummary{font-weight:700;color:#07304b;text-align:right;margin-left:12px}
 
-    /* Preview overlay */
+    /* ===== Slip preview overlay ===== */
     #slipOutput{
       display:none;
       position:fixed;
@@ -56,7 +56,6 @@
       border-top-left-radius:8px;
       border-top-right-radius:8px;
     }
-    /* slipInner is the viewport: allow auto scroll only if unavoidable */
     #slipInner{
       background:#fff;
       padding:18px;
@@ -66,19 +65,23 @@
       font-family:"Courier New",monospace;
       box-sizing:border-box;
       display:flex;
-      align-items:flex-start;           /* start, we will control centering with margin on inner content */
+      align-items:flex-start;
       justify-content:center;
       height: calc(94vh - 56px);
-      overflow:auto;
+      overflow:auto; /* allow scroll only if extremely tall */
     }
-    /* Slip content: transform-origin TOP CENTER for correct vertical centering calculations */
     #slipContent{ color:#000; transform-origin: top center; display:inline-block; white-space:normal; }
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
-    @media print{
-      body *{visibility:hidden!important}
-      #slipOutput,#slipOutput *{visibility:visible!important}
-      #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:10mm!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
-      #previewToolbar{display:none!important}
+
+    /* Print: make slip full-width (10in) and visible only */
+    @media print {
+      body * { visibility: hidden !important; }
+      #slipOutput, #slipOutput * { visibility: visible !important; }
+      #slipOutput { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; background:#fff !important; box-shadow: none !important; overflow: visible !important; }
+      #previewToolbar { display: none !important; }
+      /* Remove transforms for print so PDF/Printer gets natural 10in width */
+      #slipContent { transform: none !important; width: 10in !important; margin: 0 !important; }
+      /* ensure page margins handled by browser print dialog */
     }
   </style>
 </head>
@@ -87,8 +90,8 @@
     <!-- LOGIN -->
     <div class="card loginBox" id="loginBox">
       <h2>Login</h2>
-      <input id="username" placeholder="User ID" autocomplete="off"/>
-      <input id="password" placeholder="Password" type="password" autocomplete="off"/>
+      <input id="username" placeholder="User ID" autocomplete="off" />
+      <input id="password" placeholder="Password" type="password" autocomplete="off" />
       <button id="loginBtn" class="btn btn-blue">Login</button>
       <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
     </div>
@@ -184,7 +187,7 @@
     </div>
   </div>
 
-  <!-- Slip preview overlay -->
+  <!-- Slip preview overlay (used for rendering only) -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
@@ -196,7 +199,7 @@
   </div>
 
 <script>
-/* TEMPLATE unchanged */
+/* TEMPLATE (kept same as your original) */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
@@ -204,7 +207,7 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
@@ -213,9 +216,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -224,11 +227,12 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 </div>
 `;
 
-/* Settings */
+/* Settings & DOM refs */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
+let isLoggedIn = false;
+window._slips = [];
 
-/* DOM refs */
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const loginBox = document.getElementById('loginBox');
@@ -244,10 +248,7 @@ const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
 
-let isLoggedIn = false;
-window._slips = [];
-
-/* util */
+/* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
 function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
@@ -257,24 +258,23 @@ loginBtn.addEventListener('click', () => {
   const u = document.getElementById('username').value;
   const p = document.getElementById('password').value;
   if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); }
-  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
+  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); }
 });
-logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
-
+logoutBtn.addEventListener('click', () => { setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
 function setLoggedIn(flag){
   isLoggedIn = !!flag;
-  try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){}
+  try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); }catch(e){}
   if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); }
   else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; }
 }
 
-/* clear old storage on load (per request) & restore login flag */
+/* on load: purge old client keys (as requested) and restore login flag if present */
 window.addEventListener('load', ()=>{
   try{ localStorage.removeItem('client_slips_v1'); localStorage.removeItem('slip_serial_counter_v1'); }catch(e){}
   try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
 });
 
-/* collect form */
+/* collectForm */
 function collectForm(){
   const tareNum = parseWeight(getVal('tare'));
   const netNum = parseWeight(getVal('net'));
@@ -302,10 +302,10 @@ function collectForm(){
   };
 }
 
-/* persistence */
+/* local serial & persistence */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
+function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r ? JSON.parse(r) : []; }catch(e){ window._slips = []; } }
 
 function addLocalSlipRecord(rec){
   try{
@@ -319,7 +319,7 @@ function addLocalSlipRecord(rec){
   }catch(e){ console.error('addLocalSlipRecord error', e); }
 }
 
-/* render preview template */
+/* render template to DOM */
 function renderSlipToDom(data){
   const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
@@ -347,65 +347,56 @@ function renderSlipToDom(data){
   slipContent.innerHTML = rendered;
 }
 
-/* NEW: improved fit that centers vertically + horizontally and avoids cut */
-let lastFit = { w:0, h:0, scale:1 };
+/* robust fit algorithm */
 function fitSlipPreview() {
   requestAnimationFrame(() => {
     const slipDom = slipContent.firstElementChild;
     if (!slipDom) return;
-    // ensure width 10in for natural dimensions
+
     slipDom.style.boxSizing = 'border-box';
     slipDom.style.width = '10in';
 
-    // natural size
     const naturalRect = slipDom.getBoundingClientRect();
     const naturalW = naturalRect.width || (96 * 10);
     const naturalH = naturalRect.height || 800;
 
-    // available area inside slipOutput (account for previewToolbar)
     const outRect = slipOutput.getBoundingClientRect();
     const toolbar = document.getElementById('previewToolbar');
     const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 56;
     const availableW = Math.max(120, outRect.width - 36);
     const availableH = Math.max(120, outRect.height - toolbarH - 36);
 
-    // compute scale (with safety)
     const scaleW = availableW / naturalW;
     const scaleH = availableH / naturalH;
     const rawScale = Math.min(1, scaleW, scaleH);
-    const safetyFactor = 0.975;
-    const scale = Math.max(0.4, rawScale * safetyFactor); // avoid too tiny
+    const safetyFactor = 0.95;
+    const scale = Math.max(0.45, rawScale * safetyFactor);
 
-    // apply transform-origin top center to allow centering by margin
+    // apply transform and center vertically by margin
     slipContent.style.transformOrigin = 'top center';
     slipContent.style.transform = `scale(${scale})`;
     slipContent.style.width = `${naturalW}px`;
     slipContent.style.height = `${naturalH}px`;
 
-    // vertically center scaled content by setting margin-top on slipContent's parent area
+    // vertically center by calculating scaled height and applying margin-top
     const scaledH = naturalH * scale;
     const extraSpace = Math.max(0, availableH - scaledH);
-    // apply top margin so content appears vertically centered inside slipInner
     slipContent.style.marginTop = `${Math.round(extraSpace / 2)}px`;
-
-    lastFit = { w: availableW, h: availableH, scale };
   });
 }
 
-/* debounce resize */
+/* debounce resize and observer to refit */
 let resizeTimer = null;
 window.addEventListener('resize', () => {
   if (resizeTimer) clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => { fitSlipPreview(); resizeTimer = null; }, 80);
 });
-
-/* observe DOM changes inside slipContent and re-fit */
 const mo = new MutationObserver(() => { fitSlipPreview(); });
-mo.observe(slipContent, { childList: true, subtree: true });
+mo.observe(slipContent, { childList:true, subtree:true });
 
-/* validation basic */
+/* validation */
 function validateAll(){
-  const required = ['firmName','firmAddress','rstNo','vehicleNo','item'];
+  const required=['firmName','firmAddress','rstNo','vehicleNo','item'];
   let ok=true;
   required.forEach(id=>{
     const el=document.getElementById(id);
@@ -414,26 +405,27 @@ function validateAll(){
   return ok;
 }
 
-/* create behavior: local-only add + preview */
+/* create handler */
 createBtn.addEventListener('click', async () => {
   if (!isLoggedIn) { alert('Please login first'); return; }
   if (!validateAll()) { alert('Please fill required fields'); return; }
   const rec = collectForm();
   addLocalSlipRecord(rec);
-
   renderSlipToDom(rec);
   slipOutput.style.display = 'block';
-  // clear previous margin-top
   slipContent.style.marginTop = '0px';
-  // fit after a small delay so fonts settle
-  setTimeout(() => fitSlipPreview(), 90);
+  setTimeout(() => fitSlipPreview(), 110);
 });
 
-/* print & close */
-printPreviewBtn.addEventListener('click', () => window.print());
-closePreviewBtn.addEventListener('click', () => { slipOutput.style.display = 'none'; });
+/* print & close handlers */
+printPreviewBtn.addEventListener('click', () => {
+  // force a momentary re-render to ensure we print natural size (print CSS will remove transform)
+  // small delay gives browser time to apply @media print styles
+  setTimeout(() => window.print(), 80);
+});
+closePreviewBtn.addEventListener('click', () => { slipOutput.style.display='none'; });
 
-/* list/filter local-only */
+/* list/filter + amount submit (local-only) */
 function refreshList(){ loadLocalSlips(); applyFiltersAndRender(window._slips.slice()); }
 function applyFiltersAndRender(slips){
   const fromVal=document.getElementById('filterFrom').value||'';
@@ -460,7 +452,7 @@ function applyFiltersAndRender(slips){
 }
 
 function renderSlipsTable(slips){
-  recordsBody.innerHTML = '';
+  recordsBody.innerHTML='';
   slips.forEach(s=>{
     const tr=document.createElement('tr');
     tr.innerHTML = `
@@ -485,9 +477,9 @@ function renderSlipsTable(slips){
     const btn=document.getElementById(`amt_btn_${s.id}`);
     if(btn){
       btn.addEventListener('click', async (ev)=>{
-        const id=ev.currentTarget.dataset.id;
-        const input=document.getElementById(`amt_in_${id}`);
-        const val=input.value;
+        const id = ev.currentTarget.dataset.id;
+        const input = document.getElementById(`amt_in_${id}`);
+        const val = input.value;
         if(val==='' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
         input.disabled=true; btn.disabled=true;
         try{
@@ -504,18 +496,20 @@ function renderSlipsTable(slips){
 
 document.getElementById('applyFilter').addEventListener('click', ()=> refreshList());
 
-/* local storage helpers */
+/* localStorage helpers (persist only client data) */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips=r?JSON.parse(r):[]; }catch(e){ window._slips=[]; } }
-function generateSerial(){ try{ const key='slip_serial_counter_v1'; let v=Number(localStorage.getItem(key)||'0'); v=v+1; localStorage.setItem(key,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
+function loadLocalSlips(){ try{ const r = localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
+
+/* generateSerial duplicate safe */
+function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 
 /* small mutation observer to schedule fit after rendering */
-let fitTimeout = null;
-function scheduleFit(){ if(fitTimeout) clearTimeout(fitTimeout); fitTimeout = setTimeout(()=>{ fitSlipPreview(); fitTimeout = null; }, 120); }
+let fitTimeout=null;
+function scheduleFit(){ if(fitTimeout) clearTimeout(fitTimeout); fitTimeout=setTimeout(()=>{ fitSlipPreview(); fitTimeout=null; },120); }
 const mo2 = new MutationObserver(()=> scheduleFit());
 mo2.observe(slipContent, { childList:true, subtree:true });
 
-/* initial */
+/* initial render */
 refreshList();
 </script>
 </body>
