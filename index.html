@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Final Fit) + Normalize ASCII ZERO</title>
+  <title>Secure Slip — Create Slip (Final Fit) + Vehicle Filter + Amt fix</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -56,10 +56,10 @@
       color:#000;
       font-family:"Courier New",monospace;
       box-sizing:border-box;
-      position:relative;
+      position:relative;        /* required for absolute centering child */
       width:100%;
       height:calc(94vh - 56px);
-      overflow:hidden;
+      overflow:hidden;         /* IMPORTANT: hide scrollbars */
       display:block;
     }
     /* slipContent will be absolutely positioned and transformed to center */
@@ -197,9 +197,11 @@
   </div>
 
 <script>
-/* TEMPLATE unchanged (8in width for print) */
+/* TEMPLATE unchanged */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:8in; box-sizing:border-box; padding:8px;'>
+
+  <!-- CENTER HEADING BLOCK (NEW) -->
   <div style="text-align:center; width:100%; margin-bottom:10px;">
       <div style="letter-spacing:2px; font-size:40px; font-weight:;">
           {{firmName}}
@@ -211,21 +213,22 @@ const TEMPLATE_HTML = `
           {{firmPhone}}
       </div>
   </div>
-  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-<span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
+  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+<span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
 
-<span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">   Time     :    {{grossTime}}</span>
+<span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
 <span style="font-size:20px;">Net     :</span>      <span style="font-size:35px; font-weight:    ;">{{net}}</span>  <span style="font-size:20px;">  </span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -234,18 +237,14 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 </div>
 `;
 
-/* ===== SERVER BASE (dynamic to avoid CORS when hosted on same origin) ===== */
-const SERVER_BASE = (function(){
-  try {
-    return window.location.origin + '/slip-server';
-  } catch(e) {
-    return '/slip-server';
-  }
-})();
+/* ===== replace existing SERVER_BASE / buildServerUrl / CREATE_ENDPOINT etc. with this block ===== */
+/* Server base: change to your real domain (no trailing slash) */
+const SERVER_BASE = 'https://u680869009.skyblue-rabbit-646143.hostingersite.com/slip-server'; // <-- REPLACE yourdomain.com with your domain
 
+/* Endpoints (do not change the filenames unless your server files use different names) */
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
 const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
-const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php';
+const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php'; // optional: implement if needed
 
 /* settings & refs */
 const USERNAME = "FxMiNds";
@@ -269,75 +268,54 @@ const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
 const applyFilterBtn = document.getElementById('applyFilter');
 const filterVehicleEl = document.getElementById('filterVehicle');
-const serverError = document.getElementById('serverError');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
 function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
 
-/* -------------------
-   ZERO NORMALIZATION
-   -------------------
-   We want DIGIT ZERO (U+0030) everywhere.
-   Helpers below will:
-   - normalize common special zeros (Ø, ø, 0̸, 0/, etc.) -> ASCII '0'
-   - make sure prettyZero returns original value (no conversion)
-*/
+/* login */
+loginBtn.addEventListener('click', () => {
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); }
+  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
+});
+logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
+function setLoggedIn(flag){ isLoggedIn = !!flag; try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){} if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); } else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; } }
 
-/* Return the string exactly as-is (do not convert zeros) */
-function prettyZero(raw){
-  // guarantee string return and preserve ASCII 0 (U+0030)
-  if (raw === null || raw === undefined) return '';
-  return String(raw);
-}
-
-/* normalize special zero-like characters to ASCII ZERO (U+0030) */
-function normalizeToAsciiZero(s){
-  if(s === null || s === undefined) return '';
-  let t = String(s);
-  // replace common slashed / special variants with plain '0'
-  // 1) replace "0/" sequence with "0"
-  t = t.replace(/0\//g, '0');
-  // 2) replace latin O-with-stroke characters Ø / ø with 0
-  t = t.replace(/[\u00D8\u00F8]/g, '0');
-  // 3) replace zero + combining overlays (0\u0338, 0\u0337 etc.) -> 0
-  t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0');
-  // 4) replace any standalone combining overlays (rare)
-  t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, '');
-  // 5) replace fancy mathematical zeros back to '0' (some codepoints)
-  t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0');
-  // 6) remove any stray non-digit characters around zeros (keep units though)
-  //    but be conservative: do not strip letters (we only normalize zero glyph)
-  return t;
-}
-
-/* Utility to normalize all zero-like runs in an object before rendering */
-function normalizeRecordZeros(rec){
-  const out = Object.assign({}, rec);
-  ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'].forEach(k=>{
-    if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
-  });
-  return out;
-}
-
-/* attach blur conversion on inputs so any special zero typed becomes ASCII 0 */
-const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'];
-window.addEventListener('DOMContentLoaded', ()=>{
-  ZERO_NORMALIZE_FIELDS.forEach(id=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.addEventListener('blur', ()=> {
-      el.value = normalizeToAsciiZero(el.value || '');
-    });
-    // also normalize on Enter press
-    el.addEventListener('keydown', (ev)=>{
-      if(ev.key === 'Enter'){ setTimeout(()=> el.value = normalizeToAsciiZero(el.value || ''), 0); }
-    });
-  });
+/* restore login on load, clear client storage if you asked earlier */
+window.addEventListener('load', ()=>{
+  try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
 });
 
-/* ------------------- end zero normalization ------------------- */
+/* collect form */
+function collectForm(){
+  const tareNum = parseWeight(getVal('tare'));
+  const netNum = parseWeight(getVal('net'));
+  const grossNum = tareNum + netNum;
+  return {
+    firmName: getVal('firmName'),
+    firmAddress: getVal('firmAddress'),
+    firmPhone: getVal('firmPhone'),
+    rstNo: getVal('rstNo'),
+    vehicleNo: getVal('vehicleNo'),
+    vehicleType: getVal('vehicleType'),
+    partyName: getVal('partyName'),
+    address: getVal('address'),
+    item: getVal('item'),
+    gross: `${Number(grossNum).toFixed(0)} Kg`,
+    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
+    grossTime: getVal('grossTime'),
+    tare: `${Number(tareNum).toFixed(0)} Kg`,
+    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
+    tareTime: getVal('tareTime'),
+    net: `${Number(netNum).toFixed(0)} Kg`,
+    charges: (getVal('charges')||'0'),
+    phone: getVal('phone'),
+    savedAt: new Date().toISOString()
+  };
+}
 
 /* local slips (minimal) */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
@@ -347,33 +325,29 @@ function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window.
 
 /* render slip */
 function renderSlipToDom(data){
-  // ensure we normalize zero-like glyphs to ASCII '0' before display
-  const safe = normalizeRecordZeros(data);
-
   const replacements = {
-    '{{firmName}}': esc(safe.firmName || ''),
-    '{{firmAddress}}': esc(safe.firmAddress || ''),
-    '{{firmPhone}}': esc(prettyZero(safe.firmPhone || '')),
-    '{{rstNo}}': esc(prettyZero(safe.rstNo || '')),
-    '{{vehicleNo}}': esc(prettyZero(safe.vehicleNo || '')),
-    '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')),
-    '{{partyName}}': esc(safe.partyName || ''),
-    '{{address}}': esc(safe.address || ''),
-    '{{item}}': esc(prettyZero(safe.item || '')),
-    '{{gross}}': esc(prettyZero(safe.gross || '')),
-    '{{grossDate}}': esc(safe.grossDate || ''),
-    '{{grossTime}}': esc(safe.grossTime || ''),
-    '{{tare}}': esc(prettyZero(safe.tare || '')),
-    '{{tareDate}}': esc(safe.tareDate || ''),
-    '{{tareTime}}': esc(safe.tareTime || ''),
-    '{{net}}': esc(prettyZero(safe.net || '')),
-    '{{amount}}': esc(safe.amount || ''),
-    '{{charges}}': esc(prettyZero(safe.charges || '')),
-    '{{phone}}': esc(prettyZero(safe.phone || ''))
+    '{{firmName}}': esc(data.firmName || ''),
+    '{{firmAddress}}': esc(data.firmAddress || ''),
+    '{{firmPhone}}': esc(data.firmPhone || ''),
+    '{{rstNo}}': esc(data.rstNo || ''),
+    '{{vehicleNo}}': esc(data.vehicleNo || ''),
+    '{{vehicleType}}': esc(data.vehicleType || ''),
+    '{{partyName}}': esc(data.partyName || ''),
+    '{{address}}': esc(data.address || ''),
+    '{{item}}': esc(data.item || ''),
+    '{{gross}}': esc(String(data.gross || '')),
+    '{{grossDate}}': esc(String(data.grossDate || '')),
+    '{{grossTime}}': esc(String(data.grossTime || '')),
+    '{{tare}}': esc(String(data.tare || '')),
+    '{{tareDate}}': esc(String(data.tareDate || '')),
+    '{{tareTime}}': esc(String(data.tareTime || '')),
+    '{{net}}': esc(String(data.net || '')),
+    '{{amount}}': esc(String(data.amount || '')),
+    '{{charges}}': esc(String(data.charges || '')),
+    '{{phone}}': esc(String(data.phone || ''))
   };
-
   let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
+  Object.keys(replacements).forEach(k => rendered = rendered.split(k).join(replacements[k]));
   slipContent.innerHTML = rendered;
 }
 
@@ -382,28 +356,35 @@ function fitSlipPreview() {
   requestAnimationFrame(() => {
     const slipDom = slipContent.firstElementChild;
     if (!slipDom) return;
+    // ensure natural width 10in
     slipDom.style.boxSizing = 'border-box';
     slipDom.style.width = '10in';
 
+    // measure natural size
     const naturalW = slipDom.offsetWidth || (96 * 10);
     const naturalH = slipDom.offsetHeight || 800;
 
+    // available area inside slipInner (account for padding)
     const parentRect = slipInner.getBoundingClientRect();
     const availableW = Math.max(100, parentRect.width - 36);
     const availableH = Math.max(100, parentRect.height - 36);
 
+    // compute scale to fit both dimensions
     const scaleW = availableW / naturalW;
     const scaleH = availableH / naturalH;
     let scale = Math.min(scaleW, scaleH, 1);
+    // safety clamps
     if (scale > 1) scale = 1;
     if (scale < 0.35) scale = 0.35;
 
+    // center using translate(-50%,-50%) and scale
     slipContent.style.position = 'absolute';
     slipContent.style.left = '50%';
     slipContent.style.top = '50%';
     slipContent.style.transformOrigin = 'center center';
     slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
 
+    // set explicit width/height (natural) so scaled result measures correctly for print
     slipContent.style.width = `${naturalW}px`;
     slipContent.style.height = `${naturalH}px`;
   });
@@ -427,14 +408,13 @@ function validateAll(){
 createBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   if(!validateAll()){ alert('Please fill required fields'); return; }
-  // collect form and normalize zeros
   const rec = collectForm();
-  const normalizedRec = normalizeRecordZeros(rec);
-  addLocalSlipRecord(normalizedRec);
+  addLocalSlipRecord(rec);
 
   // render preview and show (no scroll)
-  renderSlipToDom(normalizedRec);
+  renderSlipToDom(rec);
   slipOutput.style.display = 'block';
+  // give browser a tick to render fonts, then fit
   setTimeout(()=> fitSlipPreview(), 80);
 });
 
@@ -445,35 +425,33 @@ closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none';
 /* saved list (local simple) */
 /* refreshList now accepts filters (date from/to and vehicle) and applies client-side filtering as fallback */
 async function refreshList() {
-  serverError.style.display = 'none';
-  serverError.textContent = '';
   try {
+    // collect filters
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
     const vehicle = (getVal('filterVehicle') || '').trim();
 
+    // build query for server
     const q = new URLSearchParams({ from, to });
     if (vehicle) q.set('vehicle', vehicle);
 
-    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString(), { cache: 'no-store' });
+    // attempt server fetch
+    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
     const json = await resp.json().catch(() => null);
 
     let slips = [];
     if (json && Array.isArray(json.slips)) {
       slips = json.slips.slice();
-      // normalize zeros in server results too (safety)
-      slips = slips.map(s => normalizeRecordZeros(s));
     } else {
+      // server didn't return expected data — fallback to local storage
       loadLocalSlips();
       slips = (window._slips || []).slice();
-      if (!json) {
-        serverError.style.display = 'block';
-        serverError.textContent = 'List load: server did not return slips (using local cache)';
-      }
     }
 
+    // client-side filtering: date range + vehicle (case-insensitive substring)
     const vehicleLower = vehicle.toLowerCase();
     const filtered = slips.filter(s => {
+      // date filter if provided (compare createdAt date portion)
       if (from) {
         const fromT = new Date(from).setHours(0,0,0,0);
         const created = new Date(s.createdAt).getTime();
@@ -491,6 +469,7 @@ async function refreshList() {
       return true;
     });
 
+    // sort by id/createdAt (desc)
     filtered.sort((a,b)=>{
       if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
       return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
@@ -499,8 +478,10 @@ async function refreshList() {
     renderSlipsTable(filtered);
   } catch (err) {
     console.error('refreshList', err);
+    // fallback to local list if error
     loadLocalSlips();
     const slips = (window._slips || []).slice();
+    // apply vehicle/date filters locally
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
     const vehicle = (getVal('filterVehicle') || '').trim().toLowerCase();
@@ -549,6 +530,10 @@ function renderSlipsTable(slips) {
     const btn = document.getElementById(`amt_btn_${safeId}`);
     if (btn) {
       btn.addEventListener('click', async (ev) => {
+        // FIXED handler logic:
+        // 1) try server update
+        // 2) if server ok -> refreshList()
+        // 3) if server fail -> update local array + persistLocalSlips() + renderSlipsTable(window._slips)
         const id = ev.currentTarget.dataset.id;
         const input = document.getElementById(`amt_in_${id}`);
         const val = input ? input.value : '';
@@ -570,10 +555,9 @@ function renderSlipsTable(slips) {
             if (resp && resp.ok) {
               const j = await resp.json().catch(()=>null);
               if (j && j.ok) serverWorked = true;
-            } else {
-              console.warn('update_amount.php status', resp && resp.status);
             }
           } catch(e) {
+            // network error -> serverWorked stays false
             console.warn('server update error', e);
           }
 
@@ -583,7 +567,7 @@ function renderSlipsTable(slips) {
             return;
           }
 
-          // Server didn't work -> update local array only and re-render
+          // Server didn't work -> update local array only and re-render (do NOT call refreshList)
           let updated = false;
           for (let i=0;i<window._slips.length;i++){
             if (String(window._slips[i].id) === String(id)) {
@@ -593,6 +577,7 @@ function renderSlipsTable(slips) {
             }
           }
           if (!updated) {
+            // if not found in current list, try to load from storage and update there
             loadLocalSlips();
             for (let i=0;i<window._slips.length;i++){
               if (String(window._slips[i].id) === String(id)) {
@@ -603,6 +588,7 @@ function renderSlipsTable(slips) {
             }
           }
           persistLocalSlips();
+          // re-render the currently displayed list using the updated local array
           renderSlipsTable(window._slips);
           alert('Amount saved locally (server not reachable).');
         } catch (err) {
@@ -615,34 +601,6 @@ function renderSlipsTable(slips) {
 }
 
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
-
-/* collect form (unchanged except normalization handled) */
-function collectForm(){
-  const tareNum = parseWeight(getVal('tare'));
-  const netNum = parseWeight(getVal('net'));
-  const grossNum = tareNum + netNum;
-  return {
-    firmName: getVal('firmName'),
-    firmAddress: getVal('firmAddress'),
-    firmPhone: getVal('firmPhone'),
-    rstNo: getVal('rstNo'),
-    vehicleNo: getVal('vehicleNo'),
-    vehicleType: getVal('vehicleType'),
-    partyName: getVal('partyName'),
-    address: getVal('address'),
-    item: getVal('item'),
-    gross: `${Number(grossNum).toFixed(0)} Kg`,
-    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
-    grossTime: getVal('grossTime'),
-    tare: `${Number(tareNum).toFixed(0)} Kg`,
-    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
-    tareTime: getVal('tareTime'),
-    net: `${Number(netNum).toFixed(0)} Kg`,
-    charges: (getVal('charges')||'0'),
-    phone: getVal('phone'),
-    savedAt: new Date().toISOString()
-  };
-}
 
 /* local storage helpers (unchanged) */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
