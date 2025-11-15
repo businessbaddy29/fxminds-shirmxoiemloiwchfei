@@ -322,7 +322,28 @@ function collectForm(){
     savedAt: new Date().toISOString()
   };
 }
+// normalize display of zeros: any "zero-like" value -> "0/"
+function prettyZero(raw) {
+  if (raw === null || raw === undefined) return '';
+  const s = String(raw).trim();
 
+  if (s === '') return '';
+  // already correct
+  if (s === '0/') return '0/';
+  // pure numeric zeros
+  if (s === '0' || /^0+(\.0+)?$/.test(s)) return '0/';
+  // with units like "0 Kg", "0kg", "0 KG", "0.00 Kg" etc.
+  if (/^0(?:\.0+)?\s*[a-zA-Z%°]*$/i.test(s)) return '0/';
+
+  // also handle forms like "0 Kg Kg" or duplicate units
+  const cleaned = s.replace(/\s+/g, ' ').toLowerCase();
+  if (/^0(?:\.0+)?(\s+[a-z]+){1,3}$/.test(cleaned)) return '0/';
+
+  // otherwise return original string unchanged
+  return s;
+}
+
+  
 /* local slips (minimal) */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
@@ -331,29 +352,54 @@ function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window.
 
 /* render slip */
 function renderSlipToDom(data){
-  const replacements = {
-    '{{firmName}}': esc(data.firmName || ''),
-    '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(data.firmPhone || ''),
-    '{{rstNo}}': esc(data.rstNo || ''),
-    '{{vehicleNo}}': esc(data.vehicleNo || ''),
-    '{{vehicleType}}': esc(data.vehicleType || ''),
-    '{{partyName}}': esc(data.partyName || ''),
-    '{{address}}': esc(data.address || ''),
-    '{{item}}': esc(data.item || ''),
-    '{{gross}}': esc(String(data.gross || '')),
-    '{{grossDate}}': esc(String(data.grossDate || '')),
-    '{{grossTime}}': esc(String(data.grossTime || '')),
-    '{{tare}}': esc(String(data.tare || '')),
-    '{{tareDate}}': esc(String(data.tareDate || '')),
-    '{{tareTime}}': esc(String(data.tareTime || '')),
-    '{{net}}': esc(String(data.net || '')),
-    '{{amount}}': esc(String(data.amount || '')),
-    '{{charges}}': esc(String(data.charges || '')),
-    '{{phone}}': esc(String(data.phone || ''))
+  // apply prettyZero only at display time (do not mutate stored data)
+  const disp = {
+    firmName: data.firmName || '',
+    firmAddress: data.firmAddress || '',
+    firmPhone: prettyZero(String(data.firmPhone || '')),
+    rstNo: prettyZero(String(data.rstNo || '')),
+    vehicleNo: prettyZero(String(data.vehicleNo || '')),
+    vehicleType: prettyZero(String(data.vehicleType || '')),
+    partyName: data.partyName || '',
+    address: data.address || '',
+    item: prettyZero(String(data.item || '')),
+    // these are formatted for display — zeros become "0/"
+    gross: prettyZero(String(data.gross || '')),
+    grossDate: data.grossDate || '',
+    grossTime: data.grossTime || '',
+    tare: prettyZero(String(data.tare || '')),
+    tareDate: data.tareDate || '',
+    tareTime: data.tareTime || '',
+    net: prettyZero(String(data.net || '')),
+    amount: prettyZero(String(data.amount || '')),
+    charges: prettyZero(String(data.charges || '')),
+    phone: prettyZero(String(data.phone || '')),
   };
+
+  const replacements = {
+    '{{firmName}}': esc(disp.firmName),
+    '{{firmAddress}}': esc(disp.firmAddress),
+    '{{firmPhone}}': esc(disp.firmPhone),
+    '{{rstNo}}': esc(disp.rstNo),
+    '{{vehicleNo}}': esc(disp.vehicleNo),
+    '{{vehicleType}}': esc(disp.vehicleType),
+    '{{partyName}}': esc(disp.partyName),
+    '{{address}}': esc(disp.address),
+    '{{item}}': esc(disp.item),
+    '{{gross}}': esc(disp.gross),
+    '{{grossDate}}': esc(disp.grossDate),
+    '{{grossTime}}': esc(disp.grossTime),
+    '{{tare}}': esc(disp.tare),
+    '{{tareDate}}': esc(disp.tareDate),
+    '{{tareTime}}': esc(disp.tareTime),
+    '{{net}}': esc(disp.net),
+    '{{amount}}': esc(disp.amount),
+    '{{charges}}': esc(disp.charges),
+    '{{phone}}': esc(disp.phone)
+  };
+
   let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => rendered = rendered.split(k).join(replacements[k]));
+  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
   slipContent.innerHTML = rendered;
 }
 
