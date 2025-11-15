@@ -285,7 +285,7 @@
                 </div>
                 <div class="form-grid">
                     <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
-                    <label>Gross Date: <input type="text" id="grossDate" value="2025-11-08"></label>
+                    <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
                 </div>
                 <div class="time-row" style="margin-top:6px;">
                     <div style="flex:1">
@@ -357,22 +357,25 @@
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
-                <span style="letter-spacing:2px; font-size:70px; font-weight: ;">{{firmName}}</span>
+                <span style="letter-spacing:2px; font-size:70px; font-weight:    ;">{{firmName}}</span>
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-<span style="font-size:45px;">RST No. : {{rstNo}}</span> <span style="font-size:45px;">Vehicle No. : {{vehicleNo}}</span>
-<span style="font-size:45px;">Vh l typ. : {{vehicleType}}</span> <span style="font-size:45px;"> Party name : {{partyName}}</span>
-<span style="font-size:45px;">Address : {{address}}</span> <span style="font-size:45px;"> Item : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-<span style="font-size:45px;">Gross :</span> <span style="font-size:55px; font-weight: ;">{{gross}}</span><span style="font-size:45px;"> Kg Date : {{grossDate}}</span> <span style="font-size:45px;"> Time : {{grossTime}}</span>
-<span style="font-size:45px;">Tare :</span> <span style="font-size:55px; font-weight: ;">{{tare}}</span><span style="font-size:45px;"> Kg Date : {{tareDate}}</span> <span style="font-size:45px;">Time : {{tareTime}}</span>
-<span style="font-size:45px;">Net :</span> <span style="font-size:55px; font-weight: ;">{{net}}</span> <span style="font-size:45px;">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
+<span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+<span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
+<span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
+<span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
+
                                          <span style="font-size:45px;">Thanks for your visit</span>
   </pre>
 </div>
@@ -488,13 +491,15 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         function prettyZero(val) {
     const s = String(val || '').trim();
     const core = s.replace(/[^0-9.]/g, '');
+
     if (core !== '' && Number(core) === 0) {
-        // Use combining long solidus overlay so the slash stays exactly over the digit
-        // This combines '0' with U+0338 instead of using the wide Ø character.
-        return s.replace(/0/g, '0̸');
+        // Normal 0 ke width me hi slash aa jayega
+        return s.replace(/0/g, '0\u0338');
     }
+
     return s;
 }
+
         /* render template into slipContent (no pdf) */
         function renderSlipToDom(data) {
             const replacements = {
@@ -604,7 +609,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 vehicleNo: getVal('vehicleNo'),
                 vehicleType: getVal('vehicleType'),
                 partyName: getVal('partyName'),
-                address: getVal('address'), 
+                address: getVal('address'),
                 item: getVal('item'),
                 gross: `${Number(grossNum).toFixed(0)} Kg`,
                 grossDate: getVal('grossDate'),
@@ -620,27 +625,23 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             };
         }
 
-        // Helper: generate a numeric serial stored in localStorage (fallback to timestamp)
+        // ---------- Minimal add: immediate local UI row + reliable server save ----------
         function generateSerial() {
             try {
                 const key = 'slip_serial_counter_v1';
                 let v = Number(localStorage.getItem(key) || '0');
                 v = v + 1;
                 localStorage.setItem(key, String(v));
-                // return as 13-digit padded string numeric
                 return String(v).padStart(13, '0');
             } catch (e) {
-                // fallback to timestamp-based id
                 return String(Date.now());
             }
         }
 
-        // Helper: add a local slip record to the table (so UI shows immediately)
         function addLocalSlipRecord(rec) {
             try {
-                // ensure window._slips exists
                 window._slips = window._slips || [];
-                const id = Number(generateSerial());
+                const id = generateSerial();
                 const createdAt = new Date().toISOString();
                 const newRow = {
                     id: id,
@@ -649,59 +650,59 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                     filename: null,
                     amount: rec.charges || ''
                 };
-                // prepend to slips array
                 window._slips.unshift(newRow);
-                // re-render table quickly (lighter than full refreshList)
                 renderSlipsTable(window._slips);
             } catch (e) {
                 console.error('addLocalSlipRecord error', e);
             }
         }
 
+        async function saveSlipRecordOnCreate(rec) {
+          try {
+            const payload = {
+              action: 'save_data_only',
+              slip: {
+                vehicleNo: rec.vehicleNo || '',
+                rstNo: rec.rstNo || '',
+                createdAt: new Date().toISOString(),
+                gross: rec.gross || '',
+                tare: rec.tare || '',
+                net: rec.net || '',
+                charges: (rec.charges === '' ? '0' : rec.charges),
+                phone: rec.phone || '',
+                firmName: rec.firmName || ''
+              }
+            };
+
+            const resp = await fetch(CREATE_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              keepalive: true
+            }).catch(e => {
+              console.warn('saveSlipRecordOnCreate: network/save failed', e);
+              return null;
+            });
+
+            if (!resp) return null;
+
+            const j = await resp.json().catch(() => null);
+            if (j && j.ok) {
+              try { await refreshList(); } catch (e) { console.warn('refreshList failed after save', e); }
+            } else {
+              // server returned non-ok — still attempt refreshList to see server state
+              try { await refreshList(); } catch (e) { /* ignore */ }
+            }
+            return j;
+          } catch (err) {
+            console.error('saveSlipRecordOnCreate error', err);
+            return null;
+          }
+        }
+        // ---------- end add ----------
+
         function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-        // ---------- ADD: save-on-create helper ----------
-async function saveSlipRecordOnCreate(rec) {
-  // rec is the object returned by collectForm()
-  try {
-    const payload = {
-      action: 'save_data_only',
-      slip: {
-        vehicleNo: rec.vehicleNo || '',
-        rstNo: rec.rstNo || '',
-        createdAt: new Date().toISOString(),
-        gross: rec.gross || '',
-        tare: rec.tare || '',
-        net: rec.net || '',
-        charges: (rec.charges === '' ? '0' : rec.charges),
-        phone: rec.phone || '',
-        firmName: rec.firmName || ''
-      }
-    };
-
-    const resp = await fetch(CREATE_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      keepalive: true
-    }).catch(e => {
-      console.warn('saveSlipRecordOnCreate: network/save failed', e);
-      return null;
-    });
-
-    if (!resp) return null;
-
-    const j = await resp.json().catch(() => null);
-    if (j && j.ok) {
-      try { await refreshList(); } catch (e) { console.warn('refreshList failed after save', e); }
-    }
-    return j;
-  } catch (err) {
-    console.error('saveSlipRecordOnCreate error', err);
-    return null;
-  }
-}
-
-/* send data-only slip to server (no PDF) */
+        /* send data-only slip to server (no PDF) */
         async function saveSlipDataToServer(data) {
             try {
                 const resp = await fetch(CREATE_ENDPOINT, {
@@ -733,7 +734,13 @@ async function saveSlipRecordOnCreate(rec) {
                 return;
             }
             const rec = collectForm();
-                try { saveSlipRecordOnCreate(rec); } catch(e) { console.warn('save on create failed', e); }
+
+            // Immediately add local row for UX (no change to template)
+            try { addLocalSlipRecord(rec); } catch(e) { console.warn('addLocalSlipRecord failed', e); }
+
+            // Fire off reliable server save (will call refreshList on success)
+            try { saveSlipRecordOnCreate(rec); } catch(e) { console.warn('save on create failed', e); }
+
             try {
                 createBtn.disabled = true;
                 createBtn.textContent = 'Creating...';
@@ -743,16 +750,12 @@ async function saveSlipRecordOnCreate(rec) {
                 // ensure slipInner size and fit
                 slipInner.style.width = '';
                 fitSlipPreview();
-                // Immediately add a local slip record (serial, vehicleNo, date) so the Saved Slips table updates without waiting for server
-                try { addLocalSlipRecord(rec); } catch (e) { console.error('addLocalSlipRecord failed', e); }
-                // Save slip metadata to server (data only). Server is expected to store slip record and return ok.
+                // Also call original save (keeps compatibility)
                 const saveResp = await saveSlipDataToServer(rec);
                 if (saveResp && saveResp.ok) {
-                    // refresh list to show new saved slip
                     await refreshList();
                 } else {
-                    // server might return non-ok; show message but keep preview
-                    console.warn('Server save returned:', saveResp);
+                    console.warn('Server save returned (secondary):', saveResp);
                 }
             } catch (err) {
                 console.error('Create exception:', err);
