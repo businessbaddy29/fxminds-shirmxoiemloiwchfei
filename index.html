@@ -74,7 +74,6 @@
       #slipInner{overflow:visible!important;height:auto!important}
     }
 
-    /* small niceties */
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
     .filters-row { display:flex; gap:8px; align-items:center; }
     .filters-row input[type="text"] { width:160px; }
@@ -197,11 +196,11 @@
   </div>
 
 <script>
-/* TEMPLATE unchanged */
+/* TEMPLATE (kept simple & centered heading) */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:8in; box-sizing:border-box; padding:8px;'>
 
-  <!-- CENTER HEADING BLOCK (NEW) -->
+  <!-- CENTER HEADING BLOCK -->
   <div style="text-align:center; width:100%; margin-bottom:10px;">
       <div style="letter-spacing:2px; font-size:40px; font-weight:;">
           {{firmName}}
@@ -215,7 +214,7 @@ const TEMPLATE_HTML = `
   </div>
 
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
@@ -228,7 +227,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -240,7 +239,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 /* ===== SERVER BASE (dynamic to avoid CORS when hosted on same origin) ===== */
 const SERVER_BASE = (function(){
   try {
-    // preferred: same origin slip-server folder
     return window.location.origin + '/slip-server';
   } catch(e) {
     return '/slip-server';
@@ -278,7 +276,30 @@ const serverError = document.getElementById('serverError');
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
-function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
+function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/ig,''))||0; }
+
+/* prettyZero: return '0/' for any zero-like value, else cleaned string */
+function prettyZero(raw) {
+  if (raw === null || raw === undefined) return '';
+  let s = String(raw).trim();
+  if (s === '') return '';
+  // normalize
+  s = s.replace(/,+/g,'').replace(/\s+/g,' ').trim();
+  if (s === '0/' ) return '0/';
+  if (/^0+(\.0+)?$/i.test(s)) return '0/';
+  if (/^0+(\.0+)?\s*[a-z%°]*$/i.test(s)) return '0/';
+  // other: if numeric token is zero
+  const m = s.match(/-?\d+(\.\d+)?/);
+  if (m && Number(m[0]) === 0) return '0/';
+  return s;
+}
+
+/* strip duplicate Kg occurrences and normalize unit to single "Kg" */
+function stripDuplicateKg(s) {
+  if (!s) return s || '';
+  // collapse repeated "Kg" (any case) to single "Kg"
+  return s.replace(/\b(Kg|KG|kg)\b/g, 'Kg').replace(/(Kg\s*){2,}/g, 'Kg').trim();
+}
 
 /* login */
 loginBtn.addEventListener('click', () => {
@@ -322,29 +343,8 @@ function collectForm(){
     savedAt: new Date().toISOString()
   };
 }
-// normalize display of zeros: any "zero-like" value -> "0/"
-function prettyZero(raw) {
-  if (raw === null || raw === undefined) return '';
-  const s = String(raw).trim();
 
-  if (s === '') return '';
-  // already correct
-  if (s === '0/') return '0/';
-  // pure numeric zeros
-  if (s === '0' || /^0+(\.0+)?$/.test(s)) return '0/';
-  // with units like "0 Kg", "0kg", "0 KG", "0.00 Kg" etc.
-  if (/^0(?:\.0+)?\s*[a-zA-Z%°]*$/i.test(s)) return '0/';
-
-  // also handle forms like "0 Kg Kg" or duplicate units
-  const cleaned = s.replace(/\s+/g, ' ').toLowerCase();
-  if (/^0(?:\.0+)?(\s+[a-z]+){1,3}$/.test(cleaned)) return '0/';
-
-  // otherwise return original string unchanged
-  return s;
-}
-
-  
-/* local slips (minimal) */
+/* local slips */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
@@ -352,50 +352,33 @@ function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window.
 
 /* render slip */
 function renderSlipToDom(data){
-  // apply prettyZero only at display time (do not mutate stored data)
-  const disp = {
-    firmName: data.firmName || '',
-    firmAddress: data.firmAddress || '',
-    firmPhone: prettyZero(String(data.firmPhone || '')),
-    rstNo: prettyZero(String(data.rstNo || '')),
-    vehicleNo: prettyZero(String(data.vehicleNo || '')),
-    vehicleType: prettyZero(String(data.vehicleType || '')),
-    partyName: data.partyName || '',
-    address: data.address || '',
-    item: prettyZero(String(data.item || '')),
-    // these are formatted for display — zeros become "0/"
-    gross: prettyZero(String(data.gross || '')),
-    grossDate: data.grossDate || '',
-    grossTime: data.grossTime || '',
-    tare: prettyZero(String(data.tare || '')),
-    tareDate: data.tareDate || '',
-    tareTime: data.tareTime || '',
-    net: prettyZero(String(data.net || '')),
-    amount: prettyZero(String(data.amount || '')),
-    charges: prettyZero(String(data.charges || '')),
-    phone: prettyZero(String(data.phone || '')),
-  };
+  // derive display strings: strip duplicate Kg, convert zeros to 0/
+  const grossRaw = prettyZero(String(data.gross || ''));
+  const tareRaw  = prettyZero(String(data.tare || ''));
+  const netRaw   = prettyZero(String(data.net || ''));
+  const chargesRaw = prettyZero(String(data.charges || ''));
+  const phoneRaw = prettyZero(String(data.phone || ''));
 
   const replacements = {
-    '{{firmName}}': esc(disp.firmName),
-    '{{firmAddress}}': esc(disp.firmAddress),
-    '{{firmPhone}}': esc(disp.firmPhone),
-    '{{rstNo}}': esc(disp.rstNo),
-    '{{vehicleNo}}': esc(disp.vehicleNo),
-    '{{vehicleType}}': esc(disp.vehicleType),
-    '{{partyName}}': esc(disp.partyName),
-    '{{address}}': esc(disp.address),
-    '{{item}}': esc(disp.item),
-    '{{gross}}': esc(disp.gross),
-    '{{grossDate}}': esc(disp.grossDate),
-    '{{grossTime}}': esc(disp.grossTime),
-    '{{tare}}': esc(disp.tare),
-    '{{tareDate}}': esc(disp.tareDate),
-    '{{tareTime}}': esc(disp.tareTime),
-    '{{net}}': esc(disp.net),
-    '{{amount}}': esc(disp.amount),
-    '{{charges}}': esc(disp.charges),
-    '{{phone}}': esc(disp.phone)
+    '{{firmName}}': esc(data.firmName || ''),
+    '{{firmAddress}}': esc(data.firmAddress || ''),
+    '{{firmPhone}}': esc(phoneRaw),
+    '{{rstNo}}': esc(prettyZero(String(data.rstNo || ''))),
+    '{{vehicleNo}}': esc(prettyZero(String(data.vehicleNo || ''))),
+    '{{vehicleType}}': esc(prettyZero(String(data.vehicleType || ''))),
+    '{{partyName}}': esc(data.partyName || ''),
+    '{{address}}': esc(data.address || ''),
+    '{{item}}': esc(prettyZero(String(data.item || ''))),
+    '{{gross}}': esc(stripDuplicateKg(grossRaw)),
+    '{{grossDate}}': esc(data.grossDate || ''),
+    '{{grossTime}}': esc(data.grossTime || ''),
+    '{{tare}}': esc(stripDuplicateKg(tareRaw)),
+    '{{tareDate}}': esc(data.tareDate || ''),
+    '{{tareTime}}': esc(data.tareTime || ''),
+    '{{net}}': esc(stripDuplicateKg(netRaw)),
+    '{{amount}}': esc(prettyZero(String(data.amount || ''))),
+    '{{charges}}': esc(chargesRaw),
+    '{{phone}}': esc(phoneRaw)
   };
 
   let rendered = TEMPLATE_HTML;
@@ -403,52 +386,45 @@ function renderSlipToDom(data){
   slipContent.innerHTML = rendered;
 }
 
-/* NEW: absolute-center + scale fit (no scroll) */
+/* fit preview to available area without scrolling */
 function fitSlipPreview() {
   requestAnimationFrame(() => {
     const slipDom = slipContent.firstElementChild;
     if (!slipDom) return;
-    // ensure natural width 10in
     slipDom.style.boxSizing = 'border-box';
     slipDom.style.width = '10in';
 
-    // measure natural size
     const naturalW = slipDom.offsetWidth || (96 * 10);
     const naturalH = slipDom.offsetHeight || 800;
 
-    // available area inside slipInner (account for padding)
     const parentRect = slipInner.getBoundingClientRect();
     const availableW = Math.max(100, parentRect.width - 36);
     const availableH = Math.max(100, parentRect.height - 36);
 
-    // compute scale to fit both dimensions
     const scaleW = availableW / naturalW;
     const scaleH = availableH / naturalH;
     let scale = Math.min(scaleW, scaleH, 1);
-    // safety clamps
     if (scale > 1) scale = 1;
     if (scale < 0.35) scale = 0.35;
 
-    // center using translate(-50%,-50%) and scale
     slipContent.style.position = 'absolute';
     slipContent.style.left = '50%';
     slipContent.style.top = '50%';
     slipContent.style.transformOrigin = 'center center';
     slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
 
-    // set explicit width/height (natural) so scaled result measures correctly for print
     slipContent.style.width = `${naturalW}px`;
     slipContent.style.height = `${naturalH}px`;
   });
 }
 
-/* debounce resize observer */
+/* resize + mutation wiring */
 let resizeTimer = null;
 window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); });
 const mo = new MutationObserver(()=> fitSlipPreview());
 mo.observe(slipContent, { childList:true, subtree:true });
 
-/* minimal validation (keep original behavior) */
+/* validation */
 function validateAll(){
   const req = ['firmName','firmAddress','rstNo','vehicleNo','item'];
   let ok=true;
@@ -456,7 +432,7 @@ function validateAll(){
   return ok;
 }
 
-/* create handler (unchanged logic except using new fit) */
+/* create handler */
 createBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   if(!validateAll()){ alert('Please fill required fields'); return; }
@@ -466,7 +442,6 @@ createBtn.addEventListener('click', async ()=>{
   // render preview and show (no scroll)
   renderSlipToDom(rec);
   slipOutput.style.display = 'block';
-  // give browser a tick to render fonts, then fit
   setTimeout(()=> fitSlipPreview(), 80);
 });
 
@@ -474,22 +449,18 @@ createBtn.addEventListener('click', async ()=>{
 printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 60); });
 closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
-/* saved list (local simple) */
-/* refreshList now accepts filters (date from/to and vehicle) and applies client-side filtering as fallback */
+/* refreshList with server attempt and client fallback */
 async function refreshList() {
   serverError.style.display = 'none';
   serverError.textContent = '';
   try {
-    // collect filters
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
     const vehicle = (getVal('filterVehicle') || '').trim();
 
-    // build query for server
     const q = new URLSearchParams({ from, to });
     if (vehicle) q.set('vehicle', vehicle);
 
-    // attempt server fetch
     const resp = await fetch(LIST_ENDPOINT + '?' + q.toString(), { cache: 'no-store' });
     const json = await resp.json().catch(() => null);
 
@@ -497,7 +468,6 @@ async function refreshList() {
     if (json && Array.isArray(json.slips)) {
       slips = json.slips.slice();
     } else {
-      // server didn't return expected data — fallback to local storage
       loadLocalSlips();
       slips = (window._slips || []).slice();
       if (!json) {
@@ -506,7 +476,6 @@ async function refreshList() {
       }
     }
 
-    // client-side filtering: date range + vehicle (case-insensitive substring)
     const vehicleLower = vehicle.toLowerCase();
     const filtered = slips.filter(s => {
       if (from) {
@@ -526,7 +495,6 @@ async function refreshList() {
       return true;
     });
 
-    // sort by id/createdAt (desc)
     filtered.sort((a,b)=>{
       if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
       return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
@@ -535,10 +503,8 @@ async function refreshList() {
     renderSlipsTable(filtered);
   } catch (err) {
     console.error('refreshList', err);
-    // fallback to local list if error
     loadLocalSlips();
     const slips = (window._slips || []).slice();
-    // apply vehicle/date filters locally
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
     const vehicle = (getVal('filterVehicle') || '').trim().toLowerCase();
@@ -554,10 +520,11 @@ async function refreshList() {
   }
 }
 
+/* render list & attach handlers */
 function renderSlipsTable(slips) {
   recordsBody.innerHTML = '';
   let totalAmt = 0;
-  slips.forEach(s=>{
+  (slips || []).forEach(s=>{
     const safeId = String(s.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -581,7 +548,11 @@ function renderSlipsTable(slips) {
   });
   totalAmountEl.textContent = totalAmt.toFixed(2);
   totalCountEl.textContent = (slips || []).length;
-  window._slips = slips;
+
+  // keep the table's slips in memory (current view)
+  window._slips = (slips || []).slice();
+
+  // attach amount handlers
   (window._slips || []).forEach(s => {
     const safeId = String(s.id);
     const btn = document.getElementById(`amt_btn_${safeId}`);
@@ -609,7 +580,6 @@ function renderSlipsTable(slips) {
               const j = await resp.json().catch(()=>null);
               if (j && j.ok) serverWorked = true;
             } else {
-              // print response status for debugging
               console.warn('update_amount.php status', resp && resp.status);
             }
           } catch(e) {
@@ -618,12 +588,14 @@ function renderSlipsTable(slips) {
 
           if (serverWorked) {
             alert('Amount saved (server).');
+            // refresh list from server so server amount shows
             await refreshList();
             return;
           }
 
-          // Server didn't work -> update local array only and re-render (do NOT call refreshList)
+          // SERVER DID NOT WORK => update local-only and re-render (do NOT call refreshList)
           let updated = false;
+          // update current view window._slips
           for (let i=0;i<window._slips.length;i++){
             if (String(window._slips[i].id) === String(id)) {
               window._slips[i].amount = Number(norm).toFixed(2);
@@ -631,17 +603,28 @@ function renderSlipsTable(slips) {
               break;
             }
           }
-          if (!updated) {
-            loadLocalSlips();
-            for (let i=0;i<window._slips.length;i++){
-              if (String(window._slips[i].id) === String(id)) {
-                window._slips[i].amount = Number(norm).toFixed(2);
-                updated = true;
-                break;
-              }
+          // also update persisted client cache (merge)
+          loadLocalSlips();
+          for (let i=0;i<window._slips.length;i++){
+            if (String(window._slips[i].id) === String(id)) {
+              window._slips[i].amount = Number(norm).toFixed(2);
+              updated = true;
+              break;
             }
           }
-          persistLocalSlips();
+          // if not found in persisted list, attempt to add it there (rare)
+          let persisted = JSON.parse(localStorage.getItem('client_slips_v1') || '[]');
+          let found = false;
+          for (let i=0;i<persisted.length;i++){
+            if (String(persisted[i].id) === String(id)) { persisted[i].amount = Number(norm).toFixed(2); found = true; break; }
+          }
+          if (!found) {
+            // as fallback, add small record so persisted storage reflects amount
+            persisted.unshift({ id, createdAt: new Date().toISOString(), vehicleNo: '', filename: null, amount: Number(norm).toFixed(2) });
+          }
+          try { localStorage.setItem('client_slips_v1', JSON.stringify(persisted)); } catch(e){ console.warn('persist fallback failed', e); }
+
+          // finally re-render the current view (local state)
           renderSlipsTable(window._slips);
           alert('Amount saved locally (server not reachable).');
         } catch (err) {
@@ -655,11 +638,11 @@ function renderSlipsTable(slips) {
 
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
 
-/* local storage helpers (unchanged) */
+/* persist/load */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 
-/* initial */
+/* initial load */
 refreshList();
 </script>
 </body>
