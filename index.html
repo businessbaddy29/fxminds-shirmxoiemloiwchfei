@@ -56,10 +56,10 @@
       color:#000;
       font-family:"Courier New",monospace;
       box-sizing:border-box;
-      position:relative;        /* required for absolute centering child */
+      position:relative;
       width:100%;
       height:calc(94vh - 56px);
-      overflow:hidden;         /* IMPORTANT: hide scrollbars */
+      overflow:hidden;
       display:block;
     }
     /* slipContent will be absolutely positioned and transformed to center */
@@ -215,7 +215,7 @@ const TEMPLATE_HTML = `
   </div>
 
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
@@ -228,7 +228,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -237,14 +237,19 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 </div>
 `;
 
-/* ===== replace existing SERVER_BASE / buildServerUrl / CREATE_ENDPOINT etc. with this block ===== */
-/* Server base: change to your real domain (no trailing slash) */
-const SERVER_BASE = 'https://u680869009.skyblue-rabbit-646143.hostingersite.com/slip-server'; // <-- REPLACE yourdomain.com with your domain
+/* ===== SERVER BASE (dynamic to avoid CORS when hosted on same origin) ===== */
+const SERVER_BASE = (function(){
+  try {
+    // preferred: same origin slip-server folder
+    return window.location.origin + '/slip-server';
+  } catch(e) {
+    return '/slip-server';
+  }
+})();
 
-/* Endpoints (do not change the filenames unless your server files use different names) */
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
 const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
-const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php'; // optional: implement if needed
+const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php';
 
 /* settings & refs */
 const USERNAME = "FxMiNds";
@@ -268,6 +273,7 @@ const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
 const applyFilterBtn = document.getElementById('applyFilter');
 const filterVehicleEl = document.getElementById('filterVehicle');
+const serverError = document.getElementById('serverError');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
@@ -284,7 +290,7 @@ loginBtn.addEventListener('click', () => {
 logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
 function setLoggedIn(flag){ isLoggedIn = !!flag; try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){} if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); } else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; } }
 
-/* restore login on load, clear client storage if you asked earlier */
+/* restore login on load */
 window.addEventListener('load', ()=>{
   try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
 });
@@ -425,6 +431,8 @@ closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none';
 /* saved list (local simple) */
 /* refreshList now accepts filters (date from/to and vehicle) and applies client-side filtering as fallback */
 async function refreshList() {
+  serverError.style.display = 'none';
+  serverError.textContent = '';
   try {
     // collect filters
     const from = getVal('filterFrom') || '';
@@ -436,7 +444,7 @@ async function refreshList() {
     if (vehicle) q.set('vehicle', vehicle);
 
     // attempt server fetch
-    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString(), { cache: 'no-store' });
     const json = await resp.json().catch(() => null);
 
     let slips = [];
@@ -446,12 +454,15 @@ async function refreshList() {
       // server didn't return expected data — fallback to local storage
       loadLocalSlips();
       slips = (window._slips || []).slice();
+      if (!json) {
+        serverError.style.display = 'block';
+        serverError.textContent = 'List load: server did not return slips (using local cache)';
+      }
     }
 
     // client-side filtering: date range + vehicle (case-insensitive substring)
     const vehicleLower = vehicle.toLowerCase();
     const filtered = slips.filter(s => {
-      // date filter if provided (compare createdAt date portion)
       if (from) {
         const fromT = new Date(from).setHours(0,0,0,0);
         const created = new Date(s.createdAt).getTime();
@@ -530,10 +541,6 @@ function renderSlipsTable(slips) {
     const btn = document.getElementById(`amt_btn_${safeId}`);
     if (btn) {
       btn.addEventListener('click', async (ev) => {
-        // FIXED handler logic:
-        // 1) try server update
-        // 2) if server ok -> refreshList()
-        // 3) if server fail -> update local array + persistLocalSlips() + renderSlipsTable(window._slips)
         const id = ev.currentTarget.dataset.id;
         const input = document.getElementById(`amt_in_${id}`);
         const val = input ? input.value : '';
@@ -555,9 +562,11 @@ function renderSlipsTable(slips) {
             if (resp && resp.ok) {
               const j = await resp.json().catch(()=>null);
               if (j && j.ok) serverWorked = true;
+            } else {
+              // print response status for debugging
+              console.warn('update_amount.php status', resp && resp.status);
             }
           } catch(e) {
-            // network error -> serverWorked stays false
             console.warn('server update error', e);
           }
 
@@ -577,7 +586,6 @@ function renderSlipsTable(slips) {
             }
           }
           if (!updated) {
-            // if not found in current list, try to load from storage and update there
             loadLocalSlips();
             for (let i=0;i<window._slips.length;i++){
               if (String(window._slips[i].id) === String(id)) {
@@ -588,7 +596,6 @@ function renderSlipsTable(slips) {
             }
           }
           persistLocalSlips();
-          // re-render the currently displayed list using the updated local array
           renderSlipsTable(window._slips);
           alert('Amount saved locally (server not reachable).');
         } catch (err) {
