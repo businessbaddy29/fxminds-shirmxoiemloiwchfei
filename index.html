@@ -380,9 +380,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -399,8 +399,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // server endpoint - we will POST JSON (data-only)
         const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
         const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
-        // optional delete endpoint (if you uploaded delete_slips.php earlier)
-        const DELETE_ENDPOINT = buildServerUrl('/delete_slips.php');
 
         const USERNAME = "FxMiNds";
         const PASSWORD = "Sk@#9136332836@";
@@ -466,40 +464,21 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 }
             } catch (e) { /* ignore */ }
 
-            // Clear client-side stored slips to remove old local test/example data
+            // ***** CLEAR ALL client-side saved slips and serial counter (as requested) *****
             try {
                 localStorage.removeItem('client_slips_v1');
+                localStorage.removeItem('slip_serial_counter_v1');
+                // optionally clear any other slip-related keys if present
+                // localStorage.removeItem('some_other_key');
                 window._slips = [];
-            } catch (e) { /* ignore */ }
+                // render empty table UI
+                renderSlipsTable([]);
+                totalAmountEl.textContent = '0.00';
+                totalCountEl.textContent = '0';
+            } catch (e) { console.warn('local clear failed', e); }
 
             updateUiForAuth();
             recomputeGross();
-
-            // Attempt to delete server-side old slips automatically (only if server-side script exists).
-            // This is done because you asked that old server data be removed.
-            try {
-                const resp = await fetch(DELETE_ENDPOINT, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete_all', admin: USERNAME, password: PASSWORD })
-                }).catch(()=>null);
-                if (resp && resp.ok) {
-                    const j = await resp.json().catch(()=>null);
-                    // if ok -> refresh list to show cleared state
-                    if (j && j.ok) {
-                        console.log('Server-side slips deleted on load (DELETE_ENDPOINT).');
-                        await refreshList();
-                    } else {
-                        // script exists but returned non-ok or no json; ignore
-                        console.log('DELETE_ENDPOINT responded but did not return ok.', j);
-                    }
-                } else {
-                    // no delete endpoint or call failed; ignore silently
-                    // console.log('No DELETE_ENDPOINT available or request failed.');
-                }
-            } catch (e) {
-                console.warn('Auto-delete attempt failed (ignored).', e);
-            }
         });
 
         /* login/logout */
@@ -819,58 +798,15 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         /* refreshList -> fetch server slips, then apply client-side filters (date range + vehicle), then render */
         async function refreshList() {
             try {
-                const resp = await fetch(LIST_ENDPOINT);
-                const json = await resp.json();
+                const resp = await fetch(LIST_ENDPOINT).catch(()=>null);
+                const json = resp ? await resp.json().catch(()=>null) : null;
                 if (!json || !Array.isArray(json.slips)) {
-                    console.error('Invalid slips response', json);
+                    // no server slips or server returned nothing -> render current window._slips (likely empty)
+                    const fallback = window._slips && Array.isArray(window._slips) ? window._slips.slice() : [];
+                    applyFiltersAndRender(fallback);
                     return;
                 }
-                // apply client-side filtering based on UI controls
-                const fromVal = getVal('filterFrom') || '';
-                const toVal = getVal('filterTo') || '';
-                const vehicleVal = (getVal('filterVehicle') || '').trim().toLowerCase();
-
-                let slips = json.slips.slice();
-
-                // normalize createdAt parsing
-                function inRange(createdAt) {
-                    if (!fromVal && !toVal) return true;
-                    const d = new Date(createdAt);
-                    if (fromVal) {
-                        const f = new Date(fromVal + 'T00:00:00');
-                        if (d < f) return false;
-                    }
-                    if (toVal) {
-                        const t = new Date(toVal + 'T23:59:59');
-                        if (d > t) return false;
-                    }
-                    return true;
-                }
-
-                slips = slips.filter(s => {
-                    if (!s || !s.createdAt) return false;
-                    if (!inRange(s.createdAt)) return false;
-                    if (vehicleVal) {
-                        const v = (s.vehicleNo || '').toString().toLowerCase();
-                        if (!v.includes(vehicleVal)) return false;
-                    }
-                    return true;
-                });
-
-                // sort by createdAt desc / id desc
-                slips.sort((a, b) => {
-                    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
-                    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-                });
-
-                // compute totals and count
-                let totalAmt = 0;
-                slips.forEach(s => { totalAmt += Number(s.amount || 0); });
-
-                totalAmountEl.textContent = totalAmt.toFixed(2);
-                totalCountEl.textContent = String(slips.length);
-
-                renderSlipsTable(slips);
+                applyFiltersAndRender(json.slips.slice());
             } catch (err) {
                 console.error('refreshList', err);
                 serverError.style.display = 'block';
@@ -878,9 +814,51 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
             }
         }
 
+        function applyFiltersAndRender(slips) {
+            const fromVal = getVal('filterFrom') || '';
+            const toVal = getVal('filterTo') || '';
+            const vehicleVal = (getVal('filterVehicle') || '').trim().toLowerCase();
+
+            function inRange(createdAt) {
+                if (!fromVal && !toVal) return true;
+                const d = new Date(createdAt);
+                if (fromVal) {
+                    const f = new Date(fromVal + 'T00:00:00');
+                    if (d < f) return false;
+                }
+                if (toVal) {
+                    const t = new Date(toVal + 'T23:59:59');
+                    if (d > t) return false;
+                }
+                return true;
+            }
+
+            let filtered = slips.filter(s => {
+                if (!s || !s.createdAt) return false;
+                if (!inRange(s.createdAt)) return false;
+                if (vehicleVal) {
+                    const v = (s.vehicleNo || '').toString().toLowerCase();
+                    if (!v.includes(vehicleVal)) return false;
+                }
+                return true;
+            });
+
+            filtered.sort((a, b) => {
+                if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+            });
+
+            let totalAmt = 0;
+            filtered.forEach(s => { totalAmt += Number(s.amount || 0); });
+
+            totalAmountEl.textContent = totalAmt.toFixed(2);
+            totalCountEl.textContent = String(filtered.length);
+
+            renderSlipsTable(filtered);
+        }
+
         function renderSlipsTable(slips) {
             recordsBody.innerHTML = '';
-            // already sorted by refreshList if needed
             slips.forEach(s => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -904,7 +882,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
             window._slips = slips;
 
-            // attach event handlers for amount submit buttons
             (window._slips || []).forEach(s => {
                 const btn = document.getElementById(`amt_btn_${s.id}`);
                 if (btn) {
@@ -917,7 +894,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                             return;
                         }
 
-                        // disable controls to avoid double-submit
                         input.disabled = true;
                         btn.disabled = true;
 
@@ -926,10 +902,10 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ id: id, amount: Number(val) })
-                            });
-                            const j = await resp.json().catch(()=>null);
+                            }).catch(()=>null);
+                            const j = resp ? await resp.json().catch(()=>null) : null;
                             if (j && j.ok) {
-                                // refresh list so amount shows as text and cannot be changed
+                                // after server save, refresh list
                                 await refreshList();
                             } else {
                                 alert('Could not save amount (server).');
@@ -948,6 +924,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         }
 
         document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+
     </script>
 </body>
 </html>
