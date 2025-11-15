@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Final Fit)</title>
+  <title>Secure Slip — Create Slip (Final Fit) + Vehicle Filter</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -76,6 +76,9 @@
 
     /* small niceties */
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
+    .filters-row { display:flex; gap:8px; align-items:center; }
+    .filters-row input[type="text"] { width:160px; }
+    .meta-right { text-align:right; font-weight:700; }
   </style>
 </head>
 <body>
@@ -148,13 +151,20 @@
           <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
           <div style="font-size:13px; color:#235">Server-stored slips (data only)</div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <label style="font-size:13px; color:#07304b;">From</label>
-          <input type="date" id="filterFrom">
-          <label style="font-size:13px; color:#07304b;">To</label>
-          <input type="date" id="filterTo">
-          <button id="applyFilter" class="btn btn-ghost">Apply</button>
-          <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
+        <div style="display:flex; gap:8px; align-items:center; width:620px; justify-content:flex-end;">
+          <div class="filters-row" style="align-items:center;">
+            <label style="font-size:13px; color:#07304b; margin-right:6px;">From</label>
+            <input type="date" id="filterFrom">
+            <label style="font-size:13px; color:#07304b; margin-left:8px; margin-right:6px;">To</label>
+            <input type="date" id="filterTo">
+            <label style="font-size:13px; color:#07304b; margin-left:8px; margin-right:6px;">Vehicle</label>
+            <input type="text" id="filterVehicle" placeholder="Vehicle No">
+            <button id="applyFilter" class="btn btn-ghost">Apply</button>
+          </div>
+          <div style="margin-left:12px; text-align:right;">
+            <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
+            <div style="font-size:12px; color:#666">Count: <span id="totalCount">0</span></div>
+          </div>
         </div>
       </div>
       <div id="recordsWrap" style="margin-top:12px;">
@@ -195,11 +205,11 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
@@ -229,11 +239,14 @@ const dashboardCard = document.getElementById('dashboardCard');
 const createBtn = document.getElementById('createBtn');
 const recordsBody = document.getElementById('recordsBody');
 const totalAmountEl = document.getElementById('totalAmount');
+const totalCountEl = document.getElementById('totalCount');
 const slipOutput = document.getElementById('slipOutput');
 const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
+const applyFilterBtn = document.getElementById('applyFilter');
+const filterVehicleEl = document.getElementById('filterVehicle');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
@@ -389,34 +402,154 @@ printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 
 closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
 /* saved list (local simple) */
-function refreshList(){ loadLocalSlips(); renderSlipsTable(window._slips || []); }
-function renderSlipsTable(slips){
-  recordsBody.innerHTML='';
-  let total=0;
+/* refreshList now accepts filters (date from/to and vehicle) and applies client-side filtering as fallback */
+async function refreshList() {
+  try {
+    // collect filters
+    const from = getVal('filterFrom') || '';
+    const to = getVal('filterTo') || '';
+    const vehicle = (getVal('filterVehicle') || '').trim();
+
+    // build query for server
+    const q = new URLSearchParams({ from, to });
+    if (vehicle) q.set('vehicle', vehicle);
+
+    // attempt server fetch
+    const resp = await fetch('/slip-server/get_slips.php?' + q.toString());
+    const json = await resp.json().catch(() => null);
+
+    let slips = [];
+    if (json && Array.isArray(json.slips)) {
+      slips = json.slips.slice();
+    } else {
+      // server didn't return expected data — fallback to local storage
+      loadLocalSlips();
+      slips = (window._slips || []).slice();
+    }
+
+    // client-side filtering: date range + vehicle (case-insensitive substring)
+    const vehicleLower = vehicle.toLowerCase();
+    const filtered = slips.filter(s => {
+      // date filter if provided (compare createdAt date portion)
+      if (from) {
+        const fromT = new Date(from).setHours(0,0,0,0);
+        const created = new Date(s.createdAt).getTime();
+        if (created < fromT) return false;
+      }
+      if (to) {
+        const toT = new Date(to).setHours(23,59,59,999);
+        const created = new Date(s.createdAt).getTime();
+        if (created > toT) return false;
+      }
+      if (vehicleLower) {
+        const vn = String(s.vehicleNo || '').toLowerCase();
+        if (!vn.includes(vehicleLower)) return false;
+      }
+      return true;
+    });
+
+    // sort by id/createdAt (desc)
+    filtered.sort((a,b)=>{
+      if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+      return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+    });
+
+    renderSlipsTable(filtered);
+  } catch (err) {
+    console.error('refreshList', err);
+    // fallback to local list if error
+    loadLocalSlips();
+    const slips = (window._slips || []).slice();
+    // apply vehicle/date filters locally
+    const from = getVal('filterFrom') || '';
+    const to = getVal('filterTo') || '';
+    const vehicle = (getVal('filterVehicle') || '').trim().toLowerCase();
+    const filtered = slips.filter(s=>{
+      if (from) { const fromT=new Date(from).setHours(0,0,0,0); if (new Date(s.createdAt).getTime() < fromT) return false; }
+      if (to) { const toT=new Date(to).setHours(23,59,59,999); if (new Date(s.createdAt).getTime() > toT) return false; }
+      if (vehicle) { if (!(String(s.vehicleNo||'').toLowerCase().includes(vehicle))) return false; }
+      return true;
+    });
+    renderSlipsTable(filtered);
+    serverError.style.display = 'block';
+    serverError.textContent = 'List load error: ' + (err.message || err);
+  }
+}
+
+function renderSlipsTable(slips) {
+  recordsBody.innerHTML = '';
+  let totalAmt = 0;
   slips.forEach(s=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `<td style="width:60px">${s.id}</td><td style="width:180px">${(new Date(s.createdAt)).toLocaleString()}</td><td style="width:140px">${s.vehicleNo||'-'}</td><td style="width:120px">${s.filename? 'Saved':'-'}</td><td style="width:150px" id="amountCell_${s.id}">${s.amount?`₹ ${Number(s.amount).toFixed(2)}`:`<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`}</td><td style="width:160px"><span style="color:#666">—</span></td>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="width:60px">${s.id}</td>
+      <td style="width:180px">${(new Date(s.createdAt)).toLocaleString()}</td>
+      <td style="width:140px">${s.vehicleNo || '-'}</td>
+      <td style="width:120px">${s.filename ? 'Saved' : '-'}</td>
+      <td style="width:150px" id="amountCell_${s.id}">
+        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
+          `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
+          `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+           <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+        }
+      </td>
+      <td style="width:160px">
+        <span style="color:#666">—</span>
+      </td>
+    `;
     recordsBody.appendChild(tr);
-    total += Number(s.amount || 0);
+    totalAmt += Number(s.amount || 0);
   });
-  totalAmountEl.textContent = total.toFixed(2);
-  // attach amount handlers
-  (window._slips || []).forEach(s=>{
+  totalAmountEl.textContent = totalAmt.toFixed(2);
+  totalCountEl.textContent = (slips || []).length;
+  window._slips = slips;
+  (window._slips || []).forEach(s => {
     const btn = document.getElementById(`amt_btn_${s.id}`);
-    if(btn){
-      btn.addEventListener('click', ()=>{
-        const input = document.getElementById(`amt_in_${s.id}`);
+    if (btn) {
+      btn.addEventListener('click', async (ev) => {
+        const id = Number(ev.currentTarget.dataset.id);
+        const input = document.getElementById(`amt_in_${id}`);
         const val = input.value;
-        if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; }
-        for(let i=0;i<window._slips.length;i++){ if(String(window._slips[i].id)===String(s.id)){ window._slips[i].amount = Number(val).toFixed(2); break; } }
-        persistLocalSlips();
-        refreshList();
+        if (val === '' || isNaN(Number(val))) {
+          alert('Enter valid amount');
+          return;
+        }
+        try {
+          // try server update (if backend supports), otherwise update local
+          const resp = await fetch('/slip-server/update_amount.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, amount: Number(val) })
+          }).catch(()=>null);
+          if (resp) {
+            const j = await resp.json().catch(()=>null);
+            if (j && j.ok) {
+              alert('Amount saved.');
+              await refreshList();
+              return;
+            }
+          }
+          // fallback: update local storage
+          for (let i=0;i<window._slips.length;i++){
+            if (String(window._slips[i].id) === String(id)) { window._slips[i].amount = Number(val).toFixed(2); break; }
+          }
+          persistLocalSlips();
+          await refreshList();
+        } catch (err) {
+          console.error(err);
+          alert('Error saving amount.');
+        }
       });
     }
   });
 }
 
-/* local storage */
+document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+
+/* utility functions */
+function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+
+/* local storage helpers (unchanged) */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 
