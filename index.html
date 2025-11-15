@@ -1,205 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Secure Slip — Create Slip (Final)</title>
-  <style>
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
-    body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
-    body::after{content:"";position:fixed;inset:0;z-index:-2;background:linear-gradient(rgba(255,255,255,0.66),rgba(255,255,255,0.66))}
-    .container{max-width:1100px;margin:22px auto;padding-bottom:60px}
-    .card{background:linear-gradient(180deg,#fff,#fbfdff);padding:16px;border-radius:12px;box-shadow:0 8px 30px rgba(22,40,60,0.06);border:1px solid rgba(10,18,30,0.04);margin-bottom:18px}
-    .loginBox h2{margin:0 0 12px 0;color:#0b2330;font-size:20px}
-    .loginBox input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(20,30,40,0.06);font-family:"Courier New",monospace}
-    .loginBox button{width:100%;padding:10px;border-radius:8px;border:none;background:#0b63b3;color:#fff;font-weight:600;cursor:pointer}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
-    label{display:block;color:#0b2330;font-size:14px;margin-top:8px}
-    input[type="text"],input[type="date"],input[type="number"],select{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(20,30,40,.06);font-family:"Courier New",monospace;box-sizing:border-box}
-    .time-row{display:flex;gap:8px}
-    .time-row>div{flex:1}
-    .controls{display:flex;gap:8px;margin-top:10px;align-items:center}
-    .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
-    .btn-blue{background:linear-gradient(180deg,#1976d2,#0b63b3);color:#fff}
-    .btn-ghost{background:transparent;border:1px solid rgba(10,18,30,0.06);color:#07304b}
-    .table{width:100%;border-collapse:collapse;margin-top:8px}
-    .table th,.table td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(10,18,30,0.04);font-size:13px;vertical-align:middle}
-    .table th{color:#07304b;font-weight:700}
-    .amount-input{width:100px;padding:6px;font-family:monospace}
-    .err{border-color:#d33 !important;box-shadow:0 0 0 3px rgba(211,51,51,0.08)}
-    .errMsg{color:#d33;font-weight:700;margin-top:6px;font-size:13px}
-    #serverError{margin-top:10px;color:#b33;font-weight:700;display:none}
-    .filterSummary{font-weight:700;color:#07304b;text-align:right;margin-left:12px}
-
-    /* ===== Slip preview overlay ===== */
-    #slipOutput{
-      display:none;
-      position:fixed;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-50%);
-      width:min(1200px,94%);
-      max-width:1200px;
-      max-height:94vh;
-      z-index:9999;
-      border-radius:8px;
-      box-shadow:0 30px 80px rgba(0,0,0,0.35);
-      background:transparent;
-      overflow:hidden;
-    }
-    #previewToolbar{
-      display:flex;
-      gap:8px;
-      padding:8px;
-      justify-content:flex-end;
-      background:rgba(12,20,30,0.03);
-      border-top-left-radius:8px;
-      border-top-right-radius:8px;
-    }
-    #slipInner{
-      background:#fff;
-      padding:18px;
-      border-bottom-left-radius:8px;
-      border-bottom-right-radius:8px;
-      color:#000;
-      font-family:"Courier New",monospace;
-      box-sizing:border-box;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-      height: calc(94vh - 56px);
-      overflow:auto; /* allow scroll only if extremely tall */
-    }
-    #slipContent{ color:#000; transform-origin: top center; display:inline-block; white-space:normal; }
-    .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
-
-    /* Print: make slip full-width (10in) and visible only */
-    @media print {
-      body * { visibility: hidden !important; }
-      #slipOutput, #slipOutput * { visibility: visible !important; }
-      #slipOutput { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; margin: 0 !important; padding: 0 !important; background:#fff !important; box-shadow: none !important; overflow: visible !important; }
-      #previewToolbar { display: none !important; }
-      /* Remove transforms for print so PDF/Printer gets natural 10in width */
-      #slipContent { transform: none !important; width: 10in !important; margin: 0 !important; }
-      /* ensure page margins handled by browser print dialog */
-    }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Secure Slip — Create Slip (Fit-NoScroll)</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: transparent;
+            color: #0d2433;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            background-image: url("truck.avif");
+            background-size: cover;
+            background-position: center;
+            filter: blur(6px) brightness(.95);
+        }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: linear-gradient(rgba(255,255,255,0.66), rgba(255,255,255,0.66));
+        }
+        .container {
+            max-width: 1100px;
+            margin: 22px auto;
+            padding-bottom: 60px;
+        }
+        .card {
+            background: linear-gradient(180deg, #fff, #fbfdff);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(22, 40, 60, 0.06);
+            border: 1px solid rgba(10, 18, 30, 0.04);
+            margin-bottom: 18px;
+        }
+        /* Login */
+        .loginBox h2 {
+            margin: 0 0 12px 0;
+            color: #0b2330;
+            font-size: 20px;
+        }
+        .loginBox input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 1px solid rgba(20, 30, 40, 0.06);
+            font-family: "Courier New", monospace;
+        }
+        .loginBox button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            background: #0b63b3;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+        label {
+            display: block;
+            color: #0b2330;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(20, 30, 40, .06);
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+        }
+        .time-row {
+            display: flex;
+            gap: 8px;
+        }
+        .time-row > div {
+            flex: 1;
+        }
+        /* Buttons */
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-blue {
+            background: linear-gradient(180deg, #1976d2, #0b63b3);
+            color: #fff;
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid rgba(10, 18, 30, 0.06);
+            color: #07304b;
+        }
+        /* Slip preview overlay */
+        #slipOutput {
+            display: none;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(1200px, 94%);
+            max-width: 1200px;
+            max-height: 94vh;
+            z-index: 9999;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            background: transparent;
+            overflow: hidden;
+        }
+        #previewToolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            justify-content: flex-end;
+            background: rgba(12, 20, 30, 0.03);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        /* IMPORTANT: hide scrollbars and force scaling to fit */
+        #slipInner {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            color: #000;
+            font-family: "Courier New", monospace;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: calc(94vh - 56px); /* reserve toolbar */
+            overflow: hidden; /* <- crucial: no scrollbars */
+            position: relative;
+        }
+        /* slip styling (affects preview rendering) */
+        .slip-wrapper {
+            white-space: pre;
+            font-family: "Courier New", monospace;
+            color: #000;
+        }
+        .slip-firm {
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+        .slip-address {
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        .big-val {
+            font-weight: 700;
+            font-size: 15px;
+        }
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+            #slipOutput,
+            #slipOutput * {
+                visibility: visible !important;
+            }
+            #slipOutput {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                background: #fff !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+            #previewToolbar {
+                display: none !important;
+            }
+            #slipContent {
+                transform: none !important;
+                width: 10in !important;
+                margin: 0 !important;
+            }
+        }
+        .amount-input {
+            width: 100px;
+            padding: 6px;
+            font-family: monospace;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .table th,
+        .table td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(10, 18, 30, 0.04);
+            font-size: 13px;
+            vertical-align: middle;
+        }
+        .table th {
+            color: #07304b;
+            font-weight: 700;
+        }
+        .err {
+            border-color: #d33 !important;
+            box-shadow: 0 0 0 3px rgba(211, 51, 51, 0.08);
+        }
+        .errMsg {
+            color: #d33;
+            font-weight: 700;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+        .groupRow {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .smallNote {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+        #serverError {
+            margin-top: 10px;
+            color: #b33;
+            font-weight: 700;
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <!-- LOGIN -->
-    <div class="card loginBox" id="loginBox">
-      <h2>Login</h2>
-      <input id="username" placeholder="User ID" autocomplete="off" />
-      <input id="password" placeholder="Password" type="password" autocomplete="off" />
-      <button id="loginBtn" class="btn btn-blue">Login</button>
-      <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
+    <div class="container">
+        <!-- LOGIN -->
+        <div class="card loginBox" id="loginBox">
+            <h2>Login</h2>
+            <input id="username" placeholder="User ID" autocomplete="off" />
+            <input id="password" placeholder="Password" type="password" autocomplete="off" />
+            <button id="loginBtn" class="btn btn-blue">Login</button>
+            <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
+        </div>
+        <!-- FORM -->
+        <div class="card" id="formCard" style="display:none;">
+            <form id="slipForm" onsubmit="return false;">
+                <!-- Firm -->
+                <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
+                <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
+                <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
+                <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
+                <div class="form-grid">
+                    <label>RST No: <input type="text" id="rstNo" value="101" required></label>
+                    <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
+                </div>
+                <div class="form-grid">
+                    <label>Item: <input type="text" id="item" value="20MM" required></label>
+                    <label>Vehicle Type: <input type="text" id="vehicleType"></label>
+                    <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
+                    <label>Address: <input type="text" id="address" placeholder="Enter Address (optional)"></label>
+                </div>
+                <div class="form-grid">
+                    <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
+                    <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
+                </div>
+                <div class="time-row" style="margin-top:6px;">
+                    <div style="flex:1">
+                        <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
+                    </div>
+                    <div style="flex:1">
+                        <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
+                    <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
+                </div>
+                <label>Net: <input type="text" id="net" value="54980 Kg"></label>
+                <label>Charges: Rs <input type="text" id="charges" value="0"></label>
+                <label>Phone: <input type="text" id="phone" value="123456"></label>
+                <div class="controls">
+                    <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
+                    <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
+                </div>
+                <div id="serverError"></div>
+            </form>
+        </div>
+        <!-- SAVED SLIPS -->
+        <div class="card" id="dashboardCard" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div>
+                    <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
+                    <div style="font-size:13px; color:#235">Server-stored slips (data only)</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <label style="font-size:13px; color:#07304b;">From</label>
+                    <input type="date" id="filterFrom">
+                    <label style="font-size:13px; color:#07304b;">To</label>
+                    <input type="date" id="filterTo">
+                    <button id="applyFilter" class="btn btn-ghost">Apply</button>
+                    <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
+                </div>
+            </div>
+            <div id="recordsWrap" style="margin-top:12px;">
+                <table class="table" id="recordsTable" aria-live="polite">
+                    <thead>
+                        <tr>
+                            <th>Sr</th>
+                            <th>Date</th>
+                            <th>Vehicle</th>
+                            <th>Saved PDF</th>
+                            <th>Amount (₹)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-
-    <!-- FORM -->
-    <div class="card" id="formCard" style="display:none;">
-      <form id="slipForm" onsubmit="return false;">
-        <label>Firm Name: <input type="text" id="firmName" value="" required></label>
-        <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
-        <label>Firm Address: <input type="text" id="firmAddress" value="" required></label>
-        <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
-        <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
-
-        <div class="form-grid">
-          <label>RST No: <input type="text" id="rstNo" value="" required></label>
-          <label>Vehicle No: <input type="text" id="vehicleNo" value="" required></label>
+    <!-- Slip preview overlay (used for rendering only) -->
+    <div id="slipOutput" role="dialog" aria-modal="true">
+        <div id="previewToolbar">
+            <button id="printPreviewBtn" class="btn btn-blue">Print</button>
+            <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
         </div>
-
-        <div class="form-grid">
-          <label>Item: <input type="text" id="item" value="" required></label>
-          <label>Vehicle Type: <input type="text" id="vehicleType" value=""></label>
-          <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
-          <label>Address: <input type="text" id="address" placeholder="Enter Address (optional)"></label>
+        <div id="slipInner">
+            <div id="slipContent" style="color:#000; transform-origin: top center;"></div>
         </div>
-
-        <div class="form-grid">
-          <label>Gross (weight): <input type="text" id="gross" value=""></label>
-          <label>Gross Date: <input type="text" id="grossDate" value=""></label>
-        </div>
-
-        <div class="time-row" style="margin-top:6px;">
-          <div style="flex:1">
-            <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
-          </div>
-          <div style="flex:1">
-            <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
-          </div>
-        </div>
-
-        <div class="form-grid">
-          <label>Tare (weight): <input type="text" id="tare" value=""></label>
-          <label>Tare Date: <input type="text" id="tareDate" value=""></label>
-        </div>
-
-        <label>Net: <input type="text" id="net" value=""></label>
-        <label>Charges: Rs <input type="text" id="charges" value="0"></label>
-        <label>Phone: <input type="text" id="phone" value=""></label>
-
-        <div class="controls">
-          <button type="button" id="createBtn" class="btn btn-blue">Create Slip</button>
-          <button type="button" id="logoutBtn" class="btn btn-ghost" style="margin-left:auto">Logout</button>
-        </div>
-        <div id="serverError"></div>
-      </form>
     </div>
-
-    <!-- SAVED SLIPS -->
-    <div class="card" id="dashboardCard" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-        <div>
-          <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
-          <div style="font-size:13px; color:#235">Local stored slips (client only)</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <label style="font-size:13px; color:#07304b;">From</label>
-          <input type="date" id="filterFrom">
-          <label style="font-size:13px; color:#07304b;">To</label>
-          <input type="date" id="filterTo">
-          <label style="font-size:13px; color:#07304b;">Vehicle</label>
-          <input type="text" id="filterVehicle" placeholder="Vehicle No">
-          <button id="applyFilter" class="btn btn-ghost">Apply</button>
-          <div style="display:flex; flex-direction:column; align-items:flex-end;">
-            <div style="font-weight:700">Total Amount: <span id="totalAmount">0.00</span></div>
-            <div style="font-size:13px; color:#666">Count: <span id="totalCount">0</span></div>
-          </div>
-        </div>
-      </div>
-      <div id="recordsWrap" style="margin-top:12px;">
-        <table class="table" id="recordsTable" aria-live="polite">
-          <thead>
-            <tr>
-              <th>Sr</th>
-              <th>Date</th>
-              <th>Vehicle</th>
-              <th>Saved PDF</th>
-              <th>Amount (₹)</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="recordsBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Slip preview overlay (used for rendering only) -->
-  <div id="slipOutput" role="dialog" aria-modal="true">
-    <div id="previewToolbar">
-      <button id="printPreviewBtn" class="btn btn-blue">Print</button>
-      <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
-    </div>
-    <div id="slipInner">
-      <div id="slipContent"></div>
-    </div>
-  </div>
-
-<script>
-/* TEMPLATE (kept same as your original) */
+    <script>
+        /* INLINE TEMPLATE */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
@@ -207,18 +367,18 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -226,291 +386,497 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
   </pre>
 </div>
 `;
-
-/* Settings & DOM refs */
-const USERNAME = "FxMiNds";
-const PASSWORD = "Sk@#9136332836@";
-let isLoggedIn = false;
-window._slips = [];
-
-const loginBtn = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const loginBox = document.getElementById('loginBox');
-const formCard = document.getElementById('formCard');
-const dashboardCard = document.getElementById('dashboardCard');
-const createBtn = document.getElementById('createBtn');
-const recordsBody = document.getElementById('recordsBody');
-const totalAmountEl = document.getElementById('totalAmount');
-const totalCountEl = document.getElementById('totalCount');
-const slipOutput = document.getElementById('slipOutput');
-const slipInner = document.getElementById('slipInner');
-const slipContent = document.getElementById('slipContent');
-const printPreviewBtn = document.getElementById('printPreviewBtn');
-const closePreviewBtn = document.getElementById('closePreviewBtn');
-
-/* helpers */
-function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
-function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
-function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
-
-/* login */
-loginBtn.addEventListener('click', () => {
-  const u = document.getElementById('username').value;
-  const p = document.getElementById('password').value;
-  if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); }
-  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); }
-});
-logoutBtn.addEventListener('click', () => { setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
-function setLoggedIn(flag){
-  isLoggedIn = !!flag;
-  try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); }catch(e){}
-  if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); }
-  else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; }
-}
-
-/* on load: purge old client keys (as requested) and restore login flag if present */
-window.addEventListener('load', ()=>{
-  try{ localStorage.removeItem('client_slips_v1'); localStorage.removeItem('slip_serial_counter_v1'); }catch(e){}
-  try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
-});
-
-/* collectForm */
-function collectForm(){
-  const tareNum = parseWeight(getVal('tare'));
-  const netNum = parseWeight(getVal('net'));
-  const grossNum = tareNum + netNum;
-  return {
-    firmName: getVal('firmName'),
-    firmAddress: getVal('firmAddress'),
-    firmPhone: getVal('firmPhone'),
-    rstNo: getVal('rstNo'),
-    vehicleNo: getVal('vehicleNo'),
-    vehicleType: getVal('vehicleType'),
-    partyName: getVal('partyName'),
-    address: getVal('address'),
-    item: getVal('item'),
-    gross: `${Number(grossNum).toFixed(0)} Kg`,
-    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
-    grossTime: getVal('grossTime'),
-    tare: `${Number(tareNum).toFixed(0)} Kg`,
-    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
-    tareTime: getVal('tareTime'),
-    net: `${Number(netNum).toFixed(0)} Kg`,
-    charges: (getVal('charges')||'0'),
-    phone: getVal('phone'),
-    savedAt: new Date().toISOString()
-  };
-}
-
-/* local serial & persistence */
-function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
-function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r ? JSON.parse(r) : []; }catch(e){ window._slips = []; } }
-
-function addLocalSlipRecord(rec){
-  try{
-    if(!Array.isArray(window._slips)) window._slips=[];
-    const id = generateSerial();
-    const createdAt = new Date().toISOString();
-    const newRow = { id:id, createdAt:createdAt, vehicleNo:rec.vehicleNo||'', filename:null, amount:'' };
-    window._slips.unshift(newRow);
-    persistLocalSlips();
-    renderSlipsTable(window._slips);
-  }catch(e){ console.error('addLocalSlipRecord error', e); }
-}
-
-/* render template to DOM */
-function renderSlipToDom(data){
-  const replacements = {
-    '{{firmName}}': esc(data.firmName || ''),
-    '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(data.firmPhone || ''),
-    '{{rstNo}}': esc(data.rstNo || ''),
-    '{{vehicleNo}}': esc(data.vehicleNo || ''),
-    '{{vehicleType}}': esc(data.vehicleType || ''),
-    '{{partyName}}': esc(data.partyName || ''),
-    '{{address}}': esc(data.address || ''),
-    '{{item}}': esc(data.item || ''),
-    '{{gross}}': esc(String(data.gross || '')),
-    '{{grossDate}}': esc(String(data.grossDate || '')),
-    '{{grossTime}}': esc(String(data.grossTime || '')),
-    '{{tare}}': esc(String(data.tare || '')),
-    '{{tareDate}}': esc(String(data.tareDate || '')),
-    '{{tareTime}}': esc(String(data.tareTime || '')),
-    '{{net}}': esc(String(data.net || '')),
-    '{{amount}}': esc(String(data.amount || '')),
-    '{{charges}}': esc(String(data.charges || '')),
-    '{{phone}}': esc(String(data.phone || ''))
-  };
-  let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-  slipContent.innerHTML = rendered;
-}
-
-/* robust fit algorithm */
-function fitSlipPreview() {
-  requestAnimationFrame(() => {
-    const slipDom = slipContent.firstElementChild;
-    if (!slipDom) return;
-
-    slipDom.style.boxSizing = 'border-box';
-    slipDom.style.width = '10in';
-
-    const naturalRect = slipDom.getBoundingClientRect();
-    const naturalW = naturalRect.width || (96 * 10);
-    const naturalH = naturalRect.height || 800;
-
-    const outRect = slipOutput.getBoundingClientRect();
-    const toolbar = document.getElementById('previewToolbar');
-    const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 56;
-    const availableW = Math.max(120, outRect.width - 36);
-    const availableH = Math.max(120, outRect.height - toolbarH - 36);
-
-    const scaleW = availableW / naturalW;
-    const scaleH = availableH / naturalH;
-    const rawScale = Math.min(1, scaleW, scaleH);
-    const safetyFactor = 0.95;
-    const scale = Math.max(0.45, rawScale * safetyFactor);
-
-    // apply transform and center vertically by margin
-    slipContent.style.transformOrigin = 'top center';
-    slipContent.style.transform = `scale(${scale})`;
-    slipContent.style.width = `${naturalW}px`;
-    slipContent.style.height = `${naturalH}px`;
-
-    // vertically center by calculating scaled height and applying margin-top
-    const scaledH = naturalH * scale;
-    const extraSpace = Math.max(0, availableH - scaledH);
-    slipContent.style.marginTop = `${Math.round(extraSpace / 2)}px`;
-  });
-}
-
-/* debounce resize and observer to refit */
-let resizeTimer = null;
-window.addEventListener('resize', () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { fitSlipPreview(); resizeTimer = null; }, 80);
-});
-const mo = new MutationObserver(() => { fitSlipPreview(); });
-mo.observe(slipContent, { childList:true, subtree:true });
-
-/* validation */
-function validateAll(){
-  const required=['firmName','firmAddress','rstNo','vehicleNo','item'];
-  let ok=true;
-  required.forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err');
-  });
-  return ok;
-}
-
-/* create handler */
-createBtn.addEventListener('click', async () => {
-  if (!isLoggedIn) { alert('Please login first'); return; }
-  if (!validateAll()) { alert('Please fill required fields'); return; }
-  const rec = collectForm();
-  addLocalSlipRecord(rec);
-  renderSlipToDom(rec);
-  slipOutput.style.display = 'block';
-  slipContent.style.marginTop = '0px';
-  setTimeout(() => fitSlipPreview(), 110);
-});
-
-/* print & close handlers */
-printPreviewBtn.addEventListener('click', () => {
-  // force a momentary re-render to ensure we print natural size (print CSS will remove transform)
-  // small delay gives browser time to apply @media print styles
-  setTimeout(() => window.print(), 80);
-});
-closePreviewBtn.addEventListener('click', () => { slipOutput.style.display='none'; });
-
-/* list/filter + amount submit (local-only) */
-function refreshList(){ loadLocalSlips(); applyFiltersAndRender(window._slips.slice()); }
-function applyFiltersAndRender(slips){
-  const fromVal=document.getElementById('filterFrom').value||'';
-  const toVal=document.getElementById('filterTo').value||'';
-  const vehicleVal=(document.getElementById('filterVehicle').value||'').trim().toLowerCase();
-  function inRange(createdAt){
-    if(!createdAt) return false;
-    const d=new Date(createdAt);
-    if(fromVal){ const f=new Date(fromVal+'T00:00:00'); if(d<f) return false; }
-    if(toVal){ const t=new Date(toVal+'T23:59:59'); if(d>t) return false; }
-    return true;
-  }
-  let filtered=slips.filter(s=>{
-    if(!s || !s.createdAt) return false;
-    if((fromVal||toVal) && !inRange(s.createdAt)) return false;
-    if(vehicleVal){ const v=(s.vehicleNo||'').toString().toLowerCase(); if(!v.includes(vehicleVal)) return false; }
-    return true;
-  });
-  filtered.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-  let totalAmt=0; filtered.forEach(s=> totalAmt += Number(s.amount||0));
-  totalAmountEl.textContent = totalAmt.toFixed(2);
-  totalCountEl.textContent = String(filtered.length);
-  renderSlipsTable(filtered);
-}
-
-function renderSlipsTable(slips){
-  recordsBody.innerHTML='';
-  slips.forEach(s=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td style="width:60px">${s.id}</td>
-      <td style="width:180px">${(new Date(s.createdAt)).toLocaleString()}</td>
-      <td style="width:140px">${s.vehicleNo||'-'}</td>
-      <td style="width:120px">${s.filename? 'Saved' : '-'}</td>
-      <td style="width:150px" id="amountCell_${s.id}">
-        ${s.amount!==undefined && s.amount!==null && s.amount!=='' ?
-          `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
-          `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
-           <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+        const SERVER_BASE = '/slip-server';
+        function buildServerUrl(path) {
+            const base = SERVER_BASE || '';
+            if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
+            return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
         }
-      </td>
-      <td style="width:160px"><span style="color:#666">—</span></td>
-    `;
-    recordsBody.appendChild(tr);
-  });
+        const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
+        const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
+        const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
+        const USERNAME = "FxMiNds";
+        const PASSWORD = "Sk@#9136332836@";
+        let isLoggedIn = false;
+        /* DOM refs */
+        const createBtn = document.getElementById('createBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const loginBox = document.getElementById('loginBox');
+        const formCard = document.getElementById('formCard');
+        const dashboardCard = document.getElementById('dashboardCard');
+        const recordsBody = document.getElementById('recordsBody');
+        const totalAmountEl = document.getElementById('totalAmount');
+        const serverError = document.getElementById('serverError');
+        const grossEl = document.getElementById('gross');
+        const tareEl = document.getElementById('tare');
+        const netEl = document.getElementById('net');
+        const slipOutput = document.getElementById('slipOutput');
+        const slipInner = document.getElementById('slipInner');
+        const slipContent = document.getElementById('slipContent');
+        const printPreviewBtn = document.getElementById('printPreviewBtn');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
+        const requiredMap = [
+            { id: 'firmName', err: 'firmNameErr' },
+            { id: 'firmAddress', err: 'firmAddressErr' },
+            { id: 'rstNo', err: 'rstErr' },
+            { id: 'vehicleNo', err: 'vehErr' },
+            { id: 'item', err: 'itemErr' },
+            { id: 'gross', err: 'grossErr' },
+            { id: 'grossDate', err: 'grossDateErr' },
+            { id: 'grossTime', err: 'grossTimeErr' },
+            { id: 'tareTime', err: 'tareTimeErr' },
+            { id: 'tare', err: 'tareErr' },
+            { id: 'tareDate', err: 'tareDateErr' },
+            { id: 'net', err: 'netErr' }
+        ];
+        /* Persist login across refresh using localStorage */
+        function setLoggedIn(flag) {
+            isLoggedIn = !!flag;
+            try { localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); } catch (e) { /* ignore */ }
+            updateUiForAuth();
+        }
+        function updateUiForAuth() {
+            if (isLoggedIn) {
+                loginBox.style.display = 'none';
+                formCard.style.display = 'block';
+                dashboardCard.style.display = 'block';
+                refreshList();
+            } else {
+                loginBox.style.display = 'block';
+                formCard.style.display = 'none';
+                dashboardCard.style.display = 'none';
+            }
+        }
+        /* Try to restore login state on load */
+        window.addEventListener('load', () => {
+            try {
+                const v = localStorage.getItem('slip_isLoggedIn');
+                if (v === '1') {
+                    isLoggedIn = true;
+                }
+            } catch (e) { /* ignore */ }
+            updateUiForAuth();
+            recomputeGross();
+        });
+        /* login/logout */
+        loginBtn.addEventListener('click', () => {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if (u === USERNAME && p === PASSWORD) {
+                setLoggedIn(true);
+            } else {
+                const loginErr = document.getElementById('loginErr');
+                loginErr.style.display = 'block';
+                setTimeout(() => loginErr.style.display = 'none', 2000);
+            }
+        });
+        logoutBtn.addEventListener('click', () => {
+            setLoggedIn(false);
+            try { localStorage.removeItem('slip_isLoggedIn'); } catch (e) {}
+        });
+        /* helper to parse weight values */
+        function parseWeight(v) {
+            return Number((v || '').replace(/\s*Kg\s*/i, '')) || 0;
+        }
+        /* recompute gross */
+        function recomputeGross() {
+            const tare = parseWeight(tareEl ? tareEl.value : 0);
+            const net = parseWeight(netEl ? netEl.value : 0);
+            const gross = tare + net;
+            if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
+        }
+        if (tareEl) tareEl.addEventListener('input', recomputeGross);
+        if (netEl) netEl.addEventListener('input', recomputeGross);
+        /* HTML escape helper */
+        function esc(str) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(str).replace(/[&<>"']/g, m => map[m]);
+        }
+        /* pretty zero helper (keeps previous behaviour for look) */
+        function prettyZero(val) {
+    const s = String(val || '').trim();
+    const core = s.replace(/[^0-9.]/g, '');
 
-  window._slips = slips;
-  slips.forEach(s=>{
-    const btn=document.getElementById(`amt_btn_${s.id}`);
-    if(btn){
-      btn.addEventListener('click', async (ev)=>{
-        const id = ev.currentTarget.dataset.id;
-        const input = document.getElementById(`amt_in_${id}`);
-        const val = input.value;
-        if(val==='' || isNaN(Number(val))){ alert('Enter valid amount'); return; }
-        input.disabled=true; btn.disabled=true;
-        try{
-          for(let i=0;i<(window._slips||[]).length;i++){
-            if(String(window._slips[i].id) === String(id)){ window._slips[i].amount = Number(val).toFixed(2); break; }
-          }
-          persistLocalSlips();
-          applyFiltersAndRender(window._slips.slice());
-        }catch(e){ console.error('save amount local error', e); input.disabled=false; btn.disabled=false; alert('Error saving amount locally.'); }
-      });
+    if (core !== '' && Number(core) === 0) {
+        // Normal 0 ke width me hi slash aa jayega
+        return s.replace(/0/g, '0\u0338');
     }
-  });
+
+    return s;
 }
 
-document.getElementById('applyFilter').addEventListener('click', ()=> refreshList());
+        /* render template into slipContent (no pdf) */
+        function renderSlipToDom(data) {
+            const replacements = {
+                '{{firmName}}': esc(data.firmName || ''),
+                '{{firmAddress}}': esc(data.firmAddress || ''),
+                '{{firmPhone}}': esc(prettyZero(data.firmPhone || '')),
+                '{{rstNo}}': esc(prettyZero(data.rstNo || '')),
+                '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
+                '{{vehicleType}}': esc(data.vehicleType || ''),
+                '{{partyName}}': esc(data.partyName || ''),
+                '{{address}}': esc(prettyZero(data.address || '')),
+                '{{item}}': esc(prettyZero(data.item || '')),
+                '{{gross}}': esc(prettyZero(String(data.gross || '').replace(/\s*Kg$/i,''))),
+                '{{grossDate}}': esc(prettyZero(data.grossDate || '')),
+                '{{grossTime}}': esc(prettyZero(data.grossTime || '')),
+                '{{tare}}': esc(prettyZero(String(data.tare || '').replace(/\s*Kg$/i,''))),
+                '{{tareDate}}': esc(prettyZero(data.tareDate || '')),
+                '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
+                '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
+                '{{amount}}': esc(prettyZero(data.amount || '')),
+                '{{charges}}': esc(prettyZero(data.charges === '' ? '0' : data.charges)), // use slashed zero correctly
+                '{{phone}}': esc(prettyZero(data.phone || ''))
+            };
+            let rendered = TEMPLATE_HTML;
+            Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
+            slipContent.innerHTML = rendered;
+        }
+        /* scale slipContent so it fits inside slipOutput without scrolling */
+        function fitSlipPreview() {
+            // wait for DOM/render
+            requestAnimationFrame(() => {
+                const slipDom = slipContent.firstElementChild; // outer div from TEMPLATE_HTML
+                if (!slipDom) return;
+                slipDom.style.boxSizing = 'border-box';
+                // reset transform and margins
+                slipContent.style.transform = 'none';
+                slipContent.style.marginTop = '0px';
+                slipContent.style.width = 'auto';
+                // measure available space inside slipInner
+                const availableW = slipInner.clientWidth - 0; // now we remove side padding to maximize fit
+                const availableH = slipInner.clientHeight - 0;
+                // ensure slipDom has its expected print width
+                slipDom.style.width = '10in';
+                // force reflow
+                const naturalW = slipDom.offsetWidth;
+                const naturalH = slipDom.offsetHeight;
+                // compute scale from both dimensions
+                const scaleW = availableW / naturalW;
+                const scaleH = availableH / naturalH;
+                // choose the smaller scale so both width & height fit (no scroll)
+                let scale = Math.min(1, scaleW, scaleH);
+                // safety clamp
+                if (scale > 1) scale = 1;
+                if (scale < 0.35) scale = 0.35; // don't go too tiny
+                // apply scale and center
+                slipContent.style.transformOrigin = 'top center';
+                slipContent.style.transform = `scale(${scale})`;
+                slipContent.style.width = `${naturalW}px`;
+                slipContent.style.height = `${naturalH}px`;
+                // compute vertical centering (use availableH and scaled height)
+                const scaledH = naturalH * scale;
+                const extra = Math.max(0, availableH - scaledH);
+                slipContent.style.marginTop = `${Math.round(extra / 2)}px`;
+                // ensure no scrollbars inside preview (we use overflow:hidden on slipInner)
+                slipInner.scrollTop = 0;
+                slipInner.scrollLeft = 0;
+            });
+        }
+        /* validation + creation flow */
+        function clearValidation() {
+            requiredMap.forEach(item => {
+                const el = document.getElementById(item.id);
+                if (el) el.classList.remove('err');
+                const errNode = document.getElementById(item.err);
+                if (errNode) errNode.style.display = 'none';
+            });
+            serverError.style.display = 'none';
+            serverError.textContent = '';
+        }
+        function validateAll() {
+            clearValidation();
+            let ok = true;
+            for (const item of requiredMap) {
+                const el = document.getElementById(item.id);
+                const errNode = document.getElementById(item.err);
+                if (!el) {
+                    if (errNode) errNode.style.display = 'block';
+                    ok = false;
+                    continue;
+                }
+                const val = String(el.value || '').trim();
+                if (item.id === 'gross' || item.id === 'tare' || item.id === 'net') {
+                    const num = parseWeight(val);
+                    if (!val || num === 0) {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                } else {
+                    if (val === '') {
+                        ok = false;
+                        el.classList.add('err');
+                        if (errNode) errNode.style.display = 'block';
+                    }
+                }
+            }
+            return ok;
+        }
+        /* collectForm unchanged except address mapping fixed */
+        function collectForm() {
+            const tareNum = parseWeight(getVal('tare'));
+            const netNum = parseWeight(getVal('net'));
+            const grossNum = tareNum + netNum;
+            return {
+                firmName: getVal('firmName'),
+                firmAddress: getVal('firmAddress'),
+                firmPhone: getVal('firmPhone'),
+                rstNo: getVal('rstNo'),
+                vehicleNo: getVal('vehicleNo'),
+                vehicleType: getVal('vehicleType'),
+                partyName: getVal('partyName'),
+                address: getVal('address'),
+                item: getVal('item'),
+                gross: `${Number(grossNum).toFixed(0)} Kg`,
+                grossDate: getVal('grossDate'),
+                grossTime: getVal('grossTime'),
+                tare: `${Number(tareNum).toFixed(0)} Kg`,
+                tareDate: getVal('tareDate'),
+                tareTime: getVal('tareTime'),
+                net: `${Number(netNum).toFixed(0)} Kg`,
+                amount: '',
+                charges: (getVal('charges') || '0'),
+                phone: getVal('phone'),
+                savedAt: new Date().toISOString()
+            };
+        }
 
-/* localStorage helpers (persist only client data) */
-function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r = localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
+        // ---------- Minimal add: immediate local UI row + reliable server save ----------
+        function generateSerial() {
+            try {
+                const key = 'slip_serial_counter_v1';
+                let v = Number(localStorage.getItem(key) || '0');
+                v = v + 1;
+                localStorage.setItem(key, String(v));
+                return String(v).padStart(13, '0');
+            } catch (e) {
+                return String(Date.now());
+            }
+        }
 
-/* generateSerial duplicate safe */
-function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
+        function addLocalSlipRecord(rec) {
+            try {
+                window._slips = window._slips || [];
+                const id = generateSerial();
+                const createdAt = new Date().toISOString();
+                const newRow = {
+                    id: id,
+                    createdAt: createdAt,
+                    vehicleNo: rec.vehicleNo || '',
+                    filename: null,
+                    amount: rec.charges || ''
+                };
+                window._slips.unshift(newRow);
+                renderSlipsTable(window._slips);
+            } catch (e) {
+                console.error('addLocalSlipRecord error', e);
+            }
+        }
 
-/* small mutation observer to schedule fit after rendering */
-let fitTimeout=null;
-function scheduleFit(){ if(fitTimeout) clearTimeout(fitTimeout); fitTimeout=setTimeout(()=>{ fitSlipPreview(); fitTimeout=null; },120); }
-const mo2 = new MutationObserver(()=> scheduleFit());
-mo2.observe(slipContent, { childList:true, subtree:true });
+        async function saveSlipRecordOnCreate(rec) {
+          try {
+            const payload = {
+              action: 'save_data_only',
+              slip: {
+                vehicleNo: rec.vehicleNo || '',
+                rstNo: rec.rstNo || '',
+                createdAt: new Date().toISOString(),
+                gross: rec.gross || '',
+                tare: rec.tare || '',
+                net: rec.net || '',
+                charges: (rec.charges === '' ? '0' : rec.charges),
+                phone: rec.phone || '',
+                firmName: rec.firmName || ''
+              }
+            };
 
-/* initial render */
-refreshList();
-</script>
+            const resp = await fetch(CREATE_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              keepalive: true
+            }).catch(e => {
+              console.warn('saveSlipRecordOnCreate: network/save failed', e);
+              return null;
+            });
+
+            if (!resp) return null;
+
+            const j = await resp.json().catch(() => null);
+            if (j && j.ok) {
+              try { await refreshList(); } catch (e) { console.warn('refreshList failed after save', e); }
+            } else {
+              try { await refreshList(); } catch (e) { /* ignore */ }
+            }
+            return j;
+          } catch (err) {
+            console.error('saveSlipRecordOnCreate error', err);
+            return null;
+          }
+        }
+
+        function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+        /* send data-only slip to server (no PDF) */
+        async function saveSlipDataToServer(data) {
+            try {
+                const resp = await fetch(CREATE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'save_data_only', slip: data })
+                });
+                const j = await resp.json().catch(() => null);
+                return j;
+            } catch (err) {
+                console.error('saveSlipDataToServer', err);
+                return null;
+            }
+        }
+        /* createBtn handler: render preview, fit it, send data to server, and refresh list (no pdf upload) */
+        createBtn.addEventListener('click', async () => {
+            serverError.style.display = 'none';
+            serverError.textContent = '';
+            if (!isLoggedIn) {
+                alert('Please login first');
+                return;
+            }
+            if (!validateAll()) {
+                const firstErr = requiredMap.find(i => {
+                    const el = document.getElementById(i.id);
+                    return el && el.classList.contains('err');
+                });
+                if (firstErr) document.getElementById(firstErr.id).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            const rec = collectForm();
+
+            // Immediately add local row for UX (no change to template)
+            try { addLocalSlipRecord(rec); } catch(e) { console.warn('addLocalSlipRecord failed', e); }
+
+            // Fire off reliable server save (will call refreshList on success)
+            try { saveSlipRecordOnCreate(rec); } catch(e) { console.warn('save on create failed', e); }
+
+            try {
+                createBtn.disabled = true;
+                createBtn.textContent = 'Creating...';
+                // render preview into DOM and show (no pdf creation)
+                renderSlipToDom(rec);
+                slipOutput.style.display = 'block';
+                // ensure slipInner size and fit
+                fitSlipPreview();
+                // Also call original save (keeps compatibility)
+                const saveResp = await saveSlipDataToServer(rec);
+                if (saveResp && saveResp.ok) {
+                    await refreshList();
+                } else {
+                    console.warn('Server save returned (secondary):', saveResp);
+                }
+            } catch (err) {
+                console.error('Create exception:', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'Client error: ' + (err.message || err);
+                alert('Error creating slip: ' + (err.message || err) + '. Check console.');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create Slip';
+            }
+        });
+        printPreviewBtn.addEventListener('click', () => {
+            // Use window.print(); print CSS will ensure only slipOutput prints
+            setTimeout(()=> window.print(), 80);
+        });
+        closePreviewBtn.addEventListener('click', () => {
+            slipOutput.style.display = 'none';
+        });
+        /* refreshList/renderSlipsTable updated to remove PDF download link and download button */
+        async function refreshList() {
+            try {
+                const from = getVal('filterFrom') || '';
+                const to = getVal('filterTo') || '';
+                const q = new URLSearchParams({ from, to });
+                const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+                const json = await resp.json();
+                if (!json || !Array.isArray(json.slips)) {
+                    console.error('Invalid slips response', json);
+                    return;
+                }
+                const slips = json.slips.slice();
+                slips.sort((a, b) => {
+                    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+                });
+                renderSlipsTable(slips);
+            } catch (err) {
+                console.error('refreshList', err);
+                serverError.style.display = 'block';
+                serverError.textContent = 'List load error: ' + (err.message || err);
+            }
+        }
+        function renderSlipsTable(slips) {
+            recordsBody.innerHTML = '';
+            let totalAmt = 0;
+            slips.sort((a, b) => {
+                if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+                return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+            });
+            slips.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="width:60px">${s.id}</td>
+                    <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
+                    <td style="width:140px">${s.vehicleNo || '-'}</td>
+                    <td style="width:200px">${s.filename ? 'Saved' : '-'}</td>
+                    <td style="width:150px" id="amountCell_${s.id}">
+                        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
+                            `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
+                            `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
+                             <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
+                        }
+                    </td>
+                    <td style="width:160px">
+                        <!-- removed download link/button as requested -->
+                        <span style="color:#666">—</span>
+                    </td>
+                `;
+                recordsBody.appendChild(tr);
+                totalAmt += Number(s.amount || 0);
+            });
+            totalAmountEl.textContent = totalAmt.toFixed(2);
+            window._slips = slips;
+            (window._slips || []).forEach(s => {
+                const btn = document.getElementById(`amt_btn_${s.id}`);
+                if (btn) {
+                    btn.addEventListener('click', async (ev) => {
+                        const id = Number(ev.currentTarget.dataset.id);
+                        const input = document.getElementById(`amt_in_${id}`);
+                        const val = input.value;
+                        if (val === '' || isNaN(Number(val))) {
+                            alert('Enter valid amount');
+                            return;
+                        }
+                        try {
+                            const resp = await fetch(AMOUNT_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id, amount: Number(val) })
+                            });
+                            const j = await resp.json();
+                            if (j && j.ok) {
+                                alert('Amount saved.');
+                                await refreshList();
+                            } else {
+                                alert('Could not save amount (server).');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error saving amount.');
+                        }
+                    });
+                }
+            });
+        }
+        document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+    </script>
 </body>
 </html>
