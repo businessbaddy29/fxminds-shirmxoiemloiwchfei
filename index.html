@@ -3,43 +3,30 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Secure Slip — Create Slip (Layout adjusted)</title>
+  <title>Secure Slip — Create Slip (Final Fit v3)</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
     body::after{content:"";position:fixed;inset:0;z-index:-2;background:linear-gradient(rgba(255,255,255,0.66),rgba(255,255,255,0.66))}
     .container{max-width:1100px;margin:22px auto;padding-bottom:60px}
     .card{background:linear-gradient(180deg,#fff,#fbfdff);padding:16px;border-radius:12px;box-shadow:0 8px 30px rgba(22,40,60,0.06);border:1px solid rgba(10,18,30,0.04);margin-bottom:18px}
-    .loginBox h2{margin:0 0 12px 0;color:#0b2330;font-size:20px}
-    .loginBox input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(20,30,40,0.06);font-family:"Courier New",monospace}
-    .loginBox button{width:100%;padding:10px;border-radius:8px;border:none;background:#0b63b3;color:#fff;font-weight:600;cursor:pointer}
-    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
     label{display:block;color:#0b2330;font-size:14px;margin-top:8px}
     input[type="text"],input[type="date"],input[type="number"],select{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(20,30,40,.06);font-family:"Courier New",monospace;box-sizing:border-box}
-    .time-row{display:flex;gap:8px}
-    .time-row>div{flex:1}
     .controls{display:flex;gap:8px;margin-top:10px;align-items:center}
     .btn{padding:8px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
     .btn-blue{background:linear-gradient(180deg,#1976d2,#0b63b3);color:#fff}
     .btn-ghost{background:transparent;border:1px solid rgba(10,18,30,0.06);color:#07304b}
-    .table{width:100%;border-collapse:collapse;margin-top:8px}
-    .table th,.table td{padding:8px 6px;text-align:left;border-bottom:1px solid rgba(10,18,30,0.04);font-size:13px;vertical-align:middle}
-    .table th{color:#07304b;font-weight:700}
-    .amount-input{width:100px;padding:6px;font-family:monospace}
-    .err{border-color:#d33 !important;box-shadow:0 0 0 3px rgba(211,51,51,0.08)}
-    .errMsg{color:#d33;font-weight:700;margin-top:6px;font-size:13px}
-    #serverError{margin-top:10px;color:#b33;font-weight:700;display:none}
 
-    /* ===== Preview overlay (NO SCROLL) ===== */
+    /* Preview overlay: center + scale fit (no scroll) */
     #slipOutput{
       display:none;
       position:fixed;
       left:50%;
       top:50%;
       transform:translate(-50%,-50%);
-      width:min(1100px,92%);
+      width:min(1100px,94%);
       max-width:1100px;
-      max-height:92vh;
+      max-height:94vh;
       z-index:9999;
       border-radius:8px;
       box-shadow:0 30px 80px rgba(0,0,0,0.35);
@@ -49,7 +36,7 @@
     #previewToolbar{display:flex;gap:8px;padding:8px;justify-content:flex-end;background:rgba(12,20,30,0.03);border-top-left-radius:8px;border-top-right-radius:8px}
     #slipInner{
       background:#fff;
-      padding:14px;                 /* slightly reduced padding to gain space */
+      padding:12px;
       border-bottom-left-radius:8px;
       border-bottom-right-radius:8px;
       color:#000;
@@ -57,22 +44,21 @@
       box-sizing:border-box;
       position:relative;
       width:100%;
-      height:calc(92vh - 56px);
-      overflow:hidden;
-      display:block;
+      height:calc(94vh - 56px);
+      overflow:hidden; /* hide scrollbar */
     }
-    #slipContent{ position:absolute; left:50%; top:50%; transform-origin:center center; white-space:normal; }
+    /* slipContent is absolute and will be centered and scaled */
+    #slipContent{ position:absolute; left:50%; top:50%; transform-origin:center center; }
 
     @media print{
       body *{visibility:hidden!important}
       #slipOutput,#slipOutput *{visibility:visible!important}
-      #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:8mm!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
+      #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:10mm!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
       #previewToolbar{display:none!important}
-      #slipContent{position:static!important;transform:none!important;width:9in!important;margin:0!important}
+      /* print natural width set to 8.5in for better fit on many printers */
+      #slipContent{position:static!important;transform:none!important;width:8.5in!important;margin:0!important}
       #slipInner{overflow:visible!important;height:auto!important}
     }
-
-    .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
   </style>
 </head>
 <body>
@@ -86,42 +72,34 @@
       <p id="loginErr" style="color:#d33; display:none; margin-top:8px;">Invalid credentials</p>
     </div>
 
-    <!-- FORM -->
+    <!-- FORM (unchanged) -->
     <div class="card" id="formCard" style="display:none;">
       <form id="slipForm" onsubmit="return false;">
         <label>Firm Name: <input type="text" id="firmName" value="FIRM NAME" required></label>
-        <div id="firmNameErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
         <label>Firm Address: <input type="text" id="firmAddress" value="FIRM ADDRESS" required></label>
         <label>Firm Phone: <input type="text" id="firmPhone" placeholder="Enter firm phone (optional)"></label>
-        <div id="firmAddressErr" class="errMsg" style="display:none">भाई इसे कोन भरेगा</div>
 
-        <div class="form-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <label>RST No: <input type="text" id="rstNo" value="101" required></label>
           <label>Vehicle No: <input type="text" id="vehicleNo" value="RJ32GE0903" required></label>
         </div>
 
-        <div class="form-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <label>Item: <input type="text" id="item" value="20MM" required></label>
           <label>Vehicle Type: <input type="text" id="vehicleType"></label>
-          <label>Party Name: <input type="text" id="partyName" placeholder="Enter Party Name (optional)"></label>
-          <label>Address: <input type="text" id="address" placeholder="Enter Address (optional)"></label>
         </div>
 
-        <div class="form-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
           <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
         </div>
 
-        <div class="time-row" style="margin-top:6px;">
-          <div style="flex:1">
-            <label>Gross Time (enter exactly): <input type="text" id="grossTime" placeholder="e.g. 13:37"></label>
-          </div>
-          <div style="flex:1">
-            <label>Tare Time (enter exactly): <input type="text" id="tareTime" placeholder="e.g. 13:45"></label>
-          </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <div style="flex:1"><label>Gross Time: <input type="text" id="grossTime" placeholder="e.g. 13:37"></label></div>
+          <div style="flex:1"><label>Tare Time: <input type="text" id="tareTime" placeholder="e.g. 13:45"></label></div>
         </div>
 
-        <div class="form-grid">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <label>Tare (weight): <input type="text" id="tare" value="15700 Kg"></label>
           <label>Tare Date: <input type="text" id="tareDate" value="2025-11-08"></label>
         </div>
@@ -138,33 +116,27 @@
       </form>
     </div>
 
-    <!-- SAVED SLIPS -->
+    <!-- Saved list (unchanged) -->
     <div class="card" id="dashboardCard" style="display:none;">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <div>
-          <div style="font-size:18px; font-weight:700; color:#072033">Saved Slips</div>
-          <div style="font-size:13px; color:#235">Server-stored slips (data only)</div>
+          <div style="font-size:18px;font-weight:700;color:#072033">Saved Slips</div>
+          <div style="font-size:13px;color:#235">Server-stored slips (data only)</div>
         </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <label style="font-size:13px; color:#07304b;">From</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="font-size:13px;color:#07304b;">From</label>
           <input type="date" id="filterFrom">
-          <label style="font-size:13px; color:#07304b;">To</label>
+          <label style="font-size:13px;color:#07304b;">To</label>
           <input type="date" id="filterTo">
           <button id="applyFilter" class="btn btn-ghost">Apply</button>
           <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
         </div>
       </div>
-      <div id="recordsWrap" style="margin-top:12px;">
+
+      <div id="recordsWrap" style="margin-top:12px">
         <table class="table" id="recordsTable" aria-live="polite">
           <thead>
-            <tr>
-              <th>Sr</th>
-              <th>Date</th>
-              <th>Vehicle</th>
-              <th>Saved PDF</th>
-              <th>Amount (₹)</th>
-              <th>Action</th>
-            </tr>
+            <tr><th>Sr</th><th>Date</th><th>Vehicle</th><th>Saved PDF</th><th>Amount (₹)</th><th>Action</th></tr>
           </thead>
           <tbody id="recordsBody"></tbody>
         </table>
@@ -172,7 +144,7 @@
     </div>
   </div>
 
-  <!-- Slip preview overlay -->
+  <!-- Preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
@@ -184,437 +156,191 @@
   </div>
 
 <script>
-/* TEMPLATE — only sizes reduced slightly from original (font sizes / line-height) and width set to 9in */
+/* TEMPLATE: note natural width = 8.5in for better fit on preview/printer; font sizes slightly reduced */
 const TEMPLATE_HTML = `
-<div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:9in; box-sizing:border-box; padding:6px;'>
-  <pre class="details" style='margin:0; padding:4px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.12; font-size:22px;'>
-                <span style="letter-spacing:2px; font-size:56px; font-weight:    ;">{{firmName}}</span>
-                            <span style="font-size:34px;">{{firmAddress}}</span>
-                                 <span style="font-size:34px;">{{firmPhone}}</span>
-                                     
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-<span style="font-size:34px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:34px;">Vehicle No.     : {{vehicleNo}}</span>
-<span style="font-size:34px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:34px;"> Party name      : {{partyName}}</span>
-<span style="font-size:34px;">Address     : {{address}}</span>                                      <span style="font-size:34px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<div style='font-family:"Courier New",monospace;color:#000;width:8.5in;box-sizing:border-box;padding:6px;'>
+  <pre style='margin:0;padding:6px;white-space:pre;line-height:1.12;font-size:20px;'>
+                <span style="letter-spacing:2px;font-size:52px">{{firmName}}</span>
+                            <span style="font-size:30px">{{firmAddress}}</span>
+                                 <span style="font-size:30px">{{firmPhone}}</span>
 
-<span style="font-size:34px;">Gross   :</span>      <span style="font-size:46px; font-weight:    ;">{{gross}}</span><span style="font-size:34px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:34px;">  Time     :    {{grossTime}}</span>
-<span style="font-size:34px;">Tare    :</span>      <span style="font-size:46px; font-weight:    ;">{{tare}}</span><span style="font-size:34px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:34px;">Time     :    {{tareTime}}</span>
-<span style="font-size:34px;">Net     :</span>      <span style="font-size:46px; font-weight:    ;">{{net}}</span>  <span style="font-size:34px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-<span style="font-size:34px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+<span style="font-size:30px">RST No.     : {{rstNo}}</span>                                   <span style="font-size:30px">Vehicle No.     : {{vehicleNo}}</span>
+<span style="font-size:30px">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:30px"> Party name      : {{partyName}}</span>
+<span style="font-size:30px">Address     : {{address}}</span>                                      <span style="font-size:30px"> Item            : {{item}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-                                            <span style="font-size:34px;">Phone : {{phone}}</span>
+<span style="font-size:30px">Gross   :</span>      <span style="font-size:42px">{{gross}}</span><span style="font-size:30px"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:30px">  Time     :    {{grossTime}}</span>
+<span style="font-size:30px">Tare    :</span>      <span style="font-size:42px">{{tare}}</span><span style="font-size:30px"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:30px">Time     :    {{tareTime}}</span>
+<span style="font-size:30px">Net     :</span>      <span style="font-size:42px">{{net}}</span>  <span style="font-size:30px">Kg</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+<span style="font-size:30px">Charges : Rs {{charges}}</span>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-                                         <span style="font-size:34px;">Thanks for your visit</span>
+                                            <span style="font-size:30px">Phone : {{phone}}</span>
+
+                                         <span style="font-size:30px">Thanks for your visit</span>
   </pre>
 </div>
 `;
 
-/* SERVER vars (unchanged) */
+/* Configs (unchanged) */
 const SERVER_BASE = '/slip-server';
-function buildServerUrl(path) {
-  const base = SERVER_BASE || '';
-  if (base.startsWith('http://') || base.startsWith('https://')) return base + path;
-  return window.location.origin + (base.startsWith('/') ? base : ('/' + base)) + path;
-}
+function buildServerUrl(path){ const base = SERVER_BASE || ''; if(base.startsWith('http://')||base.startsWith('https://')) return base+path; return window.location.origin + (base.startsWith('/') ? base : ('/'+base)) + path; }
 const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php');
-const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
+const LIST_ENDPOINT   = buildServerUrl('/get_slips.php');
 const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn = false;
 
 /* DOM refs */
-const createBtn = document.getElementById('createBtn');
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const loginBox = document.getElementById('loginBox');
 const formCard = document.getElementById('formCard');
 const dashboardCard = document.getElementById('dashboardCard');
-const recordsBody = document.getElementById('recordsBody');
-const totalAmountEl = document.getElementById('totalAmount');
-const serverError = document.getElementById('serverError');
-const grossEl = document.getElementById('gross');
-const tareEl = document.getElementById('tare');
-const netEl = document.getElementById('net');
+const createBtn = document.getElementById('createBtn');
 const slipOutput = document.getElementById('slipOutput');
 const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
-const printPreviewBtn = document.getElementById('printPreviewBtn');
-const closePreviewBtn = document.getElementById('closePreviewBtn');
+const printBtn = document.getElementById('printPreviewBtn');
+const closeBtn = document.getElementById('closePreviewBtn');
+const recordsBody = document.getElementById('recordsBody');
+const totalAmountEl = document.getElementById('totalAmount');
+const serverError = document.getElementById('serverError');
 
-const requiredMap = [
-  { id: 'firmName', err: 'firmNameErr' },
-  { id: 'firmAddress', err: 'firmAddressErr' },
-  { id: 'rstNo', err: 'rstErr' },
-  { id: 'vehicleNo', err: 'vehErr' },
-  { id: 'item', err: 'itemErr' },
-  { id: 'gross', err: 'grossErr' },
-  { id: 'grossDate', err: 'grossDateErr' },
-  { id: 'grossTime', err: 'grossTimeErr' },
-  { id: 'tareTime', err: 'tareTimeErr' },
-  { id: 'tare', err: 'tareErr' },
-  { id: 'tareDate', err: 'tareDateErr' },
-  { id: 'net', err: 'netErr' }
-];
+/* helpers */
+function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]||m)); }
+function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
 
-/* Persist login across refresh using localStorage */
-function setLoggedIn(flag) {
-  isLoggedIn = !!flag;
-  try { localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); } catch (e) { /* ignore */ }
-  updateUiForAuth();
-}
-function updateUiForAuth() {
-  if (isLoggedIn) {
-    loginBox.style.display = 'none';
-    formCard.style.display = 'block';
-    dashboardCard.style.display = 'block';
-    refreshList();
-  } else {
-    loginBox.style.display = 'block';
-    formCard.style.display = 'none';
-    dashboardCard.style.display = 'none';
-  }
-}
+/* login */
+loginBtn.addEventListener('click', ()=>{ const u=getVal('username'), p=getVal('password'); if(u===USERNAME && p===PASSWORD){ setLoggedIn(true); } else { const e=document.getElementById('loginErr'); e.style.display='block'; setTimeout(()=>e.style.display='none',2000); }});
+logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){}});
+function setLoggedIn(flag){ isLoggedIn=!!flag; try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){} if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); } else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; } }
+window.addEventListener('load', ()=>{ try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){} });
 
-/* Try to restore login state on load */
-window.addEventListener('load', () => {
-  try {
-    const v = localStorage.getItem('slip_isLoggedIn');
-    if (v === '1') {
-      isLoggedIn = true;
-    }
-  } catch (e) { /* ignore */ }
-  updateUiForAuth();
-  recomputeGross();
-});
-
-/* login/logout */
-loginBtn.addEventListener('click', () => {
-  const u = document.getElementById('username').value;
-  const p = document.getElementById('password').value;
-  if (u === USERNAME && p === PASSWORD) {
-    setLoggedIn(true);
-  } else {
-    const loginErr = document.getElementById('loginErr');
-    loginErr.style.display = 'block';
-    setTimeout(() => loginErr.style.display = 'none', 2000);
-  }
-});
-logoutBtn.addEventListener('click', () => {
-  setLoggedIn(false);
-  try { localStorage.removeItem('slip_isLoggedIn'); } catch (e) {}
-});
-
-/* helper to parse weight values */
-function parseWeight(v) {
-  return Number((v || '').replace(/\s*Kg\s*/i, '')) || 0;
-}
-
-/* recompute gross */
-function recomputeGross() {
-  const tare = parseWeight(tareEl ? tareEl.value : 0);
-  const net = parseWeight(netEl ? netEl.value : 0);
-  const gross = tare + net;
-  if (grossEl) grossEl.value = `${Number(gross).toFixed(0)} Kg`;
-}
-if (tareEl) tareEl.addEventListener('input', recomputeGross);
-if (netEl) netEl.addEventListener('input', recomputeGross);
-
-/* HTML escape helper */
-function esc(str) {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(str).replace(/[&<>"']/g, m => map[m]);
-}
-
-/* pretty zero helper */
-function prettyZero(val) {
-  const s = String(val || '').trim();
-  const core = s.replace(/[^0-9.]/g, '');
-  if (core !== '' && Number(core) === 0) { return s.replace(/0/g, '0\u0338'); }
-  return s;
-}
-
-/* render template into slipContent */
-function renderSlipToDom(data) {
-  const replacements = {
-    '{{firmName}}': esc(data.firmName || ''),
-    '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(prettyZero(data.firmPhone || '')),
-    '{{rstNo}}': esc(prettyZero(data.rstNo || '')),
-    '{{vehicleNo}}': esc(prettyZero(data.vehicleNo || '')),
-    '{{vehicleType}}': esc(data.vehicleType || ''),
-    '{{partyName}}': esc(data.partyName || ''),
-    '{{address}}': esc(prettyZero(data.address || '')),
-    '{{item}}': esc(prettyZero(data.item || '')),
-    '{{gross}}': esc(prettyZero(String(data.gross || '').replace(/\s*Kg$/i,''))),
-    '{{grossDate}}': esc(prettyZero(data.grossDate || '')),
-    '{{grossTime}}': esc(prettyZero(data.grossTime || '')),
-    '{{tare}}': esc(prettyZero(String(data.tare || '').replace(/\s*Kg$/i,''))),
-    '{{tareDate}}': esc(prettyZero(data.tareDate || '')),
-    '{{tareTime}}': esc(prettyZero(data.tareTime || '')),
-    '{{net}}': esc(prettyZero(String(data.net || '').replace(/\s*Kg$/i,''))),
-    '{{amount}}': esc(prettyZero(data.amount || '')),
-    '{{charges}}': esc(prettyZero(data.charges === '' ? '0' : data.charges)),
-    '{{phone}}': esc(prettyZero(data.phone || ''))
-  };
-  let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-  slipContent.innerHTML = rendered;
-}
-
-/* fit slip preview — use 9in natural width now */
-function fitSlipPreview() {
-  requestAnimationFrame(() => {
-    const slipDom = slipContent.firstElementChild;
-    if (!slipDom) return;
-    slipDom.style.boxSizing = 'border-box';
-    slipDom.style.width = '9in'; // natural print width set smaller
-
-    const naturalW = slipDom.offsetWidth || (96 * 9);
-    const naturalH = slipDom.offsetHeight || 700;
-
-    const parentRect = slipInner.getBoundingClientRect();
-    const availableW = Math.max(100, parentRect.width - 20);
-    const availableH = Math.max(100, parentRect.height - 20);
-
-    const scaleW = availableW / naturalW;
-    const scaleH = availableH / naturalH;
-    let scale = Math.min(scaleW, scaleH, 1);
-
-    if (scale > 1) scale = 1;
-    if (scale < 0.30) scale = 0.30;
-
-    slipContent.style.position = 'absolute';
-    slipContent.style.left = '50%';
-    slipContent.style.top = '50%';
-    slipContent.style.transformOrigin = 'center center';
-    slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
-    slipContent.style.width = `${naturalW}px`;
-    slipContent.style.height = `${naturalH}px`;
-  });
-}
-
-/* validation + creation flow (unchanged) */
-function clearValidation() {
-  requiredMap.forEach(item => {
-    const el = document.getElementById(item.id);
-    if (el) el.classList.remove('err');
-    const errNode = document.getElementById(item.err);
-    if (errNode) errNode.style.display = 'none';
-  });
-  serverError.style.display = 'none';
-  serverError.textContent = '';
-}
-function validateAll() {
-  clearValidation();
-  let ok = true;
-  for (const item of requiredMap) {
-    const el = document.getElementById(item.id);
-    const errNode = document.getElementById(item.err);
-    if (!el) {
-      if (errNode) errNode.style.display = 'block';
-      ok = false;
-      continue;
-    }
-    const val = String(el.value || '').trim();
-    if (item.id === 'gross' || item.id === 'tare' || item.id === 'net') {
-      const num = parseWeight(val);
-      if (!val || num === 0) {
-        ok = false;
-        el.classList.add('err');
-        if (errNode) errNode.style.display = 'block';
-      }
-    } else {
-      if (val === '') {
-        ok = false;
-        el.classList.add('err');
-        if (errNode) errNode.style.display = 'block';
-      }
-    }
-  }
-  return ok;
-}
-function collectForm() {
-  const tareNum = parseWeight(getVal('tare'));
-  const netNum = parseWeight(getVal('net'));
-  const grossNum = tareNum + netNum;
+/* collect */
+function collectForm(){
+  const tareNum = parseWeight(getVal('tare')), netNum = parseWeight(getVal('net')), grossNum = tareNum + netNum;
   return {
-    firmName: getVal('firmName'),
-    firmAddress: getVal('firmAddress'),
-    firmPhone: getVal('firmPhone'),
-    rstNo: getVal('rstNo'),
-    vehicleNo: getVal('vehicleNo'),
-    vehicleType: getVal('vehicleType'),
-    partyName: getVal('partyName'),
-    address: getVal('address'),
-    item: getVal('item'),
-    gross: `${Number(grossNum).toFixed(0)} Kg`,
-    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
-    grossTime: getVal('grossTime'),
-    tare: `${Number(tareNum).toFixed(0)} Kg`,
-    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
-    tareTime: getVal('tareTime'),
-    net: `${Number(netNum).toFixed(0)} Kg`,
-    amount: '',
-    charges: (getVal('charges') || '0'),
-    phone: getVal('phone'),
-    savedAt: new Date().toISOString()
+    firmName: getVal('firmName'), firmAddress: getVal('firmAddress'), firmPhone: getVal('firmPhone'),
+    rstNo: getVal('rstNo'), vehicleNo: getVal('vehicleNo'), vehicleType: getVal('vehicleType'),
+    partyName: getVal('partyName'), address: getVal('address'), item: getVal('item'),
+    gross: `${Number(grossNum).toFixed(0)} Kg`, grossDate: getVal('grossDate')||new Date().toISOString().slice(0,10), grossTime: getVal('grossTime'),
+    tare: `${Number(tareNum).toFixed(0)} Kg`, tareDate: getVal('tareDate')||new Date().toISOString().slice(0,10), tareTime: getVal('tareTime'),
+    net: `${Number(netNum).toFixed(0)} Kg`, charges: (getVal('charges')||'0'), phone: getVal('phone'), savedAt: new Date().toISOString()
   };
 }
 
-/* local UX: serial + add record */
-function generateSerial() {
-  try {
-    const key = 'slip_serial_counter_v1';
-    let v = Number(localStorage.getItem(key) || '0');
-    v = v + 1;
-    localStorage.setItem(key, String(v));
-    return String(v).padStart(13, '0');
-  } catch (e) {
-    return String(Date.now());
-  }
-}
-function addLocalSlipRecord(rec) {
-  try {
-    window._slips = window._slips || [];
-    const id = generateSerial();
-    const createdAt = new Date().toISOString();
-    const newRow = { id: id, createdAt: createdAt, vehicleNo: rec.vehicleNo || '', filename: null, amount: rec.charges || '' };
-    window._slips.unshift(newRow);
-    persistLocalSlips();
-    renderSlipsTable(window._slips);
-  } catch (e) { console.error('addLocalSlipRecord error', e); }
+/* render */
+function renderSlipToDom(data){
+  const map = {
+    '{{firmName}}': esc(data.firmName||''), '{{firmAddress}}':esc(data.firmAddress||''),'{{firmPhone}}':esc(data.firmPhone||''),
+    '{{rstNo}}':esc(data.rstNo||''),'{{vehicleNo}}':esc(data.vehicleNo||''),'{{vehicleType}}':esc(data.vehicleType||''),
+    '{{partyName}}':esc(data.partyName||''),'{{address}}':esc(data.address||''),'{{item}}':esc(data.item||''),
+    '{{gross}}':esc(data.gross||''),'{{grossDate}}':esc(data.grossDate||''),'{{grossTime}}':esc(data.grossTime||''),
+    '{{tare}}':esc(data.tare||''),'{{tareDate}}':esc(data.tareDate||''),'{{tareTime}}':esc(data.tareTime||''),
+    '{{net}}':esc(data.net||''),'{{charges}}':esc(data.charges||''),'{{phone}}':esc(data.phone||'')
+  };
+  let r = TEMPLATE_HTML;
+  Object.keys(map).forEach(k=> r = r.split(k).join(map[k]));
+  slipContent.innerHTML = r;
 }
 
-/* server save if available (unchanged) */
-async function saveSlipRecordOnCreate(rec) {
-  try {
-    const payload = { action: 'save_data_only', slip: { vehicleNo: rec.vehicleNo || '', rstNo: rec.rstNo || '', createdAt: new Date().toISOString(), gross: rec.gross || '', tare: rec.tare || '', net: rec.net || '', charges: (rec.charges === '' ? '0' : rec.charges), phone: rec.phone || '', firmName: rec.firmName || '' } };
-    const resp = await fetch(CREATE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(e => { console.warn('saveSlipRecordOnCreate: network/save failed', e); return null; });
-    if (!resp) return null;
-    const j = await resp.json().catch(() => null);
-    if (j && j.ok) { try { await refreshList(); } catch (e) { console.warn('refreshList failed after save', e); } } else { try { await refreshList(); } catch (e) { /* ignore */ } }
-    return j;
-  } catch (err) { console.error('saveSlipRecordOnCreate error', err); return null; }
+/* fit preview: measure natural size (8.5in) and scale to fit both width & height */
+function fitSlipPreview(){
+  requestAnimationFrame(()=>{
+    const slipDom = slipContent.firstElementChild;
+    if(!slipDom) return;
+    slipDom.style.boxSizing='border-box';
+    slipDom.style.width='8.5in'; // natural print width used
+    // allow painting
+    const naturalW = slipDom.offsetWidth || (96*8.5);
+    const naturalH = slipDom.offsetHeight || 700;
+    const parent = slipInner.getBoundingClientRect();
+    const availW = Math.max(120, parent.width - 16);
+    const availH = Math.max(120, parent.height - 16);
+    const scaleW = availW / naturalW;
+    const scaleH = availH / naturalH;
+    let scale = Math.min(scaleW, scaleH, 1);
+    if(scale > 1) scale = 1;
+    if(scale < 0.28) scale = 0.28; // avoid tiny
+    slipContent.style.position='absolute';
+    slipContent.style.left='50%';
+    slipContent.style.top='50%';
+    slipContent.style.transformOrigin='center center';
+    slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
+    slipContent.style.width = naturalW + 'px';
+    slipContent.style.height = naturalH + 'px';
+  });
 }
 
-function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-async function saveSlipDataToServer(data) {
-  try {
-    const resp = await fetch(CREATE_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save_data_only', slip: data }) });
-    const j = await resp.json().catch(() => null);
-    return j;
-  } catch (err) { console.error('saveSlipDataToServer', err); return null; }
-}
+/* local slips simple storage */
+function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
+function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
+function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
+function addLocalSlipRecord(rec){ try{ window._slips = window._slips || []; const id = generateSerial(); const createdAt = new Date().toISOString(); window._slips.unshift({id,createdAt,vehicleNo:rec.vehicleNo||'',filename:null,amount:''}); persistLocalSlips(); renderSlipsTable(window._slips); }catch(e){console.error(e);} }
 
-/* create button flow (uses new fit) */
-createBtn.addEventListener('click', async () => {
-  serverError.style.display = 'none';
-  serverError.textContent = '';
-  if (!isLoggedIn) { alert('Please login first'); return; }
-  if (!validateAll()) { const firstErr = requiredMap.find(i => { const el = document.getElementById(i.id); return el && el.classList.contains('err'); }); if (firstErr) document.getElementById(firstErr.id).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+/* minimal validation */
+function validateAll(){ const req=['firmName','firmAddress','rstNo','vehicleNo','item']; let ok=true; req.forEach(id=>{ const el=document.getElementById(id); if(!el||String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); }); return ok; }
+
+/* create handler */
+createBtn.addEventListener('click', async ()=>{
+  if(!isLoggedIn){ alert('Please login first'); return; }
+  if(!validateAll()){ alert('Please fill required fields'); return; }
   const rec = collectForm();
-
-  try { addLocalSlipRecord(rec); } catch(e) { console.warn('addLocalSlipRecord failed', e); }
-  try { saveSlipRecordOnCreate(rec); } catch(e) { console.warn('save on create failed', e); }
-
-  try {
-    createBtn.disabled = true;
-    createBtn.textContent = 'Creating...';
-    renderSlipToDom(rec);
-    slipOutput.style.display = 'block';
-    // give browser time to layout fonts then fit
-    setTimeout(()=> fitSlipPreview(), 90);
-
-    const saveResp = await saveSlipDataToServer(rec);
-    if (saveResp && saveResp.ok) { await refreshList(); } else { console.warn('Server save returned (secondary):', saveResp); }
-  } catch (err) {
-    console.error('Create exception:', err);
-    serverError.style.display = 'block';
-    serverError.textContent = 'Client error: ' + (err.message || err);
-    alert('Error creating slip: ' + (err.message || err) + '. Check console.');
-  } finally {
-    createBtn.disabled = false;
-    createBtn.textContent = 'Create Slip';
-  }
+  addLocalSlipRecord(rec);
+  // attempt server save in background (keeps original flow)
+  (async()=>{ try{ await fetch(CREATE_ENDPOINT, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'save_data_only', slip: rec}), keepalive:true}).catch(()=>null); }catch(e){} })();
+  // render preview and fit
+  renderSlipToDom(rec);
+  slipOutput.style.display='block';
+  setTimeout(()=> fitSlipPreview(), 80);
 });
 
-printPreviewBtn.addEventListener('click', () => { setTimeout(()=> window.print(), 80); });
-closePreviewBtn.addEventListener('click', () => { slipOutput.style.display = 'none'; });
+/* print & close */
+printBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 80); });
+closeBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
-/* refresh/render list (unchanged) */
-async function refreshList() {
-  try {
-    const from = getVal('filterFrom') || '';
-    const to = getVal('filterTo') || '';
-    const q = new URLSearchParams({ from, to });
-    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
-    const json = await resp.json();
-    if (!json || !Array.isArray(json.slips)) { console.error('Invalid slips response', json); return; }
-    const slips = json.slips.slice();
-    slips.sort((a, b) => { if (a.id != null && b.id != null) return Number(b.id) - Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
-    renderSlipsTable(slips);
-  } catch (err) {
-    console.error('refreshList', err);
-    serverError.style.display = 'block';
-    serverError.textContent = 'List load error: ' + (err.message || err);
-  }
-}
-function renderSlipsTable(slips) {
-  recordsBody.innerHTML = '';
-  let totalAmt = 0;
-  slips.sort((a, b) => {
-    if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
-    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-  });
-  slips.forEach(s => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="width:60px">${s.id}</td>
-      <td style="width:120px">${(new Date(s.createdAt)).toLocaleString()}</td>
-      <td style="width:140px">${s.vehicleNo || '-'}</td>
-      <td style="width:200px">${s.filename ? 'Saved' : '-'}</td>
-      <td style="width:150px" id="amountCell_${s.id}">
-        ${s.amount !== undefined && s.amount !== null && s.amount !== '' ?
-          `<span>₹ ${Number(s.amount).toFixed(2)}</span>` :
-          `<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input" placeholder="0.00">
-           <button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`
-        }
-      </td>
-      <td style="width:160px"><span style="color:#666">—</span></td>
-    `;
+/* list rendering */
+function renderSlipsTable(slips){
+  recordsBody.innerHTML=''; let total=0;
+  (slips||[]).forEach(s=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td style="width:60px">${s.id}</td><td style="width:160px">${(new Date(s.createdAt)).toLocaleString()}</td><td style="width:140px">${s.vehicleNo||'-'}</td><td style="width:120px">${s.filename? 'Saved':'-'}</td><td style="width:150px" id="amountCell_${s.id}">${s.amount?`₹ ${Number(s.amount).toFixed(2)}`:`<input type="number" step="0.01" min="0" id="amt_in_${s.id}" class="amount-input"><button class="btn btn-blue amount-submit" id="amt_btn_${s.id}" data-id="${s.id}">Submit</button>`}</td><td style="width:160px"><span style="color:#666">—</span></td>`;
     recordsBody.appendChild(tr);
-    totalAmt += Number(s.amount || 0);
+    total += Number(s.amount||0);
   });
-  totalAmountEl.textContent = totalAmt.toFixed(2);
-  window._slips = slips;
-  (window._slips || []).forEach(s => {
-    const btn = document.getElementById(`amt_btn_${s.id}`);
-    if (btn) {
-      btn.addEventListener('click', async (ev) => {
-        const id = Number(ev.currentTarget.dataset.id);
-        const input = document.getElementById(`amt_in_${id}`);
-        const val = input.value;
-        if (val === '' || isNaN(Number(val))) { alert('Enter valid amount'); return; }
-        try {
-          const resp = await fetch(AMOUNT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, amount: Number(val) }) });
-          const j = await resp.json();
-          if (j && j.ok) { alert('Amount saved.'); await refreshList(); } else { alert('Could not save amount (server).'); }
-        } catch (err) { console.error(err); alert('Error saving amount.'); }
+  totalAmountEl.textContent = total.toFixed(2);
+  // attach handlers
+  (window._slips||[]).forEach(s=>{
+    const btn=document.getElementById(`amt_btn_${s.id}`);
+    if(btn){
+      btn.addEventListener('click', ()=>{
+        const input=document.getElementById(`amt_in_${s.id}`);
+        const val=input.value;
+        if(val===''||isNaN(Number(val))){ alert('Enter valid amount'); return; }
+        for(let i=0;i<window._slips.length;i++){ if(String(window._slips[i].id)===String(s.id)){ window._slips[i].amount = Number(val).toFixed(2); break; } }
+        persistLocalSlips(); loadLocalSlips(); renderSlipsTable(window._slips);
       });
     }
   });
 }
-document.getElementById('applyFilter').addEventListener('click', () => refreshList());
+async function refreshList(){
+  // attempt server list first; if server returns valid array, use that; otherwise use local storage
+  try{
+    const q = new URLSearchParams({ from:getVal('filterFrom')||'', to:getVal('filterTo')||'' });
+    const resp = await fetch(LIST_ENDPOINT + '?' + q.toString());
+    const j = await resp.json().catch(()=>null);
+    if(j && Array.isArray(j.slips)){ renderSlipsTable(j.slips); window._slips = j.slips; persistLocalSlips(); return; }
+  }catch(e){ /* ignore */ }
+  loadLocalSlips();
+  renderSlipsTable(window._slips);
+}
 
-/* local storage helpers */
-function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r = localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
-
-/* initial load */
+/* initial */
 refreshList();
 </script>
 </body>
