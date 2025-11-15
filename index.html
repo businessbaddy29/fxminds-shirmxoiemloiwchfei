@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Secure Slip — Create Slip (Final fit & center)</title>
+  <title>Secure Slip — Create Slip (Preview center & fit)</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -31,7 +31,7 @@
     #serverError{margin-top:10px;color:#b33;font-weight:700;display:none}
     .filterSummary{font-weight:700;color:#07304b;text-align:right;margin-left:12px}
 
-    /* ---------- Preview overlay (centered & safe-fit) ---------- */
+    /* Preview overlay */
     #slipOutput{
       display:none;
       position:fixed;
@@ -56,7 +56,7 @@
       border-top-left-radius:8px;
       border-top-right-radius:8px;
     }
-    /* slipInner is viewport — vertical center & allows small internal scroll if absolutely necessary */
+    /* slipInner is the viewport: allow auto scroll only if unavoidable */
     #slipInner{
       background:#fff;
       padding:18px;
@@ -66,15 +66,14 @@
       font-family:"Courier New",monospace;
       box-sizing:border-box;
       display:flex;
-      align-items:center;
+      align-items:flex-start;           /* start, we will control centering with margin on inner content */
       justify-content:center;
-      height: calc(94vh - 56px); /* toolbar ≈56px reserved */
-      overflow:auto; /* allow scrolling only if extremely tall slip (very rare) */
+      height: calc(94vh - 56px);
+      overflow:auto;
     }
-    /* slipContent will be scaled from top-left; keep white-space normal to preserve template pre formatting */
-    #slipContent{ color:#000; transform-origin: top left; display:block; white-space:normal }
+    /* Slip content: transform-origin TOP CENTER for correct vertical centering calculations */
+    #slipContent{ color:#000; transform-origin: top center; display:inline-block; white-space:normal; }
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
-
     @media print{
       body *{visibility:hidden!important}
       #slipOutput,#slipOutput *{visibility:visible!important}
@@ -197,7 +196,7 @@
   </div>
 
 <script>
-/* TEMPLATE (kept exactly as you provided earlier) */
+/* TEMPLATE unchanged */
 const TEMPLATE_HTML = `
 <div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:10in; box-sizing:border-box; padding:8px;'>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1.15; font-size:27px;'>
@@ -214,9 +213,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -225,12 +224,11 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 </div>
 `;
 
-/* Basic settings & DOM refs */
+/* Settings */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
-let isLoggedIn = false;
-window._slips = [];
 
+/* DOM refs */
 const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const loginBox = document.getElementById('loginBox');
@@ -246,27 +244,31 @@ const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
 
-/* helpers */
+let isLoggedIn = false;
+window._slips = [];
+
+/* util */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
 function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
 
 /* login */
-loginBtn.addEventListener('click', ()=>{
-  const u=document.getElementById('username').value;
-  const p=document.getElementById('password').value;
-  if(u===USERNAME && p===PASSWORD){ setLoggedIn(true); } else { const loginErr=document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
+loginBtn.addEventListener('click', () => {
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); }
+  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
 });
 logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
 
 function setLoggedIn(flag){
-  isLoggedIn=!!flag;
+  isLoggedIn = !!flag;
   try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){}
   if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); }
   else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; }
 }
 
-/* on load: clear old client keys (as requested) and restore login flag if present */
+/* clear old storage on load (per request) & restore login flag */
 window.addEventListener('load', ()=>{
   try{ localStorage.removeItem('client_slips_v1'); localStorage.removeItem('slip_serial_counter_v1'); }catch(e){}
   try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
@@ -274,50 +276,50 @@ window.addEventListener('load', ()=>{
 
 /* collect form */
 function collectForm(){
-  const tareNum=parseWeight(getVal('tare'));
-  const netNum=parseWeight(getVal('net'));
-  const grossNum=tareNum+netNum;
+  const tareNum = parseWeight(getVal('tare'));
+  const netNum = parseWeight(getVal('net'));
+  const grossNum = tareNum + netNum;
   return {
-    firmName:getVal('firmName'),
-    firmAddress:getVal('firmAddress'),
-    firmPhone:getVal('firmPhone'),
-    rstNo:getVal('rstNo'),
-    vehicleNo:getVal('vehicleNo'),
-    vehicleType:getVal('vehicleType'),
-    partyName:getVal('partyName'),
-    address:getVal('address'),
-    item:getVal('item'),
-    gross:`${Number(grossNum).toFixed(0)} Kg`,
-    grossDate:getVal('grossDate')||new Date().toISOString().slice(0,10),
-    grossTime:getVal('grossTime'),
-    tare:`${Number(tareNum).toFixed(0)} Kg`,
-    tareDate:getVal('tareDate')||new Date().toISOString().slice(0,10),
-    tareTime:getVal('tareTime'),
-    net:`${Number(netNum).toFixed(0)} Kg`,
-    charges:(getVal('charges')||'0'),
-    phone:getVal('phone'),
-    savedAt:new Date().toISOString()
+    firmName: getVal('firmName'),
+    firmAddress: getVal('firmAddress'),
+    firmPhone: getVal('firmPhone'),
+    rstNo: getVal('rstNo'),
+    vehicleNo: getVal('vehicleNo'),
+    vehicleType: getVal('vehicleType'),
+    partyName: getVal('partyName'),
+    address: getVal('address'),
+    item: getVal('item'),
+    gross: `${Number(grossNum).toFixed(0)} Kg`,
+    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
+    grossTime: getVal('grossTime'),
+    tare: `${Number(tareNum).toFixed(0)} Kg`,
+    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
+    tareTime: getVal('tareTime'),
+    net: `${Number(netNum).toFixed(0)} Kg`,
+    charges: (getVal('charges')||'0'),
+    phone: getVal('phone'),
+    savedAt: new Date().toISOString()
   };
 }
 
 /* persistence */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
-function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips=r?JSON.parse(r):[]; }catch(e){ window._slips=[]; } }
+function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 
 function addLocalSlipRecord(rec){
   try{
     if(!Array.isArray(window._slips)) window._slips=[];
-    const id=generateSerial();
-    const createdAt=new Date().toISOString();
-    const newRow={ id:id, createdAt:createdAt, vehicleNo:rec.vehicleNo||'', filename:null, amount:'' };
+    const id = generateSerial();
+    const createdAt = new Date().toISOString();
+    const newRow = { id:id, createdAt:createdAt, vehicleNo:rec.vehicleNo||'', filename:null, amount:'' };
     window._slips.unshift(newRow);
     persistLocalSlips();
     renderSlipsTable(window._slips);
   }catch(e){ console.error('addLocalSlipRecord error', e); }
 }
 
-/* render template into preview */
+/* render preview template */
 function renderSlipToDom(data){
   const replacements = {
     '{{firmName}}': esc(data.firmName || ''),
@@ -340,61 +342,70 @@ function renderSlipToDom(data){
     '{{charges}}': esc(String(data.charges || '')),
     '{{phone}}': esc(String(data.phone || ''))
   };
-  let rendered=TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k=>{ rendered=rendered.split(k).join(replacements[k]); });
+  let rendered = TEMPLATE_HTML;
+  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
   slipContent.innerHTML = rendered;
 }
 
-/* ===== Robust fit: center + small safety margin ===== */
-let lastFit={w:0,h:0,scale:1};
-function fitSlipPreview(){
-  requestAnimationFrame(()=>{
+/* NEW: improved fit that centers vertically + horizontally and avoids cut */
+let lastFit = { w:0, h:0, scale:1 };
+function fitSlipPreview() {
+  requestAnimationFrame(() => {
     const slipDom = slipContent.firstElementChild;
-    if(!slipDom) return;
-    // ensure print width
-    slipDom.style.boxSizing='border-box';
+    if (!slipDom) return;
+    // ensure width 10in for natural dimensions
+    slipDom.style.boxSizing = 'border-box';
     slipDom.style.width = '10in';
-    // measure natural
+
+    // natural size
     const naturalRect = slipDom.getBoundingClientRect();
-    // fallback px-per-inch ~ 96 if not available
     const naturalW = naturalRect.width || (96 * 10);
     const naturalH = naturalRect.height || 800;
-    // available area inside slipOutput/slipInner
+
+    // available area inside slipOutput (account for previewToolbar)
     const outRect = slipOutput.getBoundingClientRect();
-    const toolbarH = document.getElementById('previewToolbar') ? document.getElementById('previewToolbar').getBoundingClientRect().height : 56;
-    const availW = Math.max(120, outRect.width - 36); // small side padding safety
-    const availH = Math.max(120, outRect.height - toolbarH - 36); // top/bottom safety
-    // compute scale and apply small margin factor
-    const scaleW = availW / naturalW;
-    const scaleH = availH / naturalH;
+    const toolbar = document.getElementById('previewToolbar');
+    const toolbarH = toolbar ? toolbar.getBoundingClientRect().height : 56;
+    const availableW = Math.max(120, outRect.width - 36);
+    const availableH = Math.max(120, outRect.height - toolbarH - 36);
+
+    // compute scale (with safety)
+    const scaleW = availableW / naturalW;
+    const scaleH = availableH / naturalH;
     const rawScale = Math.min(1, scaleW, scaleH);
-    const scale = Math.max(0.5, rawScale * 0.98); // keep at least 50% scale, apply 0.98 safety margin
-    if(Math.abs(lastFit.scale - scale) > 0.0005 || lastFit.w !== availW || lastFit.h !== availH){
-      lastFit = { w: availW, h: availH, scale };
-      slipContent.style.transform = `scale(${scale})`;
-      slipContent.style.width = `${naturalW}px`;
-      slipContent.style.height = `${naturalH}px`;
-      // ensure small visual margin around scaled content
-      slipInner.scrollTop = 0;
-      slipInner.scrollLeft = 0;
-    }
+    const safetyFactor = 0.975;
+    const scale = Math.max(0.4, rawScale * safetyFactor); // avoid too tiny
+
+    // apply transform-origin top center to allow centering by margin
+    slipContent.style.transformOrigin = 'top center';
+    slipContent.style.transform = `scale(${scale})`;
+    slipContent.style.width = `${naturalW}px`;
+    slipContent.style.height = `${naturalH}px`;
+
+    // vertically center scaled content by setting margin-top on slipContent's parent area
+    const scaledH = naturalH * scale;
+    const extraSpace = Math.max(0, availableH - scaledH);
+    // apply top margin so content appears vertically centered inside slipInner
+    slipContent.style.marginTop = `${Math.round(extraSpace / 2)}px`;
+
+    lastFit = { w: availableW, h: availableH, scale };
   });
 }
 
-// refit on resize (debounced)
-let rt=null;
-window.addEventListener('resize', ()=>{
-  if(rt) clearTimeout(rt);
-  rt=setTimeout(()=>{ fitSlipPreview(); rt=null; }, 80);
+/* debounce resize */
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { fitSlipPreview(); resizeTimer = null; }, 80);
 });
 
-// observe DOM changes (fonts rendering) and refit
-const mo = new MutationObserver(()=>{ fitSlipPreview(); });
-mo.observe(slipContent, { childList:true, subtree:true });
+/* observe DOM changes inside slipContent and re-fit */
+const mo = new MutationObserver(() => { fitSlipPreview(); });
+mo.observe(slipContent, { childList: true, subtree: true });
 
-/* validation */
+/* validation basic */
 function validateAll(){
-  const required=['firmName','firmAddress','rstNo','vehicleNo','item'];
+  const required = ['firmName','firmAddress','rstNo','vehicleNo','item'];
   let ok=true;
   required.forEach(id=>{
     const el=document.getElementById(id);
@@ -403,24 +414,26 @@ function validateAll(){
   return ok;
 }
 
-/* create: local-only add + preview (template unchanged) */
-createBtn.addEventListener('click', async ()=>{
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  if(!validateAll()){ alert('Please fill required fields'); return; }
+/* create behavior: local-only add + preview */
+createBtn.addEventListener('click', async () => {
+  if (!isLoggedIn) { alert('Please login first'); return; }
+  if (!validateAll()) { alert('Please fill required fields'); return; }
   const rec = collectForm();
   addLocalSlipRecord(rec);
+
   renderSlipToDom(rec);
-  // show overlay centered
-  slipOutput.style.display='block';
-  // small delay to allow fonts/DOM then fit
-  setTimeout(()=> fitSlipPreview(), 90);
+  slipOutput.style.display = 'block';
+  // clear previous margin-top
+  slipContent.style.marginTop = '0px';
+  // fit after a small delay so fonts settle
+  setTimeout(() => fitSlipPreview(), 90);
 });
 
-/* print & close handlers */
-printPreviewBtn.addEventListener('click', ()=> window.print());
-closePreviewBtn.addEventListener('click', ()=> slipOutput.style.display='none');
+/* print & close */
+printPreviewBtn.addEventListener('click', () => window.print());
+closePreviewBtn.addEventListener('click', () => { slipOutput.style.display = 'none'; });
 
-/* list / filter local-only */
+/* list/filter local-only */
 function refreshList(){ loadLocalSlips(); applyFiltersAndRender(window._slips.slice()); }
 function applyFiltersAndRender(slips){
   const fromVal=document.getElementById('filterFrom').value||'';
@@ -439,10 +452,7 @@ function applyFiltersAndRender(slips){
     if(vehicleVal){ const v=(s.vehicleNo||'').toString().toLowerCase(); if(!v.includes(vehicleVal)) return false; }
     return true;
   });
-  filtered.sort((a,b)=>{
-    if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id);
-    return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-  });
+  filtered.sort((a,b)=>{ if(a.id!=null && b.id!=null) return Number(b.id)-Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
   let totalAmt=0; filtered.forEach(s=> totalAmt += Number(s.amount||0));
   totalAmountEl.textContent = totalAmt.toFixed(2);
   totalCountEl.textContent = String(filtered.length);
@@ -497,18 +507,16 @@ document.getElementById('applyFilter').addEventListener('click', ()=> refreshLis
 /* local storage helpers */
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips=r?JSON.parse(r):[]; }catch(e){ window._slips=[]; } }
-
 function generateSerial(){ try{ const key='slip_serial_counter_v1'; let v=Number(localStorage.getItem(key)||'0'); v=v+1; localStorage.setItem(key,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 
-/* ensure small re-fit after DOM update */
-let fitTimeout=null;
-function scheduleFit(){ if(fitTimeout) clearTimeout(fitTimeout); fitTimeout=setTimeout(()=>{ fitSlipPreview(); fitTimeout=null; }, 120); }
+/* small mutation observer to schedule fit after rendering */
+let fitTimeout = null;
+function scheduleFit(){ if(fitTimeout) clearTimeout(fitTimeout); fitTimeout = setTimeout(()=>{ fitSlipPreview(); fitTimeout = null; }, 120); }
 const mo2 = new MutationObserver(()=> scheduleFit());
 mo2.observe(slipContent, { childList:true, subtree:true });
 
-// initial empty render
+/* initial */
 refreshList();
-
 </script>
 </body>
 </html>
