@@ -133,7 +133,7 @@
             transform: translateX(-50%);
             width: min(1200px, 96%);
             max-height: 88vh;
-            overflow: hidden; /* IMPORTANT: hide scroll to force scaling */
+            overflow: hidden;
             z-index: 9999;
             border-radius: 8px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -159,7 +159,6 @@
             align-items: center;
             justify-content: center;
         }
-        /* slip styling (affects preview rendering) */
         .slip-wrapper {
             white-space: pre;
             font-family: "Courier New", monospace;
@@ -325,6 +324,15 @@
                     <div style="font-weight:700">Total Amount: <span id="totalAmount">0</span></div>
                 </div>
             </div>
+
+            <!-- ADMIN PURGE CONTROLS -->
+            <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+                <button id="purgeLocalBtn" class="btn btn-ghost">Purge Local</button>
+                <button id="purgeSerialBtn" class="btn btn-ghost">Reset Serial Counter</button>
+                <button id="purgeServerBtn" class="btn btn-blue">Purge Server</button>
+                <div style="font-size:12px; color:#b33; margin-left:8px;">(Server purge requires server-side script)</div>
+            </div>
+
             <div id="recordsWrap" style="margin-top:12px;">
                 <table class="table" id="recordsTable" aria-live="polite">
                     <thead>
@@ -361,18 +369,18 @@ const TEMPLATE_HTML = `
                             <span style="font-size:45px;">{{firmAddress}}</span>
                                  <span style="font-size:45px;">{{firmPhone}}</span>
                                      
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 <span style="font-size:45px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:45px;">Vehicle No.     : {{vehicleNo}}</span>
 <span style="font-size:45px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:45px;"> Party name      : {{partyName}}</span>
 <span style="font-size:45px;">Address     : {{address}}</span>                                      <span style="font-size:45px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:45px;">Gross   :</span>      <span style="font-size:55px; font-weight:    ;">{{gross}}</span><span style="font-size:45px;"> Kg      Date  : {{grossDate}}</span>    <span style="font-size:45px;">  Time     :    {{grossTime}}</span>
 <span style="font-size:45px;">Tare    :</span>      <span style="font-size:55px; font-weight:    ;">{{tare}}</span><span style="font-size:45px;"> Kg      Date  : {{tareDate}}</span>       <span style="font-size:45px;">Time     :    {{tareTime}}</span>
 <span style="font-size:45px;">Net     :</span>      <span style="font-size:55px; font-weight:    ;">{{net}}</span>  <span style="font-size:45px;">Kg</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 <span style="font-size:45px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:45px;">Phone : {{phone}}</span>
 
@@ -389,6 +397,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         const CREATE_ENDPOINT = buildServerUrl('/create_pdf.php'); // server endpoint - we will POST JSON (data-only)
         const LIST_ENDPOINT = buildServerUrl('/get_slips.php');
         const AMOUNT_ENDPOINT = buildServerUrl('/update_amount.php');
+        // New delete endpoint (server must implement)
+        const DELETE_ENDPOINT = buildServerUrl('/delete_slips.php');
+
         const USERNAME = "FxMiNds";
         const PASSWORD = "Sk@#9136332836@";
         let isLoggedIn = false;
@@ -410,6 +421,11 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
         const slipContent = document.getElementById('slipContent');
         const printPreviewBtn = document.getElementById('printPreviewBtn');
         const closePreviewBtn = document.getElementById('closePreviewBtn');
+
+        const purgeLocalBtn = document.getElementById('purgeLocalBtn');
+        const purgeServerBtn = document.getElementById('purgeServerBtn');
+        const purgeSerialBtn = document.getElementById('purgeSerialBtn');
+
         const requiredMap = [
             { id: 'firmName', err: 'firmNameErr' },
             { id: 'firmAddress', err: 'firmAddressErr' },
@@ -450,13 +466,15 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                     isLoggedIn = true;
                 }
             } catch (e) { /* ignore */ }
-            // Clear client-side stored slips to remove old local test/example data
+
+            // Clear client-side stored slips to remove old local test/example data (one-time action on load)
             try {
                 localStorage.removeItem('client_slips_v1');
-                // keep serial counter (slip_serial_counter_v1) unless you want to reset it explicitly
+                // do not reset serial by default — user can explicitly reset via UI
                 window._slips = [];
                 renderSlipsTable([]);
             } catch (e) { /* ignore */ }
+
             updateUiForAuth();
             recomputeGross();
         });
@@ -817,7 +835,6 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                         }
                     </td>
                     <td style="width:160px">
-                        <!-- removed download link/button as requested -->
                         <span style="color:#666">—</span>
                     </td>
                 `;
@@ -858,6 +875,55 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
                 }
             });
         }
+
+        // ---------- PURGE / RESET HELPERS ----------
+        purgeLocalBtn.addEventListener('click', () => {
+            if (!confirm('Purge local slips? This will remove browser-stored slips (client_slips_v1).')) return;
+            try {
+                localStorage.removeItem('client_slips_v1');
+                window._slips = [];
+                renderSlipsTable([]);
+                alert('Local slips removed.');
+            } catch (e) {
+                console.error(e);
+                alert('Could not purge local slips. See console.');
+            }
+        });
+
+        purgeSerialBtn.addEventListener('click', () => {
+            if (!confirm('Reset slip serial counter? This will set slip_serial_counter_v1 to 0.')) return;
+            try {
+                localStorage.removeItem('slip_serial_counter_v1');
+                alert('Serial counter reset.');
+            } catch (e) {
+                console.error(e);
+                alert('Could not reset serial counter. See console.');
+            }
+        });
+
+        purgeServerBtn.addEventListener('click', async () => {
+            if (!isLoggedIn) { alert('Please login first'); return; }
+            if (!confirm('Purge ALL server-stored slips? This is irreversible. Make sure you have a DB backup.')) return;
+            try {
+                // send admin credentials so server script can verify before deleting
+                const resp = await fetch(DELETE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete_all', admin: USERNAME, password: PASSWORD })
+                });
+                const j = await resp.json().catch(() => null);
+                if (j && j.ok) {
+                    alert('Server slips deleted successfully.');
+                    await refreshList();
+                } else {
+                    alert('Server purge failed: ' + (j && j.error ? j.error : 'Unknown'));
+                }
+            } catch (err) {
+                console.error('purgeServer error', err);
+                alert('Error purging server slips. See console.');
+            }
+        });
+
         document.getElementById('applyFilter').addEventListener('click', () => refreshList());
     </script>
 </body>
