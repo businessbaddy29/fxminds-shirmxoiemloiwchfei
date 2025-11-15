@@ -281,25 +281,23 @@ function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/ig,'
 /* prettyZero: return '0/' for any zero-like value, else cleaned string */
 function prettyZero(raw) {
   if (raw === null || raw === undefined) return '';
-  let s = String(raw).trim();
+  const s = String(raw).trim();
   if (s === '') return '';
-  // normalize
-  s = s.replace(/,+/g,'').replace(/\s+/g,' ').trim();
-  if (s === '0/' ) return '0/';
-  if (/^0+(\.0+)?$/i.test(s)) return '0/';
-  if (/^0+(\.0+)?\s*[a-z%°]*$/i.test(s)) return '0/';
-  // other: if numeric token is zero
-  const m = s.match(/-?\d+(\.\d+)?/);
-  if (m && Number(m[0]) === 0) return '0/';
+  if (s === '0/') return '0/';
+  if (s === '0' || /^0+(\.0+)?$/.test(s)) return '0/';
+  if (/^0(?:\.0+)?\s*[a-zA-Z%°]*$/i.test(s)) return '0/';
   return s;
 }
 
-/* strip duplicate Kg occurrences and normalize unit to single "Kg" */
-function stripDuplicateKg(s) {
-  if (!s) return s || '';
-  // collapse repeated "Kg" (any case) to single "Kg"
-  return s.replace(/\b(Kg|KG|kg)\b/g, 'Kg').replace(/(Kg\s*){2,}/g, 'Kg').trim();
+function stripDuplicateKg(s){
+  if(!s) return s;
+  let t = String(s).replace(/\s+/g,' ').trim();
+  t = t.replace(/(kg)(\s+kg)+/ig, 'Kg'); // collapse duplicate Kg
+  // normalize final unit to " Kg" if kg present
+  if (/[^\d]kg$/i.test(t)) t = t.replace(/\s*kg$/i, ' Kg');
+  return t;
 }
+
 
 /* login */
 loginBtn.addEventListener('click', () => {
@@ -352,42 +350,41 @@ function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window.
 
 /* render slip */
 function renderSlipToDom(data){
-  // derive display strings: strip duplicate Kg, convert zeros to 0/
-  const grossRaw = prettyZero(String(data.gross || ''));
-  const tareRaw  = prettyZero(String(data.tare || ''));
-  const netRaw   = prettyZero(String(data.net || ''));
-  const chargesRaw = prettyZero(String(data.charges || ''));
-  const phoneRaw = prettyZero(String(data.phone || ''));
+  // coerce to strings first
+  const raw = Object.assign({}, data);
 
-  // Ensure '0/' stays exactly as '0/' (do not strip the slash later).
-  // For safety, explicitly set final display variables:
-  const grossDisp   = stripDuplicateKg(grossRaw);
-  const tareDisp    = stripDuplicateKg(tareRaw);
-  const netDisp     = stripDuplicateKg(netRaw);
-  // charges must show "0/" when zero-like, otherwise show original cleaned text
-  const chargesDisp = (chargesRaw === '0/') ? '0/' : chargesRaw;
-  const phoneDisp   = phoneRaw;
+  // ensure every weight/charge field gets the prettyZero display
+  const grossDisp   = prettyZero(String(raw.gross || ''));
+  const tareDisp    = prettyZero(String(raw.tare  || ''));
+  const netDisp     = prettyZero(String(raw.net   || ''));
+  const chargesDisp = prettyZero(String(raw.charges || ''));
+
+  // also strip duplicate Kg if needed
+  const grossFinal = stripDuplicateKg(grossDisp);
+  const tareFinal  = stripDuplicateKg(tareDisp);
+  const netFinal   = stripDuplicateKg(netDisp);
+  const chargesFinal = (chargesDisp === '0/') ? '0/' : stripDuplicateKg(chargesDisp);
 
   const replacements = {
-    '{{firmName}}': esc(data.firmName || ''),
-    '{{firmAddress}}': esc(data.firmAddress || ''),
-    '{{firmPhone}}': esc(phoneDisp),
-    '{{rstNo}}': esc(prettyZero(String(data.rstNo || ''))),
-    '{{vehicleNo}}': esc(prettyZero(String(data.vehicleNo || ''))),
-    '{{vehicleType}}': esc(prettyZero(String(data.vehicleType || ''))),
-    '{{partyName}}': esc(data.partyName || ''),
-    '{{address}}': esc(data.address || ''),
-    '{{item}}': esc(prettyZero(String(data.item || ''))),
-    '{{gross}}': esc(grossDisp),
-    '{{grossDate}}': esc(data.grossDate || ''),
-    '{{grossTime}}': esc(data.grossTime || ''),
-    '{{tare}}': esc(tareDisp),
-    '{{tareDate}}': esc(data.tareDate || ''),
-    '{{tareTime}}': esc(data.tareTime || ''),
-    '{{net}}': esc(netDisp),
-    '{{amount}}': esc(prettyZero(String(data.amount || ''))),
-    '{{charges}}': esc(chargesDisp),
-    '{{phone}}': esc(phoneDisp)
+    '{{firmName}}': esc(raw.firmName || ''),
+    '{{firmAddress}}': esc(raw.firmAddress || ''),
+    '{{firmPhone}}': esc(raw.firmPhone || ''),
+    '{{rstNo}}': esc(raw.rstNo || ''),
+    '{{vehicleNo}}': esc(raw.vehicleNo || ''),
+    '{{vehicleType}}': esc(raw.vehicleType || ''),
+    '{{partyName}}': esc(raw.partyName || ''),
+    '{{address}}': esc(raw.address || ''),
+    '{{item}}': esc(raw.item || ''),
+    '{{gross}}': esc(grossFinal),
+    '{{grossDate}}': esc(raw.grossDate || ''),
+    '{{grossTime}}': esc(raw.grossTime || ''),
+    '{{tare}}': esc(tareFinal),
+    '{{tareDate}}': esc(raw.tareDate || ''),
+    '{{tareTime}}': esc(raw.tareTime || ''),
+    '{{net}}': esc(netFinal),
+    '{{amount}}': esc(raw.amount || ''),
+    '{{charges}}': esc(chargesFinal),
+    '{{phone}}': esc(raw.phone || '')
   };
 
   let rendered = TEMPLATE_HTML;
