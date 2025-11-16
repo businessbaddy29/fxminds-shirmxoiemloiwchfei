@@ -47,6 +47,12 @@
       overflow:visible;
     }
     #previewToolbar{display:flex;gap:8px;padding:8px;justify-content:flex-end;background:rgba(12,20,30,0.03);border-top-left-radius:8px;border-top-right-radius:8px}
+
+    /* print layout controls small styling */
+    .print-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .print-controls select, .print-controls input[type="checkbox"], .print-controls input[type="range"], .print-controls input[type="number"]{ font-family:inherit; }
+    .print-controls label { font-size:13px; color:#07304b; margin-right:4px; }
+
     /* slipInner: fixed viewport that NEVER scrolls; content inside is absolutely centered and scaled */
     #slipInner{
       background:#fff;
@@ -69,19 +75,13 @@
       #slipOutput,#slipOutput *{visibility:visible!important}
       #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:10mm!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
       #previewToolbar{display:none!important}
-      /* For printing show natural 10in width (no transform) */
-      #slipContent{position:static!important;transform:none!important;width:10in!important;margin:0!important}
-      #slipInner{overflow:visible!important;height:auto!important}
+      /* When printing we will inject rules to set width/scale for #slipContent (via injected style element) */
     }
 
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
     .filters-row { display:flex; gap:8px; align-items:center; }
     .filters-row input[type="text"] { width:160px; }
     .meta-right { text-align:right; font-weight:700; }
-
-    /* small controls in toolbar */
-    .tool-left { margin-right:auto; display:flex; gap:8px; align-items:center; }
-    .tool-left select, .tool-left input[type="number"], .tool-left input[type="range"] { font-family:inherit; }
   </style>
 </head>
 <body>
@@ -191,24 +191,46 @@
   <!-- Slip preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
-      <div class="tool-left">
-        <!-- Page size selector -->
-        <label for="printSize">Layout:</label>
-        <select id="printSize">
-          <option value="custom" selected>10 × 3.67 in</option>
-          <option value="10x5">10 × 5 in</option>
-          <option value="A4">A4</option>
-          <option value="Letter">Letter</option>
-          <option value="fit">Fit to page</option>
+      <!-- Print layout controls added here (no change to form/create logic) -->
+      <div class="print-controls" style="margin-right:auto;">
+        <label for="printLayoutSelect">Layout</label>
+        <select id="printLayoutSelect" title="Choose page layout">
+          <option value="10x3.67">10in × 3.67in (slip)</option>
+          <option value="10x5">10in × 5in</option>
+          <option value="10x7.5">10in × 7.5in</option>
+          <option value="A4-P">A4 Portrait</option>
+          <option value="A4-L">A4 Landscape</option>
+          <option value="Letter-P">Letter Portrait</option>
+          <option value="Letter-L">Letter Landscape</option>
+          <option value="Legal-P">Legal Portrait</option>
+          <option value="Legal-L">Legal Landscape</option>
+          <option value="Roll80mm">80mm Roll</option>
+          <option value="Roll58mm">58mm Roll</option>
+          <option value="10x3.0">10in × 3.00in</option>
+          <option value="10x4.0">10in × 4.00in</option>
+          <option value="Fit">Fit to page</option>
         </select>
 
-        <!-- Fit to page checkbox -->
-        <label style="margin-left:8px;"><input type="checkbox" id="fitToPage"> Fit to page</label>
+        <label for="orientationSelect">Orientation</label>
+        <select id="orientationSelect" title="Orientation">
+          <option value="landscape">Landscape</option>
+          <option value="portrait">Portrait</option>
+        </select>
 
-        <!-- Scale controls -->
-        <label style="margin-left:8px;">Scale:</label>
-        <input type="range" id="scaleRange" min="35" max="120" value="100">
-        <input type="number" id="scaleNumber" min="35" max="120" value="100" style="width:60px">
+        <label style="margin-left:6px"><input type="checkbox" id="fitToPageChk"> Fit to page</label>
+
+        <label style="margin-left:6px">Scale</label>
+        <input type="range" id="printScale" min="35" max="150" value="100" step="1" style="width:120px">
+        <input type="number" id="printScaleNum" min="35" max="150" value="100" step="1" style="width:64px">
+
+        <label style="margin-left:6px">Margins</label>
+        <select id="marginSelect">
+          <option value="6mm">6 mm</option>
+          <option value="3mm">3 mm</option>
+          <option value="0mm">0 mm</option>
+          <option value="10mm">10 mm</option>
+          <option value="15mm">15 mm</option>
+        </select>
       </div>
 
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
@@ -235,17 +257,17 @@ const TEMPLATE_HTML = `
       </div>
   </div>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "SF Mono", monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">   Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
 <span style="font-size:20px;">Net     :</span>      <span style="font-size:35px; font-weight:    ;">{{net}}</span>  <span style="font-size:20px;">  </span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
@@ -258,9 +280,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 `;
 
 /* ===== SERVER BASE (dynamic) ===== */
-const SERVER_BASE = (function(){
-  try { return window.location.origin + '/slip-server'; } catch(e) { return '/slip-server'; }
-})();
+const SERVER_BASE = (function(){ try { return window.location.origin + '/slip-server'; } catch(e) { return '/slip-server'; }})();
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
 const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
 const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php';
@@ -279,163 +299,185 @@ const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
-const printSizeEl = document.getElementById('printSize');
-const fitToPageEl = document.getElementById('fitToPage');
-const scaleRange = document.getElementById('scaleRange');
-const scaleNumber = document.getElementById('scaleNumber');
+
+const printLayoutSelect = document.getElementById('printLayoutSelect');
+const orientationSelect = document.getElementById('orientationSelect');
+const fitToPageChk = document.getElementById('fitToPageChk');
+const printScale = document.getElementById('printScale');
+const printScaleNum = document.getElementById('printScaleNum');
+const marginSelect = document.getElementById('marginSelect');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
 function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
 
-/* -------------------
-   ZERO NORMALIZATION
-   ------------------- */
+/* ---------- print style building utility ----------
+   produces @page size + print media rules according to user selection
+----------------------------------------------------- */
+function buildPrintStyles(layout, orientation, scalePercent, fitToPage, margin) {
+  // layout: one of the select values
+  // orientation: 'portrait'|'landscape'
+  // scalePercent: number (e.g. 100)
+  // fitToPage: boolean
+  // margin: string like '6mm'
+  let contentWidth = '10in';
+  let contentHeight = 'auto';
+  let pageSize = '';
+  let usingRoll = false;
+
+  switch(layout) {
+    case '10x3.67': contentWidth='10in'; contentHeight='3.67in'; break;
+    case '10x5': contentWidth='10in'; contentHeight='5in'; break;
+    case '10x7.5': contentWidth='10in'; contentHeight='7.5in'; break;
+    case '10x3.0': contentWidth='10in'; contentHeight='3.00in'; break;
+    case '10x4.0': contentWidth='10in'; contentHeight='4.00in'; break;
+    case 'A4-P': contentWidth='210mm'; contentHeight='297mm'; break;
+    case 'A4-L': contentWidth='297mm'; contentHeight='210mm'; break;
+    case 'Letter-P': contentWidth='8.5in'; contentHeight='11in'; break;
+    case 'Letter-L': contentWidth='11in'; contentHeight='8.5in'; break;
+    case 'Legal-P': contentWidth='8.5in'; contentHeight='14in'; break;
+    case 'Legal-L': contentWidth='14in'; contentHeight='8.5in'; break;
+    case 'Roll80mm': contentWidth='80mm'; contentHeight='auto'; usingRoll = true; break;
+    case 'Roll58mm': contentWidth='58mm'; contentHeight='auto'; usingRoll = true; break;
+    case 'Fit': contentWidth='auto'; contentHeight='auto'; break;
+    default: contentWidth='10in'; contentHeight='auto';
+  }
+
+  // orientation handling: if fixed width/height and user selected orientation, swap if portrait/landscape mismatch
+  if (orientation === 'portrait' && contentWidth.indexOf('in')!==-1 && contentHeight.indexOf('in')!==-1) {
+    // if width > height, swap
+    try {
+      const w = parseFloat(String(contentWidth).replace(/[^\d.]/g,''))||0;
+      const h = parseFloat(String(contentHeight).replace(/[^\d.]/g,''))||0;
+      if (w > h && !usingRoll) { const tmp = contentWidth; contentWidth = contentHeight; contentHeight = tmp; }
+    } catch(e){}
+  }
+  if (orientation === 'landscape' && contentWidth.indexOf('in')!==-1 && contentHeight.indexOf('in')!==-1) {
+    try {
+      const w = parseFloat(String(contentWidth).replace(/[^\d.]/g,''))||0;
+      const h = parseFloat(String(contentHeight).replace(/[^\d.]/g,''))||0;
+      if (h > w && !usingRoll) { const tmp = contentWidth; contentWidth = contentHeight; contentHeight = tmp; }
+    } catch(e){}
+  }
+
+  // Build @page rule
+  let pageRule = '';
+  if (contentWidth === 'auto' && contentHeight === 'auto') {
+    pageRule = `@page { size: auto; margin: ${margin}; }`;
+  } else if (contentHeight === 'auto') {
+    // width specified, height flexible (good for roll/receipt)
+    pageRule = `@page { size: ${contentWidth} ${orientation}; margin: ${margin}; }`;
+  } else {
+    pageRule = `@page { size: ${contentWidth} ${contentHeight}; margin: ${margin}; }`;
+  }
+
+  // Prepare content rules for print
+  const s = (Number(scalePercent) || 100) / 100;
+  let printRules = `
+    @media print {
+      /* ensure slip content shows full size for printing */
+      #slipContent { position:static !important; transform:none !important; width: ${contentWidth === 'auto' ? 'auto' : contentWidth} !important; margin:0 auto; box-sizing:border-box; }
+      #slipInner { overflow:visible !important; height:auto !important; padding:0 !important; }
+    }
+  `;
+
+  // If not fitToPage, we may apply user scale (transform) — browsers sometimes ignore transforms for print,
+  // so we set content width/height and also provide transform fallback.
+  if (!fitToPage && s !== 1) {
+    printRules += `
+      @media print {
+        #slipContent { transform-origin: top left !important; transform: scale(${s}) !important; }
+      }
+    `;
+  }
+
+  // If fitToPage is chosen, override to use full printable width
+  if (fitToPage) {
+    printRules = `
+      @media print {
+        #slipContent { position:static !important; transform:none !important; width:100% !important; margin:0 auto; box-sizing:border-box; }
+        #slipInner { overflow:visible !important; height:auto !important; padding:0 !important; }
+      }
+    `;
+  }
+
+  // If orientation is portrait or landscape, add a hint (some print UIs respect it)
+  if (orientation === 'portrait') {
+    pageRule = pageRule.replace(/\;?\s*$/, '') + ';';
+  } else if (orientation === 'landscape') {
+    // explicit - many browsers accept "landscape" in page size
+    if (!/landscape/i.test(pageRule)) {
+      pageRule = pageRule + `\n@page { size: landscape; }`;
+    }
+  }
+
+  return pageRule + "\n" + printRules;
+}
+
+// ensures single style element for print overrides
+function setPrintOverrideStyles(cssText) {
+  let el = document.getElementById('printOverrideStyle');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'printOverrideStyle';
+    document.head.appendChild(el);
+  }
+  el.textContent = cssText;
+}
+
+/* ---------- TEMPLATE rendering & existing logic ---------- */
 function prettyZero(raw){ if (raw === null || raw === undefined) return ''; return String(raw); }
 function normalizeToAsciiZero(s){ if(s === null || s === undefined) return ''; let t = String(s); t = t.replace(/0\//g, '0'); t = t.replace(/[\u00D8\u00F8]/g, '0'); t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0'); t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, ''); t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0'); return t; }
 function normalizeRecordZeros(rec){ const out = Object.assign({}, rec); ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{ if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k])); }); return out; }
 
-/* attach blur normalization later inside DOMContentLoaded */
-
-/* ---------- local slips ---------- */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window._slips=[]; const id=generateSerial(); const createdAt=new Date().toISOString(); window._slips.unshift({id,createdAt,vehicleNo:rec.vehicleNo||'',filename:null,amount:''}); persistLocalSlips(); renderSlipsTable(window._slips); }catch(e){console.error(e);} }
 
-/* ---------- render slip ---------- */
-function renderSlipToDom(data){
-  const safe = normalizeRecordZeros(data);
-  const replacements = {
-    '{{firmName}}': esc(safe.firmName || ''),
-    '{{firmAddress}}': esc(safe.firmAddress || ''),
-    '{{firmPhone}}': esc(prettyZero(safe.firmPhone || '')),
-    '{{rstNo}}': esc(prettyZero(safe.rstNo || '')),
-    '{{vehicleNo}}': esc(prettyZero(safe.vehicleNo || '')),
-    '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')),
-    '{{partyName}}': esc(safe.partyName || ''),
-    '{{address}}': esc(safe.address || ''),
-    '{{item}}': esc(prettyZero(safe.item || '')),
-    '{{gross}}': esc(prettyZero(safe.gross || '')),
-    '{{grossDate}}': esc(safe.grossDate || ''),
-    '{{grossTime}}': esc(safe.grossTime || ''),
-    '{{tare}}': esc(prettyZero(safe.tare || '')),
-    '{{tareDate}}': esc(safe.tareDate || ''),
-    '{{tareTime}}': esc(safe.tareTime || ''),
-    '{{net}}': esc(prettyZero(safe.net || '')),
-    '{{amount}}': esc(safe.amount || ''),
-    '{{charges}}': esc(prettyZero(safe.charges || '')),
-    '{{phone}}': esc(prettyZero(safe.phone || ''))
-  };
-  let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-  slipContent.innerHTML = rendered;
-}
+function renderSlipToDom(data){ const safe = normalizeRecordZeros(data); const replacements = { '{{firmName}}': esc(safe.firmName || ''), '{{firmAddress}}': esc(safe.firmAddress || ''), '{{firmPhone}}': esc(prettyZero(safe.firmPhone || '')), '{{rstNo}}': esc(prettyZero(safe.rstNo || '')), '{{vehicleNo}}': esc(prettyZero(safe.vehicleNo || '')), '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')), '{{partyName}}': esc(safe.partyName || ''), '{{address}}': esc(safe.address || ''), '{{item}}': esc(prettyZero(safe.item || '')), '{{gross}}': esc(prettyZero(safe.gross || '')), '{{grossDate}}': esc(safe.grossDate || ''), '{{grossTime}}': esc(safe.grossTime || ''), '{{tare}}': esc(prettyZero(safe.tare || '')), '{{tareDate}}': esc(safe.tareDate || ''), '{{tareTime}}': esc(safe.tareTime || ''), '{{net}}': esc(prettyZero(safe.net || '')), '{{amount}}': esc(safe.amount || ''), '{{charges}}': esc(prettyZero(safe.charges || '')), '{{phone}}': esc(prettyZero(safe.phone || '')) }; let rendered = TEMPLATE_HTML; Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); }); slipContent.innerHTML = rendered; }
 
-/* fit preview (scale & center) */
-function fitSlipPreview() {
-  requestAnimationFrame(() => {
-    const slipDom = slipContent.firstElementChild;
-    if (!slipDom) return;
-    slipDom.style.boxSizing = 'border-box';
-    slipDom.style.width = '10in';
-    const naturalW = slipDom.offsetWidth || (96 * 10);
-    const naturalH = slipDom.offsetHeight || 800;
-    const parentRect = slipInner.getBoundingClientRect();
-    const availableW = Math.max(100, parentRect.width - 36);
-    const availableH = Math.max(100, parentRect.height - 36);
-    const scaleW = availableW / naturalW;
-    const scaleH = availableH / naturalH;
-    let scale = Math.min(scaleW, scaleH, 1);
-    if (scale > 1) scale = 1;
-    if (scale < 0.35) scale = 0.35;
-    // apply user scale multiplier
-    const userScale = Number(scaleNumber.value || scaleRange.value || 100) / 100;
-    const finalScale = Math.max(0.35, Math.min(1.5, scale * userScale));
-    slipContent.style.position = 'absolute';
-    slipContent.style.left = '50%';
-    slipContent.style.top = '50%';
-    slipContent.style.transformOrigin = 'center center';
-    slipContent.style.transform = `translate(-50%,-50%) scale(${finalScale})`;
-    slipContent.style.width = `${naturalW}px`;
-    slipContent.style.height = `${naturalH}px`;
-  });
-}
+function fitSlipPreview() { requestAnimationFrame(() => { const slipDom = slipContent.firstElementChild; if (!slipDom) return; slipDom.style.boxSizing = 'border-box'; slipDom.style.width = '10in'; const naturalW = slipDom.offsetWidth || (96 * 10); const naturalH = slipDom.offsetHeight || 800; const parentRect = slipInner.getBoundingClientRect(); const availableW = Math.max(100, parentRect.width - 36); const availableH = Math.max(100, parentRect.height - 36); const scaleW = availableW / naturalW; const scaleH = availableH / naturalH; let scale = Math.min(scaleW, scaleH, 1); if (scale > 1) scale = 1; if (scale < 0.35) scale = 0.35; slipContent.style.position = 'absolute'; slipContent.style.left = '50%'; slipContent.style.top = '50%'; slipContent.style.transformOrigin = 'center center'; slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`; slipContent.style.width = `${naturalW}px`; slipContent.style.height = `${naturalH}px`; }); }
 
-/* resize & mutation observers */
-let resizeTimer = null;
-window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 120); });
-const mo = new MutationObserver(()=> fitSlipPreview());
-mo.observe(document.body, { childList:true, subtree:true });
+let resizeTimer = null; window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); }); const mo = new MutationObserver(()=> fitSlipPreview()); mo.observe(document.body, { childList:true, subtree:true });
 
-/* basic validation */
 function validateAll(){ const req = ['firmName','firmAddress','rstNo','vehicleNo','item']; let ok=true; req.forEach(id=>{ const el=document.getElementById(id); if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); }); return ok; }
 
-/* create handler */
-function handleCreateClick() {
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  if(!validateAll()){ alert('Please fill required fields'); return; }
-  const rec = collectForm();
-  const normalizedRec = normalizeRecordZeros(rec);
-  addLocalSlipRecord(normalizedRec);
-  renderSlipToDom(normalizedRec);
-  slipOutput.style.display = 'block';
-  setTimeout(()=> fitSlipPreview(), 120);
+function handleCreateClick() { if(!isLoggedIn){ alert('Please login first'); return; } if(!validateAll()){ alert('Please fill required fields'); return; } const rec = collectForm(); const normalizedRec = normalizeRecordZeros(rec); addLocalSlipRecord(normalizedRec); renderSlipToDom(normalizedRec); slipOutput.style.display = 'block'; setTimeout(()=> fitSlipPreview(), 80); }
+
+// Sync range and number input
+if (printScale && printScaleNum) {
+  printScale.addEventListener('input', ()=>{ printScaleNum.value = printScale.value; });
+  printScaleNum.addEventListener('input', ()=>{ let v = Number(printScaleNum.value)||100; if (v<35) v=35; if (v>150) v=150; printScale.value = v; printScaleNum.value = v; });
 }
 
-/* print helpers: build @page and print overrides */
-function buildPrintCss() {
-  const sel = printSizeEl.value || 'custom';
-  const fit = fitToPageEl.checked;
-  const scale = Number(scaleNumber.value || scaleRange.value || 100) / 100;
-  let pageRule = '';
-  if (sel === 'custom' || sel === '10x3.67') {
-    pageRule = '@page { size: 10in 3.67in; margin: 6mm; }';
-  } else if (sel === '10x5') {
-    pageRule = '@page { size: 10in 5in; margin: 6mm; }';
-  } else if (sel === 'A4') {
-    pageRule = '@page { size: A4; margin: 8mm; }';
-  } else if (sel === 'Letter') {
-    pageRule = '@page { size: letter; margin: 8mm; }';
-  } else if (sel === 'fit') {
-    pageRule = '@page { size: auto; margin: 6mm; }';
-  }
-  // When fit is selected we let the browser scale; otherwise we apply transform on #slipContent at print time
-  const contentScale = fit ? '' : `#slipContent { transform-origin: top left !important; transform: scale(${scale}) !important; width:10in !important; }`;
-  // ensure background and fonts are preserved for printing
-  const extra = `
-    html,body{background:#fff!important}
-    #slipOutput{box-shadow:none!important}
-    #slipContent { margin:0 auto !important; }
-  `;
-  return `<style id="printOverrideStyle"> ${pageRule} ${contentScale} ${extra} </style>`;
-}
-
-/* print & close */
+/* PRINT button handler: inject print CSS to match preview and chosen layout */
 printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
   try {
-    // inject print CSS
-    const prev = document.getElementById('printOverrideStyle'); if (prev) prev.remove();
-    const css = buildPrintCss();
-    const wrapper = document.createElement('div'); wrapper.innerHTML = css; document.head.appendChild(wrapper.firstElementChild);
+    const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
+    const orientation = (orientationSelect && orientationSelect.value) || 'landscape';
+    const fit = !!(fitToPageChk && fitToPageChk.checked);
+    const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
+    const margin = (marginSelect && marginSelect.value) ? marginSelect.value : '6mm';
 
-    // ensure preview is ready
-    fitSlipPreview();
-    // listen for afterprint to cleanup
-    const cleanup = () => { const p = document.getElementById('printOverrideStyle'); if (p) p.remove(); window.removeEventListener('afterprint', cleanup); };
-    window.addEventListener('afterprint', cleanup);
+    // Build CSS and inject
+    const css = buildPrintStyles(layout, orientation, scalePct, fit, margin);
+    setPrintOverrideStyles(css);
 
-    // call print
-    setTimeout(()=> window.print(), 120);
-  } catch(e) { console.error('Print failed', e); alert('Print error — check console'); }
+    // Wait a tick so CSS applies then print
+    setTimeout(()=>{ window.print(); }, 120);
+  } catch (err) {
+    console.error('Print handler error', err);
+    alert('Print error: ' + (err && err.message));
+  }
 });
+
 closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
-/* ---------- saved list / filter / amount submit ---------- */
+/* ---------- saved list / filter / amount submit (unchanged logic) ---------- */
 async function refreshList() {
-  serverError.style.display = 'none';
-  serverError.textContent = '';
+  serverError.style.display = 'none'; serverError.textContent = '';
   try {
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
@@ -445,16 +487,8 @@ async function refreshList() {
     const resp = await fetch(LIST_ENDPOINT + '?' + q.toString(), { cache: 'no-store' });
     const json = await resp.json().catch(() => null);
     let slips = [];
-    if (json && Array.isArray(json.slips)) {
-      slips = json.slips.map(s => normalizeRecordZeros(s));
-    } else {
-      loadLocalSlips();
-      slips = (window._slips || []).slice();
-      if (!json) {
-        serverError.style.display = 'block';
-        serverError.textContent = 'List load: server did not return slips (using local cache)';
-      }
-    }
+    if (json && Array.isArray(json.slips)) { slips = json.slips.map(s => normalizeRecordZeros(s)); }
+    else { loadLocalSlips(); slips = (window._slips || []).slice(); if (!json) { serverError.style.display = 'block'; serverError.textContent = 'List load: server did not return slips (using local cache)'; } }
     const vehicleLower = vehicle.toLowerCase();
     const filtered = slips.filter(s => {
       if (from) {
@@ -473,12 +507,7 @@ async function refreshList() {
       }
       return true;
     });
-
-    filtered.sort((a,b)=>{
-      if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
-      return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
-    });
-
+    filtered.sort((a,b)=>{ if (a.id != null && b.id != null) return Number(b.id) - Number(a.id); return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime(); });
     renderSlipsTable(filtered);
   } catch (err) {
     console.error('refreshList', err);
@@ -541,6 +570,7 @@ function renderSlipsTable(slips) {
           return;
         }
         try {
+          // try server update
           let serverWorked = false;
           try {
             const resp = await fetch(AMOUNT_ENDPOINT, {
@@ -565,6 +595,7 @@ function renderSlipsTable(slips) {
             return;
           }
 
+          // fallback local update
           let updated = false;
           for (let i=0;i<window._slips.length;i++){
             if (String(window._slips[i].id) === String(id)) {
@@ -597,7 +628,6 @@ function renderSlipsTable(slips) {
 
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
 
-/* collect form */
 function collectForm(){
   const tareNum = parseWeight(getVal('tare'));
   const netNum = parseWeight(getVal('net'));
@@ -625,9 +655,7 @@ function collectForm(){
   };
 }
 
-/* ---------- Login (robust) & field normalization binding ----------
-   We attach login listeners and zero-normalization handlers inside DOMContentLoaded
---------------------------------------------------------------------- */
+/* ---------- Login (robust) & field normalization binding ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   try {
     const loginBtnEl = document.getElementById('loginBtn');
@@ -637,58 +665,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardCardEl = document.getElementById('dashboardCard');
     const createBtnEl = document.getElementById('createBtn');
 
-    if (!loginBtnEl || !logoutBtnEl || !loginBoxEl || !formCardEl || !dashboardCardEl || !createBtnEl) {
-      console.error('Login or essential UI elements missing. Check IDs.');
-    }
-
     function setLoggedIn(flag) {
       try {
-        isLoggedIn = !!flag;
-        try { localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); } catch(e){}
-        if (isLoggedIn) {
-          loginBoxEl.style.display = 'none';
-          formCardEl.style.display = 'block';
-          dashboardCardEl.style.display = 'block';
-          try { refreshList(); } catch(e) { console.warn('refreshList failed', e); }
-        } else {
-          loginBoxEl.style.display = 'block';
-          formCardEl.style.display = 'none';
-          dashboardCardEl.style.display = 'none';
-        }
+        isLoggedIn = !!flag; try { localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); } catch(e){}
+        if (isLoggedIn) { loginBoxEl.style.display = 'none'; formCardEl.style.display = 'block'; dashboardCardEl.style.display = 'block'; try { refreshList(); } catch(e) { console.warn('refreshList failed', e); } }
+        else { loginBoxEl.style.display = 'block'; formCardEl.style.display = 'none'; dashboardCardEl.style.display = 'none'; }
       } catch(err) { console.error('setLoggedIn error', err); }
     }
 
     loginBtnEl.addEventListener('click', () => {
-      try {
-        const u = document.getElementById('username').value;
-        const p = document.getElementById('password').value;
-        if (u === USERNAME && p === PASSWORD) {
-          setLoggedIn(true);
-        } else {
-          const loginErr = document.getElementById('loginErr');
-          if (loginErr) { loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); } else alert('Invalid credentials');
-        }
-      } catch(e) { console.error('login handler error', e); alert('Login error — see console'); }
+      try { const u = document.getElementById('username').value; const p = document.getElementById('password').value; if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); } else { const loginErr = document.getElementById('loginErr'); if (loginErr) { loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); } else alert('Invalid credentials'); } } catch(e) { console.error('login handler error', e); alert('Login error — see console'); }
     });
 
-    logoutBtnEl.addEventListener('click', () => {
-      try { setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} } catch(e) { console.error(e); }
-    });
+    logoutBtnEl.addEventListener('click', () => { try { setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} } catch(e) { console.error(e); } });
 
-    // restore login flag safely
-    try {
-      const v = localStorage.getItem('slip_isLoggedIn');
-      if (v === '1') setLoggedIn(true); else setLoggedIn(false);
-    } catch(e) { console.warn('Could not read slip_isLoggedIn', e); setLoggedIn(false); }
+    try { const v = localStorage.getItem('slip_isLoggedIn'); if (v === '1') setLoggedIn(true); else setLoggedIn(false); } catch(e) { console.warn('Could not read slip_isLoggedIn', e); setLoggedIn(false); }
 
-    // attach create handler
     createBtnEl.addEventListener('click', handleCreateClick);
 
-    // scale controls binding
-    scaleRange.addEventListener('input', ()=>{ scaleNumber.value = scaleRange.value; fitSlipPreview(); });
-    scaleNumber.addEventListener('input', ()=>{ let v = Number(scaleNumber.value||100); if(isNaN(v)) v=100; v = Math.max(35, Math.min(120, v)); scaleNumber.value=v; scaleRange.value=v; fitSlipPreview(); });
-
-    // normalize fields on blur/enter
+    // normalization bindings (same fields as before)
     const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'];
     ZERO_NORMALIZE_FIELDS.forEach(id=>{
       const el = document.getElementById(id);
@@ -697,9 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
       el.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ setTimeout(()=> el.value = normalizeToAsciiZero(el.value || ''), 0); } });
     });
 
-  } catch(e) {
-    console.error('DOMContentLoaded login binding failed', e);
-  }
+  } catch(e) { console.error('DOMContentLoaded login binding failed', e); }
 });
 
 /* initial */
