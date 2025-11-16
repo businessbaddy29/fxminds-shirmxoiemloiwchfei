@@ -47,6 +47,11 @@
       overflow:visible;
     }
     #previewToolbar{display:flex;gap:8px;padding:8px;justify-content:flex-end;background:rgba(12,20,30,0.03);border-top-left-radius:8px;border-top-right-radius:8px}
+    /* print layout controls small styling */
+    .print-controls { display:flex; gap:8px; align-items:center; }
+    .print-controls select, .print-controls input[type="checkbox"], .print-controls input[type="range"], .print-controls input[type="number"]{ font-family:inherit; }
+    .print-controls label { font-size:13px; color:#07304b; }
+
     /* slipInner: fixed viewport that NEVER scrolls; content inside is absolutely centered and scaled */
     #slipInner{
       background:#fff;
@@ -69,9 +74,7 @@
       #slipOutput,#slipOutput *{visibility:visible!important}
       #slipOutput{position:absolute!important;left:0!important;top:0!important;width:100%!important;margin:0!important;padding:10mm!important;background:#fff!important;box-shadow:none!important;overflow:visible!important}
       #previewToolbar{display:none!important}
-      /* For printing show natural 10in width (no transform) */
-      #slipContent{position:static!important;transform:none!important;width:10in!important;margin:0!important}
-      #slipInner{overflow:visible!important;height:auto!important}
+      /* When printing we will inject rules to set width/scale for #slipContent */
     }
 
     .slip-wrapper{white-space:pre;font-family:"Courier New",monospace;color:#000}
@@ -186,25 +189,23 @@
 
   <!-- Slip preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
-<!-- Print layout controls added here (no change to form/create logic) -->
-<div class="print-controls" style="margin-right:auto;">
-  <label for="printLayoutSelect">Layout</label>
-  <select id="printLayoutSelect" title="Choose page layout">
-    <option value="10x3.67">10in × 3.67in (slip)</option>
-    <option value="10x5">10in × 5in</option>
-    <option value="A4-P">A4 Portrait</option>
-    <option value="A4-L">A4 Landscape</option>
-    <option value="Letter-P">Letter Portrait</option>
-    <option value="Fit">Fit to page</option>
-  </select>
-  <label style="margin-left:6px"><input type="checkbox" id="fitToPageChk"> Fit to page</label>
-  <label style="margin-left:6px">Scale</label>
-  <input type="range" id="printScale" min="35" max="120" value="100" step="1" style="width:120px">
-  <input type="number" id="printScaleNum" min="35" max="120" value="100" step="1" style="width:60px">
-</div>
-
-<button id="printPreviewBtn" class="btn btn-blue">Print</button>
-<button id="closePreviewBtn" class="btn btn-ghost">Close</button>
+    <div id="previewToolbar">
+      <!-- Print layout controls added here (no change to form/create logic) -->
+      <div class="print-controls" style="margin-right:auto;">
+        <label for="printLayoutSelect">Layout</label>
+        <select id="printLayoutSelect" title="Choose page layout">
+          <option value="10x3.67">10in × 3.67in (slip)</option>
+          <option value="10x5">10in × 5in</option>
+          <option value="A4-P">A4 Portrait</option>
+          <option value="A4-L">A4 Landscape</option>
+          <option value="Letter-P">Letter Portrait</option>
+          <option value="Fit">Fit to page</option>
+        </select>
+        <label style="margin-left:6px"><input type="checkbox" id="fitToPageChk"> Fit to page</label>
+        <label style="margin-left:6px">Scale</label>
+        <input type="range" id="printScale" min="35" max="120" value="100" step="1" style="width:120px">
+        <input type="number" id="printScaleNum" min="35" max="120" value="100" step="1" style="width:60px">
+      </div>
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
@@ -229,7 +230,7 @@ const TEMPLATE_HTML = `
       </div>
   </div>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "SF Mono", monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
@@ -242,7 +243,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -252,9 +253,7 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 `;
 
 /* ===== SERVER BASE (dynamic) ===== */
-const SERVER_BASE = (function(){
-  try { return window.location.origin + '/slip-server'; } catch(e) { return '/slip-server'; }
-})();
+const SERVER_BASE = (function(){ try { return window.location.origin + '/slip-server'; } catch(e) { return '/slip-server'; }})();
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
 const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
 const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php';
@@ -273,162 +272,142 @@ const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
+const printLayoutSelect = document.getElementById('printLayoutSelect');
+const fitToPageChk = document.getElementById('fitToPageChk');
+const printScale = document.getElementById('printScale');
+const printScaleNum = document.getElementById('printScaleNum');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
 function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
 
-/* -------------------
-   ZERO NORMALIZATION
-   ------------------- */
-/* Keep DIGIT ZERO (U+0030). Do not convert it to slashed forms. */
-function prettyZero(raw){
-  if (raw === null || raw === undefined) return '';
-  return String(raw);
-}
-function normalizeToAsciiZero(s){
-  if(s === null || s === undefined) return '';
-  let t = String(s);
-  // common patterns -> plain 0
-  t = t.replace(/0\//g, '0');                      // "0/" -> "0"
-  t = t.replace(/[\u00D8\u00F8]/g, '0');           // Ø / ø -> 0
-  t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0'); // 0 + combining overlays
-  t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, ''); // stray overlays
-  t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0'); // math zeros
-  return t;
-}
-function normalizeRecordZeros(rec){
-  const out = Object.assign({}, rec);
-  ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{
-    if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
-  });
-  return out;
+/* ---------- print style injection utility ---------- */
+function buildPrintStyles(layout, scalePercent, fitToPage) {
+  // layout: one of the select values
+  // scalePercent: number (e.g. 100)
+  // fitToPage: boolean
+  let pageSizeRule = '';
+  let contentWidth = '10in';
+  let contentHeight = 'auto';
+
+  switch(layout) {
+    case '10x3.67': contentWidth = '10in'; contentHeight = '3.67in'; break;
+    case '10x5': contentWidth = '10in'; contentHeight = '5in'; break;
+    case 'A4-P': contentWidth = '210mm'; contentHeight = '297mm'; break;
+    case 'A4-L': contentWidth = '297mm'; contentHeight = '210mm'; break;
+    case 'Letter-P': contentWidth = '8.5in'; contentHeight = '11in'; break;
+    case 'Fit': contentWidth = 'auto'; contentHeight = 'auto'; break;
+    default: contentWidth = '10in'; contentHeight='auto';
+  }
+
+  if (contentWidth !== 'auto' && contentHeight !== 'auto') {
+    pageSizeRule = `@page { size: ${contentWidth} ${contentHeight}; margin: 6mm; }`;
+  } else if (contentWidth !== 'auto') {
+    pageSizeRule = `@page { size: ${contentWidth} auto; margin: 6mm; }`;
+  } else {
+    pageSizeRule = `@page { size: auto; margin: 6mm; }`;
+  }
+
+  // compute scale for print media
+  const s = (Number(scalePercent) || 100) / 100;
+
+  // If fitToPage is checked, we set #slipContent to width:100% and remove transforms
+  let printContentRules = '';
+  if (fitToPage) {
+    printContentRules = `
+      @media print {
+        #slipContent { position:static !important; transform:none !important; width:100% !important; margin:0 auto; }
+        #slipInner { overflow:visible !important; height:auto !important; }
+      }
+    `;
+  } else {
+    // apply explicit width and optional scale
+    // we'll set the width in print to contentWidth if available
+    const widthForPrint = contentWidth === 'auto' ? '10in' : contentWidth;
+    printContentRules = `
+      @media print {
+        #slipContent { position:static !important; transform:none !important; width: ${widthForPrint} !important; margin:0 auto; }
+        #slipInner { overflow:visible !important; height:auto !important; }
+      }
+    `;
+    // apply scale using transform if s != 1 (some printers may ignore transforms; still provide option)
+    if (s !== 1) {
+      printContentRules += `
+        @media print {
+          #slipContent { transform-origin: top left !important; transform: scale(${s}) !important; }
+        }
+      `;
+    }
+  }
+
+  return pageSizeRule + '\n' + printContentRules;
 }
 
-/* attach blur normalization later inside DOMContentLoaded */
+// ensures single style element for print overrides
+function setPrintOverrideStyles(cssText) {
+  let el = document.getElementById('printOverrideStyle');
+  if (!el) {
+    el = document.createElement('style');
+    el.id = 'printOverrideStyle';
+    document.head.appendChild(el);
+  }
+  el.textContent = cssText;
+}
 
-/* ---------- local slips ---------- */
+/* ---------- TEMPLATE rendering & existing logic ---------- */
+function prettyZero(raw){ if (raw === null || raw === undefined) return ''; return String(raw); }
+function normalizeToAsciiZero(s){ if(s === null || s === undefined) return ''; let t = String(s); t = t.replace(/0\//g, '0'); t = t.replace(/[\u00D8\u00F8]/g, '0'); t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0'); t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, ''); t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0'); return t; }
+function normalizeRecordZeros(rec){ const out = Object.assign({}, rec); ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{ if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k])); }); return out; }
+
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window._slips=[]; const id=generateSerial(); const createdAt=new Date().toISOString(); window._slips.unshift({id,createdAt,vehicleNo:rec.vehicleNo||'',filename:null,amount:''}); persistLocalSlips(); renderSlipsTable(window._slips); }catch(e){console.error(e);} }
 
-/* ---------- render slip ---------- */
-function renderSlipToDom(data){
-  const safe = normalizeRecordZeros(data);
-  const replacements = {
-    '{{firmName}}': esc(safe.firmName || ''),
-    '{{firmAddress}}': esc(safe.firmAddress || ''),
-    '{{firmPhone}}': esc(prettyZero(safe.firmPhone || '')),
-    '{{rstNo}}': esc(prettyZero(safe.rstNo || '')),
-    '{{vehicleNo}}': esc(prettyZero(safe.vehicleNo || '')),
-    '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')),
-    '{{partyName}}': esc(safe.partyName || ''),
-    '{{address}}': esc(safe.address || ''),
-    '{{item}}': esc(prettyZero(safe.item || '')),
-    '{{gross}}': esc(prettyZero(safe.gross || '')),
-    '{{grossDate}}': esc(safe.grossDate || ''),
-    '{{grossTime}}': esc(safe.grossTime || ''),
-    '{{tare}}': esc(prettyZero(safe.tare || '')),
-    '{{tareDate}}': esc(safe.tareDate || ''),
-    '{{tareTime}}': esc(safe.tareTime || ''),
-    '{{net}}': esc(prettyZero(safe.net || '')),
-    '{{amount}}': esc(safe.amount || ''),
-    '{{charges}}': esc(prettyZero(safe.charges || '')),
-    '{{phone}}': esc(prettyZero(safe.phone || ''))
-  };
-  let rendered = TEMPLATE_HTML;
-  Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); });
-  slipContent.innerHTML = rendered;
-}
+function renderSlipToDom(data){ const safe = normalizeRecordZeros(data); const replacements = { '{{firmName}}': esc(safe.firmName || ''), '{{firmAddress}}': esc(safe.firmAddress || ''), '{{firmPhone}}': esc(prettyZero(safe.firmPhone || '')), '{{rstNo}}': esc(prettyZero(safe.rstNo || '')), '{{vehicleNo}}': esc(prettyZero(safe.vehicleNo || '')), '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')), '{{partyName}}': esc(safe.partyName || ''), '{{address}}': esc(safe.address || ''), '{{item}}': esc(prettyZero(safe.item || '')), '{{gross}}': esc(prettyZero(safe.gross || '')), '{{grossDate}}': esc(safe.grossDate || ''), '{{grossTime}}': esc(safe.grossTime || ''), '{{tare}}': esc(prettyZero(safe.tare || '')), '{{tareDate}}': esc(safe.tareDate || ''), '{{tareTime}}': esc(safe.tareTime || ''), '{{net}}': esc(prettyZero(safe.net || '')), '{{amount}}': esc(safe.amount || ''), '{{charges}}': esc(prettyZero(safe.charges || '')), '{{phone}}': esc(prettyZero(safe.phone || '')) }; let rendered = TEMPLATE_HTML; Object.keys(replacements).forEach(k => { rendered = rendered.split(k).join(replacements[k]); }); slipContent.innerHTML = rendered; }
 
-/* fit preview (scale & center) */
-function fitSlipPreview() {
-  requestAnimationFrame(() => {
-    const slipDom = slipContent.firstElementChild;
-    if (!slipDom) return;
-    slipDom.style.boxSizing = 'border-box';
-    slipDom.style.width = '10in';
-    const naturalW = slipDom.offsetWidth || (96 * 10);
-    const naturalH = slipDom.offsetHeight || 800;
-    const parentRect = slipInner.getBoundingClientRect();
-    const availableW = Math.max(100, parentRect.width - 36);
-    const availableH = Math.max(100, parentRect.height - 36);
-    const scaleW = availableW / naturalW;
-    const scaleH = availableH / naturalH;
-    let scale = Math.min(scaleW, scaleH, 1);
-    if (scale > 1) scale = 1;
-    if (scale < 0.35) scale = 0.35;
-    slipContent.style.position = 'absolute';
-    slipContent.style.left = '50%';
-    slipContent.style.top = '50%';
-    slipContent.style.transformOrigin = 'center center';
-    slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
-    slipContent.style.width = `${naturalW}px`;
-    slipContent.style.height = `${naturalH}px`;
-  });
-}
+function fitSlipPreview() { requestAnimationFrame(() => { const slipDom = slipContent.firstElementChild; if (!slipDom) return; slipDom.style.boxSizing = 'border-box'; slipDom.style.width = '10in'; const naturalW = slipDom.offsetWidth || (96 * 10); const naturalH = slipDom.offsetHeight || 800; const parentRect = slipInner.getBoundingClientRect(); const availableW = Math.max(100, parentRect.width - 36); const availableH = Math.max(100, parentRect.height - 36); const scaleW = availableW / naturalW; const scaleH = availableH / naturalH; let scale = Math.min(scaleW, scaleH, 1); if (scale > 1) scale = 1; if (scale < 0.35) scale = 0.35; slipContent.style.position = 'absolute'; slipContent.style.left = '50%'; slipContent.style.top = '50%'; slipContent.style.transformOrigin = 'center center'; slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`; slipContent.style.width = `${naturalW}px`; slipContent.style.height = `${naturalH}px`; }); }
 
-/* resize & mutation observers */
-let resizeTimer = null;
-window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); });
-const mo = new MutationObserver(()=> fitSlipPreview());
-mo.observe(document.body, { childList:true, subtree:true });
+let resizeTimer = null; window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); }); const mo = new MutationObserver(()=> fitSlipPreview()); mo.observe(document.body, { childList:true, subtree:true });
 
-/* basic validation */
-function validateAll(){
-  const req = ['firmName','firmAddress','rstNo','vehicleNo','item'];
-  let ok=true;
-  req.forEach(id=>{ const el=document.getElementById(id); if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); });
-  return ok;
-}
+function validateAll(){ const req = ['firmName','firmAddress','rstNo','vehicleNo','item']; let ok=true; req.forEach(id=>{ const el=document.getElementById(id); if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); }); return ok; }
 
-/* create handler */
-function handleCreateClick() {
-  if(!isLoggedIn){ alert('Please login first'); return; }
-  if(!validateAll()){ alert('Please fill required fields'); return; }
-  const rec = collectForm();
-  const normalizedRec = normalizeRecordZeros(rec);
-  addLocalSlipRecord(normalizedRec);
-  renderSlipToDom(normalizedRec);
-  slipOutput.style.display = 'block';
-  setTimeout(()=> fitSlipPreview(), 80);
-}
+function handleCreateClick() { if(!isLoggedIn){ alert('Please login first'); return; } if(!validateAll()){ alert('Please fill required fields'); return; } const rec = collectForm(); const normalizedRec = normalizeRecordZeros(rec); addLocalSlipRecord(normalizedRec); renderSlipToDom(normalizedRec); slipOutput.style.display = 'block'; setTimeout(()=> fitSlipPreview(), 80); }
 
-/* print & close */
-/* PRINT button handler: inject print CSS to match preview and chosen layout */
-// ----- Replace print click/close handlers with a robust handler that reads current controls -----
-if (printPreviewBtn) {
-  // Sync range and number input
+/* Sync range and number input */
 if (printScale && printScaleNum) {
   printScale.addEventListener('input', ()=>{ printScaleNum.value = printScale.value; });
   printScaleNum.addEventListener('input', ()=>{ let v = Number(printScaleNum.value)||100; if (v<35) v=35; if (v>120) v=120; printScale.value = v; printScaleNum.value = v; });
 }
 
 /* PRINT button handler: inject print CSS to match preview and chosen layout */
-printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
-  try {
-    const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
-    const fit = !!(fitToPageChk && fitToPageChk.checked);
-    const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
+if (printPreviewBtn) {
+  printPreviewBtn.addEventListener('click', ()=>{
+    try {
+      const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
+      const fit = !!(fitToPageChk && fitToPageChk.checked);
+      const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
 
-    // Build CSS and inject
-    const css = buildPrintStyles(layout, scalePct, fit);
-    setPrintOverrideStyles(css);
+      // Build CSS and inject
+      const css = buildPrintStyles(layout, scalePct, fit);
+      setPrintOverrideStyles(css);
 
-    // Wait a tick so CSS applies then print
-    setTimeout(()=>{ window.print(); }, 120);
-  } catch (err) {
-    console.error('Print handler error', err);
-    alert('Print error: ' + (err && err.message));
-  }
-});
+      // Wait a tick so CSS applies then print
+      setTimeout(()=>{
+        window.print();
+      }, 120);
+    } catch (err) {
+      console.error('Print handler error', err);
+      alert('Print error: ' + (err && err.message));
+    }
+  });
+}
 
+/* print close */
 closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
-
-/* ---------- saved list / filter / amount submit ---------- */
+/* ---------- saved list / filter / amount submit (unchanged logic) ---------- */
 async function refreshList() {
   serverError.style.display = 'none';
   serverError.textContent = '';
@@ -695,7 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* initial render */
+/* initial */
 refreshList();
 </script>
 </body>
