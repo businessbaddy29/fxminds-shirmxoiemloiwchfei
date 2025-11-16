@@ -380,27 +380,40 @@ function handleCreateClick() {
 
 /* print & close */
 /* PRINT button handler: inject print CSS to match preview and chosen layout */
-printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
-  try {
-    const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
-    const fit = !!(fitToPageChk && fitToPageChk.checked);
-    const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
+// ----- Replace print click/close handlers with a robust handler that reads current controls -----
+if (printPreviewBtn) {
+  printPreviewBtn.addEventListener('click', () => {
+    try {
+      // get controls at the moment of click (safe if missing)
+      const layoutEl = document.getElementById('printLayoutSelect');
+      const fitEl = document.getElementById('fitToPageChk');
+      const scaleEl = document.getElementById('printScale');
+      const scaleNumEl = document.getElementById('printScaleNum');
 
-    // Build CSS and inject
-    const css = buildPrintStyles(layout, scalePct, fit);
-    setPrintOverrideStyles(css);
+      const layout = layoutEl ? layoutEl.value : '10x3.67';
+      const fit = fitEl ? !!fitEl.checked : false;
+      const scalePct = scaleEl && scaleEl.value ? Number(scaleEl.value) : (scaleNumEl && scaleNumEl.value ? Number(scaleNumEl.value) : 100);
 
-    // Wait a tick so CSS applies then print
-    setTimeout(()=>{
-      window.print();
-    }, 120);
-  } catch (err) {
-    console.error('Print handler error', err);
-    alert('Print error: ' + (err && err.message));
-  }
-});
+      // build and inject print CSS based on selected layout/scale
+      const css = buildPrintStyles(layout, scalePct, fit);
+      setPrintOverrideStyles(css);
 
-closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
+      // allow browser a tick to apply styles, then open print dialog
+      setTimeout(() => {
+        window.print();
+      }, 120);
+    } catch (err) {
+      console.error('Print handler error', err);
+      alert('Print error: ' + (err && err.message));
+    }
+  });
+}
+
+// close button (unchanged)
+if (closePreviewBtn) {
+  closePreviewBtn.addEventListener('click', () => { slipOutput.style.display = 'none'; });
+}
+
 
 /* ---------- saved list / filter / amount submit ---------- */
 async function refreshList() {
