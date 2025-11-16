@@ -186,7 +186,25 @@
 
   <!-- Slip preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
-    <div id="previewToolbar">
+<!-- Print layout controls added here (no change to form/create logic) -->
+<div class="print-controls" style="margin-right:auto;">
+  <label for="printLayoutSelect">Layout</label>
+  <select id="printLayoutSelect" title="Choose page layout">
+    <option value="10x3.67">10in × 3.67in (slip)</option>
+    <option value="10x5">10in × 5in</option>
+    <option value="A4-P">A4 Portrait</option>
+    <option value="A4-L">A4 Landscape</option>
+    <option value="Letter-P">Letter Portrait</option>
+    <option value="Fit">Fit to page</option>
+  </select>
+  <label style="margin-left:6px"><input type="checkbox" id="fitToPageChk"> Fit to page</label>
+  <label style="margin-left:6px">Scale</label>
+  <input type="range" id="printScale" min="35" max="120" value="100" step="1" style="width:120px">
+  <input type="number" id="printScaleNum" min="35" max="120" value="100" step="1" style="width:60px">
+</div>
+
+<button id="printPreviewBtn" class="btn btn-blue">Print</button>
+<button id="closePreviewBtn" class="btn btn-ghost">Close</button>
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
@@ -382,37 +400,32 @@ function handleCreateClick() {
 /* PRINT button handler: inject print CSS to match preview and chosen layout */
 // ----- Replace print click/close handlers with a robust handler that reads current controls -----
 if (printPreviewBtn) {
-  printPreviewBtn.addEventListener('click', () => {
-    try {
-      // get controls at the moment of click (safe if missing)
-      const layoutEl = document.getElementById('printLayoutSelect');
-      const fitEl = document.getElementById('fitToPageChk');
-      const scaleEl = document.getElementById('printScale');
-      const scaleNumEl = document.getElementById('printScaleNum');
-
-      const layout = layoutEl ? layoutEl.value : '10x3.67';
-      const fit = fitEl ? !!fitEl.checked : false;
-      const scalePct = scaleEl && scaleEl.value ? Number(scaleEl.value) : (scaleNumEl && scaleNumEl.value ? Number(scaleNumEl.value) : 100);
-
-      // build and inject print CSS based on selected layout/scale
-      const css = buildPrintStyles(layout, scalePct, fit);
-      setPrintOverrideStyles(css);
-
-      // allow browser a tick to apply styles, then open print dialog
-      setTimeout(() => {
-        window.print();
-      }, 120);
-    } catch (err) {
-      console.error('Print handler error', err);
-      alert('Print error: ' + (err && err.message));
-    }
-  });
+  // Sync range and number input
+if (printScale && printScaleNum) {
+  printScale.addEventListener('input', ()=>{ printScaleNum.value = printScale.value; });
+  printScaleNum.addEventListener('input', ()=>{ let v = Number(printScaleNum.value)||100; if (v<35) v=35; if (v>120) v=120; printScale.value = v; printScaleNum.value = v; });
 }
 
-// close button (unchanged)
-if (closePreviewBtn) {
-  closePreviewBtn.addEventListener('click', () => { slipOutput.style.display = 'none'; });
-}
+/* PRINT button handler: inject print CSS to match preview and chosen layout */
+printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
+  try {
+    const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
+    const fit = !!(fitToPageChk && fitToPageChk.checked);
+    const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
+
+    // Build CSS and inject
+    const css = buildPrintStyles(layout, scalePct, fit);
+    setPrintOverrideStyles(css);
+
+    // Wait a tick so CSS applies then print
+    setTimeout(()=>{ window.print(); }, 120);
+  } catch (err) {
+    console.error('Print handler error', err);
+    alert('Print error: ' + (err && err.message));
+  }
+});
+
+closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
 
 /* ---------- saved list / filter / amount submit ---------- */
