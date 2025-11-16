@@ -379,7 +379,27 @@ function handleCreateClick() {
 }
 
 /* print & close */
-printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 60); });
+/* PRINT button handler: inject print CSS to match preview and chosen layout */
+printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
+  try {
+    const layout = (printLayoutSelect && printLayoutSelect.value) || '10x3.67';
+    const fit = !!(fitToPageChk && fitToPageChk.checked);
+    const scalePct = (printScale && printScale.value) ? Number(printScale.value) : 100;
+
+    // Build CSS and inject
+    const css = buildPrintStyles(layout, scalePct, fit);
+    setPrintOverrideStyles(css);
+
+    // Wait a tick so CSS applies then print
+    setTimeout(()=>{
+      window.print();
+    }, 120);
+  } catch (err) {
+    console.error('Print handler error', err);
+    alert('Print error: ' + (err && err.message));
+  }
+});
+
 closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
 /* ---------- saved list / filter / amount submit ---------- */
