@@ -282,7 +282,7 @@ function normalizeToAsciiZero(s){
 }
 function normalizeRecordZeros(rec){
   const out = Object.assign({}, rec);
-  ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'].forEach(k=>{
+  ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{
     if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
   });
   return out;
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
     createBtnEl.addEventListener('click', handleCreateClick);
 
     // normalize fields on blur/enter
-    const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'];
+    const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'];
     ZERO_NORMALIZE_FIELDS.forEach(id=>{
       const el = document.getElementById(id);
       if(!el) return;
