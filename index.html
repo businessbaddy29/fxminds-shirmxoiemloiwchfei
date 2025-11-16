@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Slip — Create Slip (Final)</title>
+  <title>Secure Slip — Create Slip (Final Fit) + Vehicle Filter + Amt fix</title>
   <style>
     html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:transparent;color:#0d2433}
     body::before{content:"";position:fixed;inset:0;z-index:-3;background-image:url("truck.avif");background-size:cover;background-position:center;filter:blur(6px) brightness(.95)}
@@ -113,7 +113,7 @@
         </div>
 
         <div class="form-grid">
-          <label>Gross (weight): <input type="text" id="gross" value="70680 Kg" readonly></label>
+          <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
           <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
         </div>
 
@@ -196,9 +196,11 @@
   </div>
 
 <script>
-/* ---------- TEMPLATE (kept monospace + ascii lines) ---------- */
+/* TEMPLATE (kept simple & centered heading) */
 const TEMPLATE_HTML = `
-<div style='font-family: "SF Mono", monospace; color:#333; width:8in; box-sizing:border-box; padding:8px;'>
+<div style='font-family: "FX-Matrix Bold","Courier New",monospace; color:#000; width:8in; box-sizing:border-box; padding:8px;'>
+
+  <!-- CENTER HEADING BLOCK -->
   <div style="text-align:center; width:100%; margin-bottom:10px;">
       <div style="letter-spacing:2px; font-size:40px; font-weight:;">
           {{firmName}}
@@ -210,21 +212,22 @@ const TEMPLATE_HTML = `
           {{firmPhone}}
       </div>
   </div>
-  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "SF Mono", monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+  <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "FX-Matrix Bold","Courier New",monospace; line-height:1; font-size:18px;'>
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _  
 
 <span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">   Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
 <span style="font-size:20px;">Net     :</span>      <span style="font-size:35px; font-weight:    ;">{{net}}</span>  <span style="font-size:20px;">  </span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -233,17 +236,31 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 </div>
 `;
 
-/* endpoints & settings */
-const SERVER_BASE = (function(){ try { return window.location.origin + '/slip-server'; } catch(e) { return '/slip-server'; }})();
+/* ===== SERVER BASE (dynamic to avoid CORS when hosted on same origin) ===== */
+const SERVER_BASE = (function(){
+  try {
+    return window.location.origin + '/slip-server';
+  } catch(e) {
+    return '/slip-server';
+  }
+})();
+
 const CREATE_ENDPOINT = SERVER_BASE + '/create_csv.php';
 const LIST_ENDPOINT   = SERVER_BASE + '/get_slips.php';
 const AMOUNT_ENDPOINT = SERVER_BASE + '/update_amount.php';
 
+/* settings & refs */
 const USERNAME = "FxMiNds";
 const PASSWORD = "Sk@#9136332836@";
 let isLoggedIn = false;
 window._slips = [];
 
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const loginBox = document.getElementById('loginBox');
+const formCard = document.getElementById('formCard');
+const dashboardCard = document.getElementById('dashboardCard');
+const createBtn = document.getElementById('createBtn');
 const recordsBody = document.getElementById('recordsBody');
 const totalAmountEl = document.getElementById('totalAmount');
 const totalCountEl = document.getElementById('totalCount');
@@ -252,97 +269,170 @@ const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
+const applyFilterBtn = document.getElementById('applyFilter');
+const filterVehicleEl = document.getElementById('filterVehicle');
+const serverError = document.getElementById('serverError');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
-
-/* robust parse for pasted weights */
-function parseWeight(v){
-  if (v === null || v === undefined) return 0;
-  let s = String(v).trim();
-  if (s === '') return 0;
-  // remove 'Kg' or variations and commas/spaces
-  s = s.replace(/Kg/i, '').replace(/kg/i,'').replace(/,/g,'').trim();
-  // sometimes user pastes like " 15 700 " -> remove extra spaces
-  s = s.replace(/\s+/g,'');
-  const n = Number(s);
-  return isNaN(n) ? 0 : n;
-}
-function formatWeightForDisplay(v){
-  // v may be a string like "15700 Kg" or number. Return: "15700 Kg" (no leading zeros)
-  if (v === null || v === undefined) return '0 Kg';
-  // if value already includes 'Kg' and number is present, normalize
-  const n = parseWeight(v);
-  return `${Number(n).toFixed(0)} Kg`;
+function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/ig,''))||0; }
+/* ===== AUTO-CONVERT ZERO -> "0/" ON BLUR + BEFORE CREATE =====
+   Paste this immediately after your parseWeight(...) function */
+function isZeroLike(s){
+  if(s === null || s === undefined) return false;
+  s = String(s).trim();
+  if(s === '') return false;
+  // pure numeric zero: "0", "0.0", "00", "0.00"
+  if(/^0+(\.0+)?$/.test(s)) return true;
+  // with units like "0 Kg", "0kg", "0.00 Kg"
+  if(/^0+(\.0+)?\s*[a-zA-Z%°]*$/i.test(s)) return true;
+  return false;
 }
 
-/* -------------------
-   ZERO NORMALIZATION
-   ------------------- */
-function normalizeToAsciiZero(s){
-  if(s === null || s === undefined) return '';
-  let t = String(s);
-  t = t.replace(/0\//g, '0');
-  t = t.replace(/[\u00D8\u00F8]/g, '0');
-  t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0');
-  t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, '');
-  t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0');
+function convertInputToSlashZero(el){
+  if(!el) return;
+  const v = String(el.value || '').trim();
+  if(isZeroLike(v)){
+    el.value = '0/';     // replace with slash-zero
+  }
+}
+
+// list fields to auto-convert (add/remove ids as you need)
+const ZERO_FIELDS = [
+  'gross', 'tare', 'net',
+  'charges',
+  'firmPhone', 'rstNo', 'vehicleNo', 'vehicleType', 'item'
+];
+
+// attach blur listeners on page load
+window.addEventListener('DOMContentLoaded', () => {
+  ZERO_FIELDS.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    // convert on blur (user finished typing)
+    el.addEventListener('blur', ()=> convertInputToSlashZero(el));
+    // optional: convert when user presses Enter inside field
+    el.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter'){ setTimeout(()=> convertInputToSlashZero(el), 0); }
+    });
+  });
+});
+
+// also ensure conversion just before creating slip (safety)
+const originalCreateHandler = (typeof createBtn !== 'undefined' ? createBtn.onclick : null);
+if(typeof createBtn !== 'undefined' && createBtn){
+  createBtn.addEventListener('click', ()=> {
+    ZERO_FIELDS.forEach(id=>{
+      convertInputToSlashZero(document.getElementById(id));
+    });
+    // let your existing createBtn handler proceed (it will, because we're using addEventListener)
+  });
+}
+
+  
+/* prettyZero: return '0/' for any zero-like value, else cleaned string */
+function prettyZero(raw){
+  return String(raw); // ZERO को बिल्कुल नहीं बदलना
+}
+
+
+function stripDuplicateKg(s){
+  if(!s) return s;
+  let t = String(s).replace(/\s+/g,' ').trim();
+  t = t.replace(/(kg)(\s+kg)+/ig, 'Kg'); // collapse duplicate Kg
+  // normalize final unit to " Kg" if kg present
+  if (/[^\d]kg$/i.test(t)) t = t.replace(/\s*kg$/i, ' Kg');
   return t;
 }
-function normalizeRecordZeros(rec){
-  const out = Object.assign({}, rec);
-  // keep 'item' untouched (text)
-  ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{
-    if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
-  });
-  return out;
+
+
+/* login */
+loginBtn.addEventListener('click', () => {
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+  if (u === USERNAME && p === PASSWORD) { setLoggedIn(true); }
+  else { const loginErr = document.getElementById('loginErr'); loginErr.style.display='block'; setTimeout(()=>loginErr.style.display='none',2000); }
+});
+logoutBtn.addEventListener('click', ()=>{ setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
+function setLoggedIn(flag){ isLoggedIn = !!flag; try{ localStorage.setItem('slip_isLoggedIn', isLoggedIn?'1':'0'); }catch(e){} if(isLoggedIn){ loginBox.style.display='none'; formCard.style.display='block'; dashboardCard.style.display='block'; refreshList(); } else { loginBox.style.display='block'; formCard.style.display='none'; dashboardCard.style.display='none'; } }
+
+/* restore login on load */
+window.addEventListener('load', ()=>{
+  try{ if(localStorage.getItem('slip_isLoggedIn')==='1'){ isLoggedIn=true; setLoggedIn(true); } }catch(e){}
+});
+
+/* collect form */
+function collectForm(){
+  const tareNum = parseWeight(getVal('tare'));
+  const netNum = parseWeight(getVal('net'));
+  const grossNum = tareNum + netNum;
+  return {
+    firmName: getVal('firmName'),
+    firmAddress: getVal('firmAddress'),
+    firmPhone: getVal('firmPhone'),
+    rstNo: getVal('rstNo'),
+    vehicleNo: getVal('vehicleNo'),
+    vehicleType: getVal('vehicleType'),
+    partyName: getVal('partyName'),
+    address: getVal('address'),
+    item: getVal('item'),
+    gross: `${Number(grossNum).toFixed(0)} Kg`,
+    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
+    grossTime: getVal('grossTime'),
+    tare: `${Number(tareNum).toFixed(0)} Kg`,
+    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
+    tareTime: getVal('tareTime'),
+    net: `${Number(netNum).toFixed(0)} Kg`,
+    charges: (getVal('charges')||'0'),
+    phone: getVal('phone'),
+    savedAt: new Date().toISOString()
+  };
 }
 
-/* local slips helpers (unchanged) */
+/* local slips */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
 function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
 function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 function addLocalSlipRecord(rec){ try{ if(!Array.isArray(window._slips)) window._slips=[]; const id=generateSerial(); const createdAt=new Date().toISOString(); window._slips.unshift({id,createdAt,vehicleNo:rec.vehicleNo||'',filename:null,amount:''}); persistLocalSlips(); renderSlipsTable(window._slips); }catch(e){console.error(e);} }
 
-/* ---------- RENDER (fixed weights & formatting) ---------- */
+/* render slip */
 function renderSlipToDom(data){
-  // Normalize numeric-like fields but keep 'item' exactly as user entered
-  const safe = normalizeRecordZeros(data || {});
+  // coerce to strings first
+  const raw = Object.assign({}, data);
 
-  // compute display values for weights robustly
-  const displayedTare = formatWeightForDisplay(data && data.tare ? data.tare : safe.tare);
-  const displayedNet  = formatWeightForDisplay(data && data.net ? data.net : safe.net);
-  // prefer gross from form if set, otherwise compute from tare+net
-  let displayedGross = '';
-  if (data && data.gross && String(data.gross).trim() !== '') {
-    displayedGross = formatWeightForDisplay(data.gross);
-  } else {
-    // compute from parsed numbers
-    const gnum = parseWeight(displayedTare) + parseWeight(displayedNet);
-    displayedGross = `${Number(gnum).toFixed(0)} Kg`;
-  }
+  // ensure every weight/charge field gets the prettyZero display
+  const grossDisp   = prettyZero(String(raw.gross || ''));
+  const tareDisp    = prettyZero(String(raw.tare  || ''));
+  const netDisp     = prettyZero(String(raw.net   || ''));
+  const chargesDisp = prettyZero(String(raw.charges || ''));
+
+  // also strip duplicate Kg if needed
+  const grossFinal = stripDuplicateKg(grossDisp);
+  const tareFinal  = stripDuplicateKg(tareDisp);
+  const netFinal   = stripDuplicateKg(netDisp);
+  const chargesFinal = (chargesDisp === '0/') ? '0/' : stripDuplicateKg(chargesDisp);
 
   const replacements = {
-    '{{firmName}}': esc((data && data.firmName) || safe.firmName || ''),
-    '{{firmAddress}}': esc((data && data.firmAddress) || safe.firmAddress || ''),
-    '{{firmPhone}}': esc((data && data.firmPhone) || safe.firmPhone || ''),
-    '{{rstNo}}': esc((data && data.rstNo) || safe.rstNo || ''),
-    '{{vehicleNo}}': esc((data && data.vehicleNo) || safe.vehicleNo || ''),
-    '{{vehicleType}}': esc((data && data.vehicleType) || safe.vehicleType || ''),
-    '{{partyName}}': esc((data && data.partyName) || safe.partyName || ''),
-    '{{address}}': esc((data && data.address) || safe.address || ''),
-    '{{item}}': esc((data && data.item) || (safe.item || '')),
-    '{{gross}}': esc(displayedGross),
-    '{{grossDate}}': esc((data && data.grossDate) || safe.grossDate || ''),
-    '{{grossTime}}': esc((data && data.grossTime) || safe.grossTime || ''),
-    '{{tare}}': esc(displayedTare),
-    '{{tareDate}}': esc((data && data.tareDate) || safe.tareDate || ''),
-    '{{tareTime}}': esc((data && data.tareTime) || safe.tareTime || ''),
-    '{{net}}': esc(displayedNet),
-    '{{amount}}': esc((data && data.amount) || (safe.amount || '')),
-    '{{charges}}': esc((data && data.charges) || (safe.charges || '0')),
-    '{{phone}}': esc((data && data.phone) || (safe.phone || ''))
+    '{{firmName}}': esc(raw.firmName || ''),
+    '{{firmAddress}}': esc(raw.firmAddress || ''),
+    '{{firmPhone}}': esc(raw.firmPhone || ''),
+    '{{rstNo}}': esc(raw.rstNo || ''),
+    '{{vehicleNo}}': esc(raw.vehicleNo || ''),
+    '{{vehicleType}}': esc(raw.vehicleType || ''),
+    '{{partyName}}': esc(raw.partyName || ''),
+    '{{address}}': esc(raw.address || ''),
+    '{{item}}': esc(raw.item || ''),
+    '{{gross}}': esc(grossFinal),
+    '{{grossDate}}': esc(raw.grossDate || ''),
+    '{{grossTime}}': esc(raw.grossTime || ''),
+    '{{tare}}': esc(tareFinal),
+    '{{tareDate}}': esc(raw.tareDate || ''),
+    '{{tareTime}}': esc(raw.tareTime || ''),
+    '{{net}}': esc(netFinal),
+    '{{amount}}': esc(raw.amount || ''),
+    '{{charges}}': esc(chargesFinal),
+    '{{phone}}': esc(raw.phone || '')
   };
 
   let rendered = TEMPLATE_HTML;
@@ -350,40 +440,45 @@ function renderSlipToDom(data){
   slipContent.innerHTML = rendered;
 }
 
-/* fit preview (unchanged) */
+/* fit preview to available area without scrolling */
 function fitSlipPreview() {
   requestAnimationFrame(() => {
     const slipDom = slipContent.firstElementChild;
     if (!slipDom) return;
     slipDom.style.boxSizing = 'border-box';
     slipDom.style.width = '10in';
+
     const naturalW = slipDom.offsetWidth || (96 * 10);
     const naturalH = slipDom.offsetHeight || 800;
+
     const parentRect = slipInner.getBoundingClientRect();
     const availableW = Math.max(100, parentRect.width - 36);
     const availableH = Math.max(100, parentRect.height - 36);
+
     const scaleW = availableW / naturalW;
     const scaleH = availableH / naturalH;
     let scale = Math.min(scaleW, scaleH, 1);
     if (scale > 1) scale = 1;
     if (scale < 0.35) scale = 0.35;
+
     slipContent.style.position = 'absolute';
     slipContent.style.left = '50%';
     slipContent.style.top = '50%';
     slipContent.style.transformOrigin = 'center center';
     slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
+
     slipContent.style.width = `${naturalW}px`;
     slipContent.style.height = `${naturalH}px`;
   });
 }
 
-/* observers & resize (unchanged) */
+/* resize + mutation wiring */
 let resizeTimer = null;
 window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); });
 const mo = new MutationObserver(()=> fitSlipPreview());
-mo.observe(document.body, { childList:true, subtree:true });
+mo.observe(slipContent, { childList:true, subtree:true });
 
-/* validation (unchanged) */
+/* validation */
 function validateAll(){
   const req = ['firmName','firmAddress','rstNo','vehicleNo','item'];
   let ok=true;
@@ -391,50 +486,99 @@ function validateAll(){
   return ok;
 }
 
-function handleCreateClick() {
+/* create handler */
+createBtn.addEventListener('click', async ()=>{
   if(!isLoggedIn){ alert('Please login first'); return; }
   if(!validateAll()){ alert('Please fill required fields'); return; }
   const rec = collectForm();
-  const normalizedRec = normalizeRecordZeros(rec);
-  addLocalSlipRecord(normalizedRec);
-  renderSlipToDom(normalizedRec);
+  addLocalSlipRecord(rec);
+
+  // render preview and show (no scroll)
+  renderSlipToDom(rec);
   slipOutput.style.display = 'block';
   setTimeout(()=> fitSlipPreview(), 80);
-}
+});
 
-/* print & close (unchanged) */
-printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 60); });
-closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
+/* print & close */
+printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 60); });
+closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
-/* remaining code unchanged (list, amount etc.) */
+/* refreshList with server attempt and client fallback */
 async function refreshList() {
+  serverError.style.display = 'none';
+  serverError.textContent = '';
   try {
     const from = getVal('filterFrom') || '';
     const to = getVal('filterTo') || '';
     const vehicle = (getVal('filterVehicle') || '').trim();
+
     const q = new URLSearchParams({ from, to });
     if (vehicle) q.set('vehicle', vehicle);
+
     const resp = await fetch(LIST_ENDPOINT + '?' + q.toString(), { cache: 'no-store' });
     const json = await resp.json().catch(() => null);
+
     let slips = [];
     if (json && Array.isArray(json.slips)) {
-      slips = json.slips.map(s => normalizeRecordZeros(s));
+      slips = json.slips.slice();
     } else {
       loadLocalSlips();
       slips = (window._slips || []).slice();
+      if (!json) {
+        serverError.style.display = 'block';
+        serverError.textContent = 'List load: server did not return slips (using local cache)';
+      }
     }
-    renderSlipsTable(slips);
+
+    const vehicleLower = vehicle.toLowerCase();
+    const filtered = slips.filter(s => {
+      if (from) {
+        const fromT = new Date(from).setHours(0,0,0,0);
+        const created = new Date(s.createdAt).getTime();
+        if (created < fromT) return false;
+      }
+      if (to) {
+        const toT = new Date(to).setHours(23,59,59,999);
+        const created = new Date(s.createdAt).getTime();
+        if (created > toT) return false;
+      }
+      if (vehicleLower) {
+        const vn = String(s.vehicleNo || '').toLowerCase();
+        if (!vn.includes(vehicleLower)) return false;
+      }
+      return true;
+    });
+
+    filtered.sort((a,b)=>{
+      if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
+      return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
+    });
+
+    renderSlipsTable(filtered);
   } catch (err) {
     console.error('refreshList', err);
     loadLocalSlips();
-    renderSlipsTable(window._slips || []);
+    const slips = (window._slips || []).slice();
+    const from = getVal('filterFrom') || '';
+    const to = getVal('filterTo') || '';
+    const vehicle = (getVal('filterVehicle') || '').trim().toLowerCase();
+    const filtered = slips.filter(s=>{
+      if (from) { const fromT=new Date(from).setHours(0,0,0,0); if (new Date(s.createdAt).getTime() < fromT) return false; }
+      if (to) { const toT=new Date(to).setHours(23,59,59,999); if (new Date(s.createdAt).getTime() > toT) return false; }
+      if (vehicle) { if (!(String(s.vehicleNo||'').toLowerCase().includes(vehicle))) return false; }
+      return true;
+    });
+    renderSlipsTable(filtered);
+    serverError.style.display = 'block';
+    serverError.textContent = 'List load error: ' + (err.message || err);
   }
 }
 
+/* render list & attach handlers */
 function renderSlipsTable(slips) {
   recordsBody.innerHTML = '';
   let totalAmt = 0;
-  slips.forEach(s=>{
+  (slips || []).forEach(s=>{
     const safeId = String(s.id);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -458,8 +602,11 @@ function renderSlipsTable(slips) {
   });
   totalAmountEl.textContent = totalAmt.toFixed(2);
   totalCountEl.textContent = (slips || []).length;
-  window._slips = slips;
-  // attach amount buttons
+
+  // keep the table's slips in memory (current view)
+  window._slips = (slips || []).slice();
+
+  // attach amount handlers
   (window._slips || []).forEach(s => {
     const safeId = String(s.id);
     const btn = document.getElementById(`amt_btn_${safeId}`);
@@ -474,6 +621,7 @@ function renderSlipsTable(slips) {
           return;
         }
         try {
+          // try server update
           let serverWorked = false;
           try {
             const resp = await fetch(AMOUNT_ENDPOINT, {
@@ -485,10 +633,23 @@ function renderSlipsTable(slips) {
             if (resp && resp.ok) {
               const j = await resp.json().catch(()=>null);
               if (j && j.ok) serverWorked = true;
+            } else {
+              console.warn('update_amount.php status', resp && resp.status);
             }
-          } catch(e) {}
-          if (serverWorked) { alert('Amount saved (server).'); await refreshList(); return; }
+          } catch(e) {
+            console.warn('server update error', e);
+          }
+
+          if (serverWorked) {
+            alert('Amount saved (server).');
+            // refresh list from server so server amount shows
+            await refreshList();
+            return;
+          }
+
+          // SERVER DID NOT WORK => update local-only and re-render (do NOT call refreshList)
           let updated = false;
+          // update current view window._slips
           for (let i=0;i<window._slips.length;i++){
             if (String(window._slips[i].id) === String(id)) {
               window._slips[i].amount = Number(norm).toFixed(2);
@@ -496,11 +657,34 @@ function renderSlipsTable(slips) {
               break;
             }
           }
-          if (!updated) { loadLocalSlips(); for (let i=0;i<window._slips.length;i++){ if (String(window._slips[i].id) === String(id)) { window._slips[i].amount = Number(norm).toFixed(2); updated = true; break; } } }
-          persistLocalSlips();
+          // also update persisted client cache (merge)
+          loadLocalSlips();
+          for (let i=0;i<window._slips.length;i++){
+            if (String(window._slips[i].id) === String(id)) {
+              window._slips[i].amount = Number(norm).toFixed(2);
+              updated = true;
+              break;
+            }
+          }
+          // if not found in persisted list, attempt to add it there (rare)
+          let persisted = JSON.parse(localStorage.getItem('client_slips_v1') || '[]');
+          let found = false;
+          for (let i=0;i<persisted.length;i++){
+            if (String(persisted[i].id) === String(id)) { persisted[i].amount = Number(norm).toFixed(2); found = true; break; }
+          }
+          if (!found) {
+            // as fallback, add small record so persisted storage reflects amount
+            persisted.unshift({ id, createdAt: new Date().toISOString(), vehicleNo: '', filename: null, amount: Number(norm).toFixed(2) });
+          }
+          try { localStorage.setItem('client_slips_v1', JSON.stringify(persisted)); } catch(e){ console.warn('persist fallback failed', e); }
+
+          // finally re-render the current view (local state)
           renderSlipsTable(window._slips);
           alert('Amount saved locally (server not reachable).');
-        } catch (err) { console.error('Amount submit error', err); alert('Error saving amount.'); }
+        } catch (err) {
+          console.error('Amount submit error', err);
+          alert('Error saving amount.');
+        }
       });
     }
   });
@@ -508,92 +692,9 @@ function renderSlipsTable(slips) {
 
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
 
-/* collect form */
-function collectForm(){
-  // read raw inputs and preserve values (weights formatted via formatWeightForDisplay)
-  const tareVal = getVal('tare') || '';
-  const netVal = getVal('net') || '';
-  const grossVal = (getVal('gross') && String(getVal('gross')).trim() !== '') ? getVal('gross') : `${parseWeight(tareVal) + parseWeight(netVal)} Kg`;
-  return {
-    firmName: getVal('firmName'),
-    firmAddress: getVal('firmAddress'),
-    firmPhone: getVal('firmPhone'),
-    rstNo: getVal('rstNo'),
-    vehicleNo: getVal('vehicleNo'),
-    vehicleType: getVal('vehicleType'),
-    partyName: getVal('partyName'),
-    address: getVal('address'),
-    item: getVal('item'),
-    gross: formatWeightForDisplay(grossVal),
-    grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
-    grossTime: getVal('grossTime'),
-    tare: formatWeightForDisplay(tareVal),
-    tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
-    tareTime: getVal('tareTime'),
-    net: formatWeightForDisplay(netVal),
-    charges: (getVal('charges')||'0'),
-    phone: getVal('phone'),
-    savedAt: new Date().toISOString()
-  };
-}
-
-/* Login + bindings */
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const loginBtnEl = document.getElementById('loginBtn');
-    const logoutBtnEl = document.getElementById('logoutBtn');
-    const loginBoxEl = document.getElementById('loginBox');
-    const formCardEl = document.getElementById('formCard');
-    const dashboardCardEl = document.getElementById('dashboardCard');
-    const createBtnEl = document.getElementById('createBtn');
-
-    function setLoggedIn(flag) {
-      isLoggedIn = !!flag;
-      try { localStorage.setItem('slip_isLoggedIn', isLoggedIn ? '1' : '0'); } catch(e){}
-      if (isLoggedIn) { loginBoxEl.style.display = 'none'; formCardEl.style.display = 'block'; dashboardCardEl.style.display = 'block'; try { refreshList(); } catch(e){} }
-      else { loginBoxEl.style.display = 'block'; formCardEl.style.display = 'none'; dashboardCardEl.style.display = 'none'; }
-    }
-
-    loginBtnEl.addEventListener('click', () => {
-      const u = document.getElementById('username').value;
-      const p = document.getElementById('password').value;
-      if (u === USERNAME && p === PASSWORD) setLoggedIn(true);
-      else { const loginErr = document.getElementById('loginErr'); if (loginErr) { loginErr.style.display = 'block'; setTimeout(()=>loginErr.style.display='none',2000); } else alert('Invalid credentials'); }
-    });
-
-    logoutBtnEl.addEventListener('click', () => { setLoggedIn(false); try{ localStorage.removeItem('slip_isLoggedIn'); }catch(e){} });
-
-    try { const v = localStorage.getItem('slip_isLoggedIn'); if (v === '1') setLoggedIn(true); else setLoggedIn(false); } catch(e) { setLoggedIn(false); }
-
-    createBtnEl.addEventListener('click', handleCreateClick);
-
-    // normalization list (item intentionally NOT in list)
-    const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'];
-    ZERO_NORMALIZE_FIELDS.forEach(id=>{
-      const el = document.getElementById(id);
-      if(!el) return;
-      el.addEventListener('blur', ()=> { el.value = normalizeToAsciiZero(el.value || ''); });
-      el.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ setTimeout(()=> el.value = normalizeToAsciiZero(el.value || ''), 0); } });
-    });
-
-    // Live recompute gross when tare or net change
-    const tareEl = document.getElementById('tare');
-    const netEl = document.getElementById('net');
-    const grossEl = document.getElementById('gross');
-    function recomputeGrossField() {
-      try {
-        const t = parseWeight(tareEl ? tareEl.value : '');
-        const n = parseWeight(netEl ? netEl.value : '');
-        const g = Number(t) + Number(n);
-        if (grossEl) grossEl.value = `${Number(g).toFixed(0)} Kg`;
-      } catch(e) { console.warn(e); }
-    }
-    if (tareEl) { tareEl.addEventListener('input', recomputeGrossField); tareEl.addEventListener('blur', ()=>{ tareEl.value = formatWeightForDisplay(tareEl.value || ''); recomputeGrossField(); }); }
-    if (netEl) { netEl.addEventListener('input', recomputeGrossField); netEl.addEventListener('blur', ()=>{ netEl.value = formatWeightForDisplay(netEl.value || ''); recomputeGrossField(); }); }
-    // initialize gross correctly on load
-    try { recomputeGrossField(); } catch(e){}
-  } catch(e) { console.error('DOMContentLoaded error', e); }
-});
+/* persist/load */
+function persistLocalSlips(){ try{ localStorage.setItem('client_slips_v1', JSON.stringify(window._slips||[])); }catch(e){} }
+function loadLocalSlips(){ try{ const r=localStorage.getItem('client_slips_v1'); window._slips = r?JSON.parse(r):[]; }catch(e){ window._slips = []; } }
 
 /* initial load */
 refreshList();
