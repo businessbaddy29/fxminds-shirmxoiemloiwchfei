@@ -113,7 +113,7 @@
         </div>
 
         <div class="form-grid">
-          <label>Gross (weight): <input type="text" id="gross" value="70680 Kg"></label>
+          <label>Gross (weight): <input type="text" id="gross" value="70680 Kg" readonly></label>
           <label>Gross Date: <input type="text" id="grossDate" value="2025/11/08"></label>
         </div>
 
@@ -198,7 +198,7 @@
 <script>
 /* ---------- TEMPLATE ---------- */
 const TEMPLATE_HTML = `
-<div style='font-family: "SF Mono", monospace; color:#000; width:8in; box-sizing:border-box; padding:8px;'>
+<div style='font-family: "SF Mono", monospace; color:#333; width:8in; box-sizing:border-box; padding:8px;'>
   <div style="text-align:center; width:100%; margin-bottom:10px;">
       <div style="letter-spacing:2px; font-size:40px; font-weight:;">
           {{firmName}}
@@ -211,20 +211,20 @@ const TEMPLATE_HTML = `
       </div>
   </div>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "SF Mono", monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">   Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
 <span style="font-size:20px;">Net     :</span>      <span style="font-size:35px; font-weight:    ;">{{net}}</span>  <span style="font-size:20px;">  </span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -259,7 +259,13 @@ const closePreviewBtn = document.getElementById('closePreviewBtn');
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
 function esc(str){ const map={ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }; return String(str).replace(/[&<>"']/g,m=>map[m]); }
-function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''))||0; }
+function parseWeight(v){ 
+  if(!v && v !== 0) return 0;
+  // accept values like "15700 Kg", "15,700", "15700", "15 700 Kg"
+  const s = String(v).replace(/,/g,'').replace(/\s*Kg\s*/i,'').trim();
+  const num = Number(s) || 0;
+  return num;
+}
 
 /* -------------------
    ZERO NORMALIZATION
@@ -282,13 +288,12 @@ function normalizeToAsciiZero(s){
 }
 function normalizeRecordZeros(rec){
   const out = Object.assign({}, rec);
-  ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'].forEach(k=>{
+  // NOTE: removed 'item' from normalization to avoid altering textual item values
+  ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{
     if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
   });
   return out;
 }
-
-/* attach blur normalization later inside DOMContentLoaded */
 
 /* ---------- local slips ---------- */
 function generateSerial(){ try{ const k='slip_serial_counter_v1'; let v=Number(localStorage.getItem(k)||'0'); v=v+1; localStorage.setItem(k,String(v)); return String(v).padStart(13,'0'); }catch(e){ return String(Date.now()); } }
@@ -308,7 +313,8 @@ function renderSlipToDom(data){
     '{{vehicleType}}': esc(prettyZero(safe.vehicleType || '')),
     '{{partyName}}': esc(safe.partyName || ''),
     '{{address}}': esc(safe.address || ''),
-    '{{item}}': esc(prettyZero(safe.item || '')),
+    // item is NOT altered by normalization, so use raw safe.item if present
+    '{{item}}': esc(safe.item || ''),
     '{{gross}}': esc(prettyZero(safe.gross || '')),
     '{{grossDate}}': esc(safe.grossDate || ''),
     '{{grossTime}}': esc(safe.grossTime || ''),
@@ -550,9 +556,11 @@ document.getElementById('applyFilter').addEventListener('click', () => refreshLi
 
 /* collect form */
 function collectForm(){
-  const tareNum = parseWeight(getVal('tare'));
-  const netNum = parseWeight(getVal('net'));
-  const grossNum = tareNum + netNum;
+  // Use the current displayed gross (which we keep updated)
+  const grossVal = getVal('gross') || '';
+  const tareVal = getVal('tare') || '';
+  const netVal = getVal('net') || '';
+
   return {
     firmName: getVal('firmName'),
     firmAddress: getVal('firmAddress'),
@@ -563,13 +571,13 @@ function collectForm(){
     partyName: getVal('partyName'),
     address: getVal('address'),
     item: getVal('item'),
-    gross: `${Number(grossNum).toFixed(0)} Kg`,
+    gross: grossVal,
     grossDate: getVal('grossDate') || new Date().toISOString().slice(0,10),
     grossTime: getVal('grossTime'),
-    tare: `${Number(tareNum).toFixed(0)} Kg`,
+    tare: tareVal,
     tareDate: getVal('tareDate') || new Date().toISOString().slice(0,10),
     tareTime: getVal('tareTime'),
-    net: `${Number(netNum).toFixed(0)} Kg`,
+    net: netVal,
     charges: (getVal('charges')||'0'),
     phone: getVal('phone'),
     savedAt: new Date().toISOString()
@@ -636,13 +644,44 @@ document.addEventListener('DOMContentLoaded', () => {
     createBtnEl.addEventListener('click', handleCreateClick);
 
     // normalize fields on blur/enter
-    const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','item','firmPhone'];
+    // NOTE: removed 'item' from normalizing list to avoid changing textual item values
+    const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'];
     ZERO_NORMALIZE_FIELDS.forEach(id=>{
       const el = document.getElementById(id);
       if(!el) return;
       el.addEventListener('blur', ()=> { el.value = normalizeToAsciiZero(el.value || ''); });
       el.addEventListener('keydown', (ev)=>{ if(ev.key === 'Enter'){ setTimeout(()=> el.value = normalizeToAsciiZero(el.value || ''), 0); } });
     });
+
+    // --- Live recompute gross when tare or net change ---
+    const tareEl = document.getElementById('tare');
+    const netEl = document.getElementById('net');
+    const grossEl = document.getElementById('gross');
+
+    function recomputeGrossField() {
+      try {
+        const tareNum = parseWeight(tareEl ? tareEl.value : '');
+        const netNum = parseWeight(netEl ? netEl.value : '');
+        const grossNum = Number(tareNum) + Number(netNum);
+        if (grossEl) {
+          // keep formatting same as before: integer + " Kg"
+          grossEl.value = `${Number(grossNum).toFixed(0)} Kg`;
+        }
+      } catch (e) {
+        console.warn('recomputeGrossField error', e);
+      }
+    }
+
+    if (tareEl) {
+      tareEl.addEventListener('input', recomputeGrossField);
+      tareEl.addEventListener('blur', ()=>{ tareEl.value = normalizeToAsciiZero(tareEl.value || ''); recomputeGrossField(); });
+    }
+    if (netEl) {
+      netEl.addEventListener('input', recomputeGrossField);
+      netEl.addEventListener('blur', ()=>{ netEl.value = normalizeToAsciiZero(netEl.value || ''); recomputeGrossField(); });
+    }
+    // Also recompute once on load to ensure gross is consistent with tare+net
+    try { recomputeGrossField(); } catch(e){}
 
   } catch(e) {
     console.error('DOMContentLoaded login binding failed', e);
