@@ -78,10 +78,6 @@
     .filters-row { display:flex; gap:8px; align-items:center; }
     .filters-row input[type="text"] { width:160px; }
     .meta-right { text-align:right; font-weight:700; }
-
-    /* small controls in toolbar */
-    .tool-left { margin-right:auto; display:flex; gap:8px; align-items:center; }
-    .tool-left select, .tool-left input[type="number"], .tool-left input[type="range"] { font-family:inherit; }
   </style>
 </head>
 <body>
@@ -191,26 +187,6 @@
   <!-- Slip preview overlay -->
   <div id="slipOutput" role="dialog" aria-modal="true">
     <div id="previewToolbar">
-      <div class="tool-left">
-        <!-- Page size selector -->
-        <label for="printSize">Layout:</label>
-        <select id="printSize">
-          <option value="custom" selected>10 × 3.67 in</option>
-          <option value="10x5">10 × 5 in</option>
-          <option value="A4">A4</option>
-          <option value="Letter">Letter</option>
-          <option value="fit">Fit to page</option>
-        </select>
-
-        <!-- Fit to page checkbox -->
-        <label style="margin-left:8px;"><input type="checkbox" id="fitToPage"> Fit to page</label>
-
-        <!-- Scale controls -->
-        <label style="margin-left:8px;">Scale:</label>
-        <input type="range" id="scaleRange" min="35" max="120" value="100">
-        <input type="number" id="scaleNumber" min="35" max="120" value="100" style="width:60px">
-      </div>
-
       <button id="printPreviewBtn" class="btn btn-blue">Print</button>
       <button id="closePreviewBtn" class="btn btn-ghost">Close</button>
     </div>
@@ -235,20 +211,20 @@ const TEMPLATE_HTML = `
       </div>
   </div>
   <pre class="details" style='margin:0; padding:6px; white-space:pre; font-family: "SF Mono", monospace; line-height:1; font-size:18px;'>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">RST No.     : {{rstNo}}</span>                                   <span style="font-size:20px;">Vehicle No.      : {{vehicleNo}}</span>
 <span style="font-size:20px;">Vh l typ.   : {{vehicleType}}</span>                                      <span style="font-size:20px;"> Party name      : {{partyName}}</span>
 <span style="font-size:20px;">Address     : {{address}}</span>                                      <span style="font-size:20px;"> Item            : {{item}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
 <span style="font-size:20px;">Gross   :</span>      <span style="font-size:35px; font-weight:    ;">{{gross}}</span><span style="font-size:20px;">         Date  : {{grossDate}}</span>    <span style="font-size:20px;">   Time     :    {{grossTime}}</span>
 <span style="font-size:20px;">Tare    :</span>      <span style="font-size:35px; font-weight:    ;">{{tare}}</span><span style="font-size:20px;">         Date  : {{tareDate}}</span>       <span style="font-size:20px;">Time     :    {{tareTime}}</span>
 <span style="font-size:20px;">Net     :</span>      <span style="font-size:35px; font-weight:    ;">{{net}}</span>  <span style="font-size:20px;">  </span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 <span style="font-size:20px;">Charges : Rs {{charges}}</span>
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
                                             <span style="font-size:20px;">Phone : {{phone}}</span>
 
@@ -279,10 +255,6 @@ const slipInner = document.getElementById('slipInner');
 const slipContent = document.getElementById('slipContent');
 const printPreviewBtn = document.getElementById('printPreviewBtn');
 const closePreviewBtn = document.getElementById('closePreviewBtn');
-const printSizeEl = document.getElementById('printSize');
-const fitToPageEl = document.getElementById('fitToPage');
-const scaleRange = document.getElementById('scaleRange');
-const scaleNumber = document.getElementById('scaleNumber');
 
 /* helpers */
 function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
@@ -292,9 +264,29 @@ function parseWeight(v){ return Number((v||'').toString().replace(/\s*Kg\s*/i,''
 /* -------------------
    ZERO NORMALIZATION
    ------------------- */
-function prettyZero(raw){ if (raw === null || raw === undefined) return ''; return String(raw); }
-function normalizeToAsciiZero(s){ if(s === null || s === undefined) return ''; let t = String(s); t = t.replace(/0\//g, '0'); t = t.replace(/[\u00D8\u00F8]/g, '0'); t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0'); t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, ''); t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0'); return t; }
-function normalizeRecordZeros(rec){ const out = Object.assign({}, rec); ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{ if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k])); }); return out; }
+/* Keep DIGIT ZERO (U+0030). Do not convert it to slashed forms. */
+function prettyZero(raw){
+  if (raw === null || raw === undefined) return '';
+  return String(raw);
+}
+function normalizeToAsciiZero(s){
+  if(s === null || s === undefined) return '';
+  let t = String(s);
+  // common patterns -> plain 0
+  t = t.replace(/0\//g, '0');                      // "0/" -> "0"
+  t = t.replace(/[\u00D8\u00F8]/g, '0');           // Ø / ø -> 0
+  t = t.replace(/0[\u0337\u0338\u0335\u0336\u033F]+/g, '0'); // 0 + combining overlays
+  t = t.replace(/[\u0337\u0338\u0335\u0336\u033F]+/g, ''); // stray overlays
+  t = t.replace(/[\u1D7CE\u1D7D8\u1D7E2\u1D7F6]/g, '0'); // math zeros
+  return t;
+}
+function normalizeRecordZeros(rec){
+  const out = Object.assign({}, rec);
+  ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'].forEach(k=>{
+    if(out[k] !== undefined && out[k] !== null) out[k] = normalizeToAsciiZero(String(out[k]));
+  });
+  return out;
+}
 
 /* attach blur normalization later inside DOMContentLoaded */
 
@@ -350,14 +342,11 @@ function fitSlipPreview() {
     let scale = Math.min(scaleW, scaleH, 1);
     if (scale > 1) scale = 1;
     if (scale < 0.35) scale = 0.35;
-    // apply user scale multiplier
-    const userScale = Number(scaleNumber.value || scaleRange.value || 100) / 100;
-    const finalScale = Math.max(0.35, Math.min(1.5, scale * userScale));
     slipContent.style.position = 'absolute';
     slipContent.style.left = '50%';
     slipContent.style.top = '50%';
     slipContent.style.transformOrigin = 'center center';
-    slipContent.style.transform = `translate(-50%,-50%) scale(${finalScale})`;
+    slipContent.style.transform = `translate(-50%,-50%) scale(${scale})`;
     slipContent.style.width = `${naturalW}px`;
     slipContent.style.height = `${naturalH}px`;
   });
@@ -365,12 +354,17 @@ function fitSlipPreview() {
 
 /* resize & mutation observers */
 let resizeTimer = null;
-window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 120); });
+window.addEventListener('resize', ()=>{ if(resizeTimer) clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ fitSlipPreview(); resizeTimer=null; }, 80); });
 const mo = new MutationObserver(()=> fitSlipPreview());
 mo.observe(document.body, { childList:true, subtree:true });
 
 /* basic validation */
-function validateAll(){ const req = ['firmName','firmAddress','rstNo','vehicleNo','item']; let ok=true; req.forEach(id=>{ const el=document.getElementById(id); if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); }); return ok; }
+function validateAll(){
+  const req = ['firmName','firmAddress','rstNo','vehicleNo','item'];
+  let ok=true;
+  req.forEach(id=>{ const el=document.getElementById(id); if(!el || String(el.value||'').trim()===''){ ok=false; if(el) el.classList.add('err'); } else if(el) el.classList.remove('err'); });
+  return ok;
+}
 
 /* create handler */
 function handleCreateClick() {
@@ -381,55 +375,11 @@ function handleCreateClick() {
   addLocalSlipRecord(normalizedRec);
   renderSlipToDom(normalizedRec);
   slipOutput.style.display = 'block';
-  setTimeout(()=> fitSlipPreview(), 120);
-}
-
-/* print helpers: build @page and print overrides */
-function buildPrintCss() {
-  const sel = printSizeEl.value || 'custom';
-  const fit = fitToPageEl.checked;
-  const scale = Number(scaleNumber.value || scaleRange.value || 100) / 100;
-  let pageRule = '';
-  if (sel === 'custom' || sel === '10x3.67') {
-    pageRule = '@page { size: 10in 3.67in; margin: 6mm; }';
-  } else if (sel === '10x5') {
-    pageRule = '@page { size: 10in 5in; margin: 6mm; }';
-  } else if (sel === 'A4') {
-    pageRule = '@page { size: A4; margin: 8mm; }';
-  } else if (sel === 'Letter') {
-    pageRule = '@page { size: letter; margin: 8mm; }';
-  } else if (sel === 'fit') {
-    pageRule = '@page { size: auto; margin: 6mm; }';
-  }
-  // When fit is selected we let the browser scale; otherwise we apply transform on #slipContent at print time
-  const contentScale = fit ? '' : `#slipContent { transform-origin: top left !important; transform: scale(${scale}) !important; width:10in !important; }`;
-  // ensure background and fonts are preserved for printing
-  const extra = `
-    html,body{background:#fff!important}
-    #slipOutput{box-shadow:none!important}
-    #slipContent { margin:0 auto !important; }
-  `;
-  return `<style id="printOverrideStyle"> ${pageRule} ${contentScale} ${extra} </style>`;
+  setTimeout(()=> fitSlipPreview(), 80);
 }
 
 /* print & close */
-printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{
-  try {
-    // inject print CSS
-    const prev = document.getElementById('printOverrideStyle'); if (prev) prev.remove();
-    const css = buildPrintCss();
-    const wrapper = document.createElement('div'); wrapper.innerHTML = css; document.head.appendChild(wrapper.firstElementChild);
-
-    // ensure preview is ready
-    fitSlipPreview();
-    // listen for afterprint to cleanup
-    const cleanup = () => { const p = document.getElementById('printOverrideStyle'); if (p) p.remove(); window.removeEventListener('afterprint', cleanup); };
-    window.addEventListener('afterprint', cleanup);
-
-    // call print
-    setTimeout(()=> window.print(), 120);
-  } catch(e) { console.error('Print failed', e); alert('Print error — check console'); }
-});
+printPreviewBtn && printPreviewBtn.addEventListener('click', ()=>{ setTimeout(()=> window.print(), 60); });
 closePreviewBtn && closePreviewBtn.addEventListener('click', ()=>{ slipOutput.style.display='none'; });
 
 /* ---------- saved list / filter / amount submit ---------- */
@@ -473,12 +423,10 @@ async function refreshList() {
       }
       return true;
     });
-
     filtered.sort((a,b)=>{
       if (a.id != null && b.id != null) return Number(b.id) - Number(a.id);
       return (new Date(b.createdAt)).getTime() - (new Date(a.createdAt)).getTime();
     });
-
     renderSlipsTable(filtered);
   } catch (err) {
     console.error('refreshList', err);
@@ -541,6 +489,7 @@ function renderSlipsTable(slips) {
           return;
         }
         try {
+          // try server update
           let serverWorked = false;
           try {
             const resp = await fetch(AMOUNT_ENDPOINT, {
@@ -565,6 +514,7 @@ function renderSlipsTable(slips) {
             return;
           }
 
+          // fallback local update
           let updated = false;
           for (let i=0;i<window._slips.length;i++){
             if (String(window._slips[i].id) === String(id)) {
@@ -595,6 +545,7 @@ function renderSlipsTable(slips) {
   });
 }
 
+/* apply filter button */
 document.getElementById('applyFilter').addEventListener('click', () => refreshList());
 
 /* collect form */
@@ -684,10 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // attach create handler
     createBtnEl.addEventListener('click', handleCreateClick);
 
-    // scale controls binding
-    scaleRange.addEventListener('input', ()=>{ scaleNumber.value = scaleRange.value; fitSlipPreview(); });
-    scaleNumber.addEventListener('input', ()=>{ let v = Number(scaleNumber.value||100); if(isNaN(v)) v=100; v = Math.max(35, Math.min(120, v)); scaleNumber.value=v; scaleRange.value=v; fitSlipPreview(); });
-
     // normalize fields on blur/enter
     const ZERO_NORMALIZE_FIELDS = ['gross','tare','net','charges','phone','rstNo','vehicleNo','firmPhone'];
     ZERO_NORMALIZE_FIELDS.forEach(id=>{
@@ -702,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* initial */
+/* initial render */
 refreshList();
 </script>
 </body>
